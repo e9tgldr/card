@@ -223,7 +223,7 @@ Create `src/lib/liveScoring.test.js`:
 
 ```javascript
 import { describe, it, expect } from 'vitest';
-import { computeStandings, pickMvp } from '@/lib/liveScoring';
+import { pickMvp } from '@/lib/liveScoring';
 
 // answers shape per user:
 //   [{ round_idx, correct: bool, ms: int }, ...]
@@ -2820,7 +2820,7 @@ import { useLang } from '@/lib/i18n';
 import { FIGURES } from '@/lib/figuresData';
 import { buildRoundFromSeed } from '@/lib/seededRound';
 import { submitAnswer, requestNext, requestRematch } from '@/lib/liveRoomApi';
-import { computeStandings, pickMvp } from '@/lib/liveScoring';
+import { pickMvp } from '@/lib/liveScoring';
 import RoundPlayer from '@/components/game/RoundPlayer';
 import Timer from '@/components/game/Timer';
 import Standings from '@/components/game/Standings';
