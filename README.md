@@ -36,6 +36,8 @@ supabase functions deploy redeem-code --no-verify-jwt
 supabase functions deploy generate-codes
 supabase functions deploy list-codes
 supabase functions deploy delete-code
+supabase functions deploy game-create-session
+supabase functions deploy game-submit-result
 ```
 
 4. Copy `.env.example` → `.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from your project's Settings → API page.
@@ -64,3 +66,5 @@ Each `DO $$ ... $$` block raises on policy violations; no output means pass.
 
 - Design spec: [`docs/superpowers/specs/2026-04-23-supabase-migration-design.md`](docs/superpowers/specs/2026-04-23-supabase-migration-design.md)
 - Implementation plan: [`docs/superpowers/plans/2026-04-23-supabase-migration.md`](docs/superpowers/plans/2026-04-23-supabase-migration.md)
+- Quote game multiplayer spec: [`docs/superpowers/specs/2026-04-23-quote-game-multiplayer-design.md`](docs/superpowers/specs/2026-04-23-quote-game-multiplayer-design.md)
+- Quote game multiplayer plan (Phase 0+1): [`docs/superpowers/plans/2026-04-23-quote-game-multiplayer-phase-0-1.md`](docs/superpowers/plans/2026-04-23-quote-game-multiplayer-phase-0-1.md)

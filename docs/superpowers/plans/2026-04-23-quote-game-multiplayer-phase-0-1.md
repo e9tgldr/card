@@ -2780,3 +2780,46 @@ Inline execution was chosen. Environment was missing the tools required for Task
 - The `BrassButton` component lacks prop types; every usage across the codebase triggers `IntrinsicAttributes & RefAttributes<any>` typecheck errors (171 codebase-wide at time of writing). Not this plan's scope to fix.
 
 **Which approach?**
+
+### 2026-04-23 attempt 2 — shipped (Path A, Supabase MCP)
+
+**Outcome:** Phase 0 + Phase 1 complete and live on the hosted project. All 17 plan tasks done.
+
+**Route taken:** Docker Desktop install failed (ownership error on `C:\ProgramData\DockerDesktop`). User chose **Path A — Supabase MCP against the hosted project** instead of the CLI route. Migrations applied via `mcp__supabase__apply_migration`; edge functions shipped via `mcp__supabase__deploy_edge_function`. No Docker, no local Supabase stack.
+
+**Branch state:** Work continued on `feat/quote-game-multiplayer-phase-0-1` (a fresh branch, not a re-instantiation of attempt 1's). Attempt 1's 11 dangling commits were recovered from the reflog — the `git branch -D` at the end of attempt 1 had removed tracked scaffolding files (`App.jsx`, `i18n.jsx`, `Navbar.jsx`, `GameQuoteGuess.jsx`) from disk because master had never owned them. Recovering from SHA `103609d` restored 15 files; 27 existing vitest tests stayed green.
+
+**Deviations from the plan (intentional, adapt-as-we-go per user direction):**
+
+1. **`seededRound` rewritten for the real figure shape.** The plan assumed bilingual columns (`quote_en`/`quote_mn`/`name_en`/`name_mn`) that `src/lib/figuresData.js` never had — synthetic test fixtures hid the mismatch but the live game would have filtered every figure out and spun forever. New signature: `buildRoundFromSeed(figures, size, seed) -> [{ figId, quote, qattr, optionFigIds }]`. No `lang` parameter; name localisation moved to `GameQuoteGuess` at render time. Both client JS and server TS share the identical algorithm — server only needs `fig_id + cat + quote` for validation.
+
+2. **Edge Function `game-submit-result` imports FIGURES from `_shared/figures.ts`, not from the DB.** Reason: `public.figures` is empty on this project — canonical data lives in the client file. A 52-row minimal projection (fig_id + cat + quote + qattr) is bundled into the function. The `_shared/figures.ts` file is auto-generated from `src/lib/figuresData.js`; keep it in sync when figures change.
+
+3. **Pick verification tightened.** Server rejects any `pickedFigId` that wasn't in `optionFigIds` for that question — not just wrong-vs-correct. Closes a loophole where a client could submit an arbitrary figId and get lucky.
+
+4. **Task 0 removed the broken `typecheck` script** from `package.json` — it pointed at a `jsconfig.json` that didn't exist on this branch. Restored later when the attempt-1 scaffolding was checked out, and `jsconfig.json` came with it.
+
+5. **Data sparsity surfaced, not addressed.** Only **6 of 52 figures have non-null `quote`** (fig_ids 1, 3, 17, 34, 36, 49). Rounds cap at 6 questions regardless of `round_size` — `buildRoundFromSeed` does `Math.min(size, pool.length)`. Not a code issue; a content issue. Future work: add more quotes to `figuresData.js` (and regenerate `_shared/figures.ts`).
+
+6. **Test fixtures updated to real shape.** Plural `cat` values (`khans`, `warriors`) instead of the plan's singular `khan`/`warrior`. Single-language `name`/`quote`/`qattr` instead of `_en`/`_mn` pairs.
+
+**Applied infrastructure (verified live):**
+
+- 4 migrations applied on `vrjpoyeonjkzhxthpvjq.supabase.co`:
+  - `20260424000000_game_tables` — 4 tables + indexes
+  - `20260424000100_game_rls` — SECURITY DEFINER helpers + 13 policies
+  - `20260424000200_game_jobs` — `pg_cron` `expire-open-duels` every 15 min (active)
+  - `20260424000300_game_leaderboard_views` — weekly + all-time views
+- 2 edge functions deployed (version 1, ACTIVE): `game-create-session`, `game-submit-result`
+- RLS smoke tests extended and executed against live DB (4 new DO blocks, all pass silently)
+
+**Tests:** 28 vitest tests green (the attempt-1 27 plus 1 new quote-passthrough test after the seededRound rewrite). `npx vite build` clean.
+
+**Git identity workaround:** The machine has no `user.name` / `user.email` set. The rule is to never modify git config. Workaround used on every commit: `git -c user.email="indra@amjilt.com" -c user.name="Enkh" commit …`.
+
+**Known follow-ups (for future plans, not this one):**
+
+- Permission rule `mcp__supabase__apply_migration` + `mcp__supabase__deploy_edge_function` was added to `.claude/settings.local.json` (parent of the repo) — was required before the MCP would write to the prod project.
+- Phase 2 (live rooms) and Phase 3 (tournaments) still have no plans.
+- The `_shared/figures.ts` regeneration isn't automated. If `figuresData.js` grows a new `quote`, someone has to re-run the generator script (captured at `supabase/functions/_shared/figures.ts` top comment).
+- If the user later wants to expand `quote` coverage in `figuresData.js`, they should also consider whether `quote`/`qattr` should be bilingual — currently Mongolian-only by design.
