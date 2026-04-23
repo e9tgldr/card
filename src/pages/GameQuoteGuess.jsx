@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, CheckCircle2, XCircle, RefreshCw, Trophy, Share2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Trophy, Share2 } from 'lucide-react';
 import { FIGURES } from '@/lib/figuresData';
 import { useLang, figureName } from '@/lib/i18n';
 import { buildRoundFromSeed } from '@/lib/seededRound';
 import { createSession, submitResult, fetchSession } from '@/lib/gameApi';
-import CornerTicks from '@/components/ornaments/CornerTicks';
+import RoundPlayer from '@/components/game/RoundPlayer';
 import Fleuron from '@/components/ornaments/Fleuron';
 import CodexRule from '@/components/ornaments/CodexRule';
 import BrassButton from '@/components/ornaments/BrassButton';
@@ -196,54 +196,15 @@ export default function GameQuoteGuess() {
             transition={{ duration: 0.35 }}
             className="relative max-w-[56rem] mx-auto px-5 md:px-8 pb-16 space-y-8"
           >
-            <section className="relative bg-ink/60 border border-brass/35 px-6 md:px-12 py-10">
-              <CornerTicks size={14} inset={8} thickness={1} opacity={0.95} />
-              <span className="font-meta text-[9.5px] tracking-[0.32em] uppercase text-brass/70 block text-center mb-5">
-                {activeLang === 'en' ? 'Quotation' : 'Ишлэл'}
-              </span>
-              <p
-                className="font-display italic text-[clamp(1.2rem,3.2vw,2.1rem)] leading-snug text-ivory text-center"
-                style={{ fontVariationSettings: '"opsz" 72, "SOFT" 80, "WONK" 1' }}
-              >
-                &laquo; {q.quote} &raquo;
-              </p>
-            </section>
-
-            <div className="grid sm:grid-cols-2 gap-3">
-              {q.optionFigIds.map((optFigId, i) => {
-                const optFigure = FIGURES.find((f) => f.fig_id === optFigId);
-                const optName = figureName(optFigure, activeLang);
-                const isCorrect = optFigId === q.figId;
-                const isPicked = picked === optFigId;
-                const showResult = picked !== null;
-                let style = 'border-brass/40 hover:border-brass text-ivory bg-ink/40';
-                if (showResult) {
-                  if (isCorrect) style = 'border-green-500/70 text-green-400 bg-green-500/10';
-                  else if (isPicked) style = 'border-seal/70 text-seal bg-seal/10';
-                  else style = 'border-border text-ivory/55 bg-ink/30 opacity-60';
-                }
-                return (
-                  <button
-                    key={optFigId}
-                    onClick={() => choose(optFigId)}
-                    disabled={picked !== null}
-                    className={`group relative flex items-center gap-4 px-5 py-4 border ${style} text-left transition-colors`}
-                  >
-                    <span className="font-meta text-[9px] tracking-[0.3em] text-brass/70">
-                      {['I', 'II', 'III', 'IV'][i]}.
-                    </span>
-                    <span
-                      className="font-display text-[15px] leading-tight flex-1"
-                      style={{ fontVariationSettings: '"opsz" 30, "SOFT" 50' }}
-                    >
-                      {optName}
-                    </span>
-                    {showResult && isCorrect && <CheckCircle2 className="w-4 h-4 text-green-400" />}
-                    {showResult && isPicked && !isCorrect && <XCircle className="w-4 h-4 text-seal" />}
-                  </button>
-                );
-              })}
-            </div>
+            <RoundPlayer
+              question={q}
+              figures={FIGURES}
+              picked={picked}
+              onPick={choose}
+              revealed={picked !== null}
+              correctFigId={q.figId}
+              lang={activeLang}
+            />
 
             {picked !== null && (
               <motion.div
