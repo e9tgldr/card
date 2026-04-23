@@ -1082,28 +1082,35 @@ Deno.serve(async (req) => {
   if (userErr || !userData.user) return json({ ok: false, reason: 'unauthorized' }, 401);
   const userId = userData.user.id;
 
-  // session_id can come from query (GET) or body (POST).
+  // Accept either session_id (UUID) or join_code (6-char). Plan routes use
+  // the code; internal calls use the id. Try id first; fall back to code.
   let sessionId: string | null = null;
+  let joinCode: string | null = null;
   if (req.method === 'GET') {
-    sessionId = new URL(req.url).searchParams.get('session_id');
+    const params = new URL(req.url).searchParams;
+    sessionId = params.get('session_id');
+    joinCode = params.get('join_code');
   } else {
     try {
       const body = await req.json();
       sessionId = body?.session_id ?? null;
+      joinCode = body?.join_code ?? null;
     } catch {
       return json({ ok: false, reason: 'bad_request' }, 400);
     }
   }
-  if (!sessionId) return json({ ok: false, reason: 'bad_request' }, 400);
+  if (!sessionId && !joinCode) return json({ ok: false, reason: 'bad_request' }, 400);
 
   const admin = createClient(url, service);
 
-  const { data: session, error: sErr } = await admin
+  const query = admin
     .from('game_sessions')
-    .select('id, status, mode, lang, round_size, timer_s, host_user_id, current_round_idx, current_sent_at, current_deadline, rematch_session_id, seed, join_code')
-    .eq('id', sessionId)
-    .maybeSingle();
+    .select('id, status, mode, lang, round_size, timer_s, host_user_id, current_round_idx, current_sent_at, current_deadline, rematch_session_id, seed, join_code');
+  const { data: session, error: sErr } = await (
+    sessionId ? query.eq('id', sessionId) : query.eq('join_code', joinCode)
+  ).maybeSingle();
   if (sErr || !session) return json({ ok: false, reason: 'not_found' }, 404);
+  sessionId = session.id;
 
   // User must be a participant (or host) to read the snapshot.
   const { data: part } = await admin
@@ -2059,8 +2066,20 @@ async function callInvoke(name, body) {
   return data;
 }
 
-export async function snapshot(sessionId) {
-  const data = await callInvoke('game-live-snapshot', { session_id: sessionId });
+/**
+ * Fetch a session snapshot. Accepts either a UUID session_id or a 6-char
+ * join_code as a keyed arg.
+ *
+ * @param {string | { sessionId?: string, joinCode?: string }} idOrKeys
+ */
+export async function snapshot(idOrKeys) {
+  const body = typeof idOrKeys === 'string'
+    ? { session_id: idOrKeys }
+    : {
+        session_id: idOrKeys?.sessionId ?? null,
+        join_code: idOrKeys?.joinCode ?? null,
+      };
+  const data = await callInvoke('game-live-snapshot', body);
   if (!data?.ok) throw new Error(data?.reason ?? 'unknown_error');
   return data;
 }
@@ -2233,7 +2252,7 @@ import { snapshot } from '@/lib/liveRoomApi';
  *   presence: Record<string, boolean>,
  * }}
  */
-export function useLiveRoom(sessionId) {
+export function useLiveRoom(sessionIdOrKeys) {
   const [state, setState] = useState({
     loading: true,
     session: null,
@@ -2249,7 +2268,7 @@ export function useLiveRoom(sessionId) {
 
     async function init() {
       try {
-        const snap = await snapshot(sessionId);
+        const snap = await snapshot(sessionIdOrKeys);
         if (cancelled) return;
         setState((s) => ({
           ...s,
@@ -2263,7 +2282,10 @@ export function useLiveRoom(sessionId) {
         return;
       }
 
-      const channel = supabase.channel(`game:session:${sessionId}`);
+      // After snapshot resolves, we know the canonical session_id even if
+      // the caller only had a join_code. Use it for the Realtime channel.
+      const sid = snap.session.id;
+      const channel = supabase.channel(`game:session:${sid}`);
       channelRef.current = channel;
 
       channel.on('broadcast', { event: '*' }, (msg) => {
@@ -2296,7 +2318,7 @@ export function useLiveRoom(sessionId) {
         channelRef.current = null;
       }
     };
-  }, [sessionId]);
+  }, [typeof sessionIdOrKeys === 'string' ? sessionIdOrKeys : sessionIdOrKeys?.sessionId ?? sessionIdOrKeys?.joinCode]);
 
   return state;
 }
@@ -2650,22 +2672,15 @@ import LiveRoomLobby from '@/pages/LiveRoomLobby';
 import LiveRoomGame from '@/pages/LiveRoomGame';
 import Fleuron from '@/components/ornaments/Fleuron';
 
-// In production we look up the session_id from the :code param via a thin
-// endpoint. For now we pass the code through — the hook expects a session_id,
-// which the backend accepts either as a UUID or a join_code via a helper.
-function useSessionIdForCode(code) {
-  // Placeholder: assume join_code and session_id are interchangeable at the
-  // API layer. If not, add a `game-lookup-by-code` edge function.
-  return code;
-}
-
 export default function LiveRoom() {
   const { code } = useParams();
   const { t } = useLang();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const sessionId = useSessionIdForCode(code);
-  const room = useLiveRoom(sessionId);
+  // Pass the join_code to the hook; game-live-snapshot accepts either
+  // session_id or join_code (Task 10).
+  const room = useLiveRoom({ joinCode: code });
+  const sessionId = room.session?.id;
 
   // Auto-join on mount if not already a participant.
   useEffect(() => {
