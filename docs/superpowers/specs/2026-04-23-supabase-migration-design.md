@@ -12,7 +12,7 @@ Replace the localStorage stub at `src/api/base44Client.js` with a real backend o
 - Data layer: `Figure`, `Collection`, `AppSettings` entities → Postgres tables.
 - Auth: single user model. Every user (including admins) logs in with **username + password**. An **invite code** from an admin is required to create an account; the code is single-use. The first user bootstraps via a seeded admin-granting code.
 - File storage: figure images (`front_img`, `back_img`) move to a Supabase Storage bucket.
-- Seed: 52 figures loaded via SQL migration from the existing `src/lib/figuresData.js`.
+- Seed: default app_settings + one bootstrap invite code `ADMIN001`. **Figures are NOT seeded** — `src/lib/figuresData.js` remains the static source of truth for the 52 figures, and the `figures` DB table is used only as an admin-override store (per-`fig_id` row written by the admin panel, merged over static FIGURES by the existing Home.jsx merge logic).
 
 **Out of scope:**
 - Real LLM integration (the `InvokeLLM` stub stays as-is; returns the existing "unavailable" message).
@@ -167,9 +167,11 @@ The Proxy-based entity accessor stays: any `base44.entities.<AnyName>` returns a
 
 ### Seed data
 
-A SQL migration (`supabase/migrations/<timestamp>_seed_figures.sql`) inserts all 52 figures from `src/lib/figuresData.js`. After the migration, `figuresData.js` is deleted and any remaining imports are rewired to `Figure.list()`.
+A SQL migration (`supabase/migrations/<timestamp>_seed.sql`) inserts:
+- Default `app_settings` rows (`site_name`, `site_logo`).
+- The bootstrap invite code `ADMIN001` with `grants_admin = true`.
 
-Default `app_settings` rows (site name, logo, etc.) are inserted in the same migration.
+**Figures are NOT seeded.** `src/lib/figuresData.js` stays as the static source of truth for all 52 figures. The `figures` DB table is seeded empty and serves as an override store: admin edits write a row keyed on `fig_id`; the existing merge pattern in `src/pages/Home.jsx` (static FIGURES + DB overrides) becomes the canonical read path. All other consumers of `FIGURES` (FigureDetail, GameQuoteGuess, MyCollection, StoryTour, and 8 components) keep their static imports unchanged.
 
 ### Environment
 
@@ -203,7 +205,7 @@ Single PR. Since there's no production data and no prior git history, this is a 
 2. Apply migrations + seed.
 3. Deploy Edge Functions.
 4. Ship the `src/api/base44Client.js` rewrite + `OtpLogin` rewire + `AdminPanel` code generator + env vars.
-5. Delete `src/lib/figuresData.js`, delete the `base44/entities/*.jsonc` files (superseded by SQL migrations), delete LLM/`UploadFile` stubs from `base44Client.js` except the LLM "unavailable" message.
+5. Delete the `base44/entities/*.jsonc` files (superseded by SQL migrations). Keep `src/lib/figuresData.js` (static figure data, CATEGORIES, ERAS, TIMELINE_ITEMS remain in use). Keep the `InvokeLLM` stub in `base44Client.js`; replace the `UploadFile` stub with a Supabase Storage call.
 
 ## Open questions resolved
 
