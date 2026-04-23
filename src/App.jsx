@@ -13,6 +13,8 @@ import OtpGate from '@/components/OtpGate';
 import FigureDetail from '@/pages/FigureDetail';
 import MyCollection from '@/pages/MyCollection';
 import GameQuoteGuess from '@/pages/GameQuoteGuess';
+import LiveRoomNew from '@/pages/LiveRoomNew';
+import LiveRoom from '@/pages/LiveRoom';
 import StoryTour from '@/pages/StoryTour';
 import DuelIntro from '@/pages/DuelIntro';
 import DuelSummary from '@/pages/DuelSummary';
@@ -52,6 +54,8 @@ const AuthenticatedApp = () => {
       <Route path="/figure/:figId" element={<OtpGate><FigureDetail /></OtpGate>} />
       <Route path="/collection" element={<OtpGate><MyCollection /></OtpGate>} />
       <Route path="/games/quotes" element={<OtpGate><GameQuoteGuess /></OtpGate>} />
+      <Route path="/games/quotes/live/new" element={<OtpGate><LiveRoomNew /></OtpGate>} />
+      <Route path="/games/quotes/live/:code" element={<OtpGate><LiveRoom /></OtpGate>} />
       <Route path="/tour" element={<OtpGate><StoryTour /></OtpGate>} />
       <Route path="/duel/:id" element={<OtpGate><DuelIntro /></OtpGate>} />
       <Route path="/duel/:id/summary" element={<OtpGate><DuelSummary /></OtpGate>} />

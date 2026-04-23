@@ -169,6 +169,27 @@ export const STRINGS = {
   'leaderboard.empty':    { mn: 'Одоогоор бичлэг алга.',                     en: 'No scores yet.' },
   'leaderboard.yourRank': { mn: 'Таны байр',                                 en: 'Your rank' },
   'nav.leaderboard':      { mn: 'Тэргүүлэгчид',                              en: 'Leaderboard' },
+
+  // Live rooms (Phase 2)
+  'live.new.title':         { mn: 'Шинэ өрөө',                     en: 'New live room' },
+  'live.new.lang':          { mn: 'Хэл',                           en: 'Language' },
+  'live.new.roundSize':     { mn: 'Асуултын тоо',                  en: 'Question count' },
+  'live.new.timer':         { mn: 'Хугацаа',                       en: 'Timer' },
+  'live.new.playerCap':     { mn: 'Хамгийн их тоглогч',            en: 'Max players' },
+  'live.new.submit':        { mn: 'Өрөөг үүсгэх',                  en: 'Create room' },
+  'live.lobby.joinCode':    { mn: 'Орох код',                      en: 'Join code' },
+  'live.lobby.players':     { mn: 'Тоглогчид',                     en: 'Players' },
+  'live.lobby.start':       { mn: 'Эхлэх',                         en: 'Start' },
+  'live.lobby.waitingForHost': { mn: 'Хост эхлэхийг хүлээж байна…', en: 'Waiting for the host to start…' },
+  'live.game.question':     { mn: 'Асуулт',                        en: 'Question' },
+  'live.game.timer':        { mn: 'Хугацаа',                       en: 'Timer' },
+  'live.game.standings':    { mn: 'Оноон байрлал',                 en: 'Standings' },
+  'live.reveal.correct':    { mn: 'Зөв хариулт',                   en: 'Correct answer' },
+  'live.reveal.nextIn':     { mn: 'Дараагийн асуулт…',             en: 'Next question in…' },
+  'live.results.mvp':       { mn: 'MVP',                           en: 'MVP' },
+  'live.results.rematch':   { mn: 'Дахин сорилт',                  en: 'Rematch' },
+  'live.results.joinRematch': { mn: 'Шинэ өрөөнд нэгдэх',          en: 'Join new room' },
+  'live.abandoned':         { mn: 'Энэ өрөө дууссан байна.',       en: 'This room has ended.' },
 };
 
 const LangContext = createContext({ lang: 'mn', setLang: () => {}, t: (k) => k });
