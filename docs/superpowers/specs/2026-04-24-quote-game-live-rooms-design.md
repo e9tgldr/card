@@ -82,14 +82,23 @@ alter table game_sessions
   add column current_deadline     timestamptz,
   add column rematch_session_id   uuid references game_sessions(id) on delete set null;
 
--- Unique partial index doubles as the atomic CAS lock for the rematch race.
-create unique index game_sessions_rematch_unique
-  on game_sessions (id)
+-- rematch race is won via CAS `UPDATE … WHERE rematch_session_id IS NULL`
+-- which is already atomic at the row level; no extra index needed for lock
+-- semantics. Unique partial index below just enforces that each new session
+-- can be the rematch of at most one old session (no double-linking).
+create unique index game_sessions_rematch_target_unique
+  on game_sessions (rematch_session_id)
   where rematch_session_id is not null;
 
 alter table game_participants
   add column current_score          int     not null default 0,
   add column current_round_answer   jsonb;  -- { pickedFigId, ms, correct } | null
+
+-- Column-level revoke so direct REST reads of game_participants never expose
+-- other players' in-progress picks. Authenticated users get current_round_answer
+-- only through v_game_participants_safe (defined below), which masks it per-user.
+-- Service role (edge functions) bypasses GRANT/REVOKE and reads freely.
+revoke select (current_round_answer) on game_participants from authenticated, anon;
 ```
 
 ### 5.2 Column semantics
@@ -103,14 +112,11 @@ alter table game_participants
 
 ### 5.3 RLS updates (in the same migration)
 
-```sql
--- Per-player answer visibility: only the user themselves or the session host
--- can read current_round_answer content. Everyone else sees nulls.
--- This is enforced by a view layer — the raw column is readable by any
--- participant under the existing game_participants policy, but clients should
--- select through v_game_participants_safe which masks the jsonb based on
--- auth.uid().
+Direct reads of `game_participants.current_round_answer` are blocked at the
+column level (see REVOKE above). Clients read the column through a view that
+masks other players' answers during the game:
 
+```sql
 create view v_game_participants_safe as
   select
     session_id,
@@ -125,6 +131,11 @@ create view v_game_participants_safe as
 
 grant select on v_game_participants_safe to authenticated;
 ```
+
+The view inherits RLS from `game_participants` (only session participants /
+hosts / admins see any rows at all), and the `case` expression masks the
+sensitive column within that set. Defense in depth: even a query that bypassed
+the view by going direct to the table would be denied by the REVOKE.
 
 ## 6. Edge Function `game-live-event`
 
