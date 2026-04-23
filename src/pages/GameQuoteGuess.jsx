@@ -51,11 +51,11 @@ export default function GameQuoteGuess() {
 
   const round = useMemo(() => {
     if (!sessionState) return [];
-    return buildRoundFromSeed(FIGURES, sessionState.lang, sessionState.round_size, sessionState.seed);
+    return buildRoundFromSeed(FIGURES, sessionState.round_size, sessionState.seed);
   }, [sessionState]);
 
   const [idx, setIdx] = useState(0);
-  const [picked, setPicked] = useState(null);
+  const [picked, setPicked] = useState(null); // picked figId (number) or null
   const [score, setScore] = useState(0);
   const [done, setDone] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -67,18 +67,15 @@ export default function GameQuoteGuess() {
   }, [idx]);
 
   const choose = useCallback(
-    (opt) => {
+    (pickedFigId) => {
       if (picked !== null) return;
-      setPicked(opt);
+      setPicked(pickedFigId);
       const q = round[idx];
       const ms = Date.now() - questionStartRef.current;
-      const match = FIGURES.find((f) => figureName(f, sessionState.lang) === opt);
-      const pickedFigId = match?.fig_id ?? null;
-      const isCorrect = opt === q.correct;
-      if (isCorrect) setScore((s) => s + 1);
+      if (pickedFigId === q.figId) setScore((s) => s + 1);
       setAnswers((prev) => [...prev, { idx, pickedFigId, ms }]);
     },
-    [picked, round, idx, sessionState],
+    [picked, round, idx],
   );
 
   const next = useCallback(async () => {
@@ -143,8 +140,9 @@ export default function GameQuoteGuess() {
   }
 
   const q = round[idx];
-  const pickedRight = picked === q?.correct;
-  const pct = Math.round(((idx + (picked ? 1 : 0)) / round.length) * 100);
+  const pickedRight = picked === q?.figId;
+  const pct = Math.round(((idx + (picked !== null ? 1 : 0)) / round.length) * 100);
+  const correctName = q ? figureName(FIGURES.find((f) => f.fig_id === q.figId), activeLang) : '';
 
   return (
     <div className="min-h-screen bg-ink contour-bg">
@@ -212,9 +210,11 @@ export default function GameQuoteGuess() {
             </section>
 
             <div className="grid sm:grid-cols-2 gap-3">
-              {q.options.map((opt, i) => {
-                const isCorrect = opt === q.correct;
-                const isPicked = picked === opt;
+              {q.optionFigIds.map((optFigId, i) => {
+                const optFigure = FIGURES.find((f) => f.fig_id === optFigId);
+                const optName = figureName(optFigure, activeLang);
+                const isCorrect = optFigId === q.figId;
+                const isPicked = picked === optFigId;
                 const showResult = picked !== null;
                 let style = 'border-brass/40 hover:border-brass text-ivory bg-ink/40';
                 if (showResult) {
@@ -224,8 +224,8 @@ export default function GameQuoteGuess() {
                 }
                 return (
                   <button
-                    key={i}
-                    onClick={() => choose(opt)}
+                    key={optFigId}
+                    onClick={() => choose(optFigId)}
                     disabled={picked !== null}
                     className={`group relative flex items-center gap-4 px-5 py-4 border ${style} text-left transition-colors`}
                   >
@@ -236,7 +236,7 @@ export default function GameQuoteGuess() {
                       className="font-display text-[15px] leading-tight flex-1"
                       style={{ fontVariationSettings: '"opsz" 30, "SOFT" 50' }}
                     >
-                      {opt}
+                      {optName}
                     </span>
                     {showResult && isCorrect && <CheckCircle2 className="w-4 h-4 text-green-400" />}
                     {showResult && isPicked && !isCorrect && <XCircle className="w-4 h-4 text-seal" />}
@@ -257,8 +257,8 @@ export default function GameQuoteGuess() {
                       ? '✓ Correct.'
                       : '✓ Зөв байна.'
                     : activeLang === 'en'
-                      ? `✗ It was: ${q.correct}`
-                      : `✗ Зөв хариулт: ${q.correct}`}
+                      ? `✗ It was: ${correctName}`
+                      : `✗ Зөв хариулт: ${correctName}`}
                   {q.qattr && (
                     <span className="ml-2 font-meta text-[10px] tracking-[0.22em] uppercase text-brass/60">
                       — {q.qattr}
