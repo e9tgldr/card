@@ -2748,4 +2748,35 @@ Phase 2 (live rooms) and Phase 3 (tournaments) are deliberately out of scope —
 
 **2. Inline Execution** — Execute tasks in this session using executing-plans, batch execution with checkpoints.
 
+---
+
+## Execution log
+
+### 2026-04-23 — first attempt, abandoned
+
+**Status:** nothing from this plan is on `master`. The attempt branch was discarded at the end of the session.
+
+**What was attempted:**
+Inline execution was chosen. Environment was missing the tools required for Tasks 2–9 (`supabase` CLI, `docker`, `deno`). The sandbox refused `winget` installs. A fallback ("Path C") was chosen: execute only the code-verifiable tasks (0, 1, 10, 11, 12, 13, 14, 15, 16, 17) on a feature branch `feat/quote-game-multiplayer-phase-0-1`, leaving Tasks 2–9 for a future session with the tools installed.
+
+**Code-only pass completed:** 11 commits, 27 vitest tests green (5 test files). Work was then discarded at user request; the branch was deleted force.
+
+**Environment gap (for next session):**
+- `supabase` CLI — not installed on PATH
+- `docker` — not installed; Docker Desktop needs admin + WSL2
+- `deno` — not installed; sandbox blocked `winget install DenoLand.Deno` as system-wide scope escalation
+
+**Recovery paths for next session:**
+1. **Full plan (Tasks 0–17):** install the three tools first (`scoop install supabase deno`; Docker Desktop manually with admin + WSL2; restart Claude Code so PATH refreshes). Then execute from Task 0.
+2. **Path C again (Tasks 0, 1, 10–17):** if tools still unavailable, these 10 tasks can be done without Supabase/Docker/Deno. Manual smoke tests of Task 11 (`GameQuoteGuess` refactor) and Task 16 (route wiring) can't run end-to-end without the Edge Functions deployed, but unit tests cover the pure logic.
+3. **Remote Supabase:** if the user has a real Supabase project (they do per README), an alternative is linking to it and using `supabase db push` + `supabase functions deploy` against the remote instead of a local stack. This requires the Supabase CLI but not Docker. **Risk:** this pushes to a real project — needs explicit confirmation and awareness of existing data.
+
+**Notes for whoever resumes:**
+- The task order in the plan is correct; Task 0 (vitest config) and Task 1 (seeded round JS) are prerequisites that were proven to work on the discarded branch.
+- `useAuth()` returns `{ user: { id, email, full_name, role } }` — not `{ session: { user: ... } }`. Test mocks in Tasks 13–15 must use the former shape (the plan's test code in those tasks already does).
+- The existing Supabase client is exported from `@/lib/supabase` (not `@/lib/supabaseClient`). Task 10 correctly imports from there; ignore any plan references to `supabaseClient`.
+- Vitest needs `@vitejs/plugin-react` wired into `vitest.config.js` for JSX to compile in tests. This isn't in the original Task 0 step but is required — add it when configuring vitest, before any `.jsx` tests run.
+- The project's `jsconfig.json` has `checkJs: true` and `include: ["src/components/**/*.js", "src/pages/**/*.jsx", "src/Layout.jsx"]`. Test files `src/**/*.test.jsx` are matched by the include, so typecheck picks them up and fails because vitest/jest-dom matchers aren't in `types`. Add `src/**/*.test.jsx`, `src/**/*.test.js`, `src/test` to `exclude` to keep typecheck clean.
+- The `BrassButton` component lacks prop types; every usage across the codebase triggers `IntrinsicAttributes & RefAttributes<any>` typecheck errors (171 codebase-wide at time of writing). Not this plan's scope to fix.
+
 **Which approach?**
