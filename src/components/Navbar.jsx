@@ -11,12 +11,13 @@ import Fleuron from '@/components/ornaments/Fleuron';
 import CornerTicks from '@/components/ornaments/CornerTicks';
 
 const NAV_ITEMS = [
-  { roman: 'I',   key: 'nav.home',     target: 'hero' },
-  { roman: 'II',  key: 'nav.codex',    target: 'gallery' },
-  { roman: 'III', key: 'nav.chapters', target: 'chapters' },
-  { roman: 'IV',  key: 'nav.myteam',   target: 'myteam' },
-  { roman: 'V',   key: 'nav.map',      target: 'map' },
-  { roman: 'VI',  key: 'nav.timeline', target: 'timeline' },
+  { roman: 'I',    key: 'nav.home',        target: 'hero' },
+  { roman: 'II',   key: 'nav.codex',       target: 'gallery' },
+  { roman: 'III',  key: 'nav.chapters',    target: 'chapters' },
+  { roman: 'IV',   key: 'nav.myteam',      target: 'myteam' },
+  { roman: 'V',    key: 'nav.engagements', target: 'engagements' },
+  { roman: 'VI',   key: 'nav.map',         target: 'map' },
+  { roman: 'VII',  key: 'nav.timeline',    target: 'timeline' },
 ];
 
 export default function Navbar({ onScrollTo }) {

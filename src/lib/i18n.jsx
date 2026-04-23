@@ -25,10 +25,11 @@ export const STRINGS = {
   // Navbar
   'nav.home':      { mn: 'Нүүр',         en: 'Home' },
   'nav.codex':     { mn: 'Кодекс',       en: 'Codex' },
-  'nav.chapters':  { mn: 'Бүлгүүд',      en: 'Chapters' },
-  'nav.myteam':    { mn: 'Миний Баг',    en: 'My Team' },
-  'nav.map':       { mn: 'Газар',        en: 'Map' },
-  'nav.timeline':  { mn: 'Он Дараалал',  en: 'Timeline' },
+  'nav.chapters':    { mn: 'Бүлгүүд',        en: 'Chapters' },
+  'nav.myteam':      { mn: 'Миний Баг',      en: 'My Team' },
+  'nav.engagements': { mn: 'Тоглоом',        en: 'Games' },
+  'nav.map':         { mn: 'Газар',          en: 'Map' },
+  'nav.timeline':    { mn: 'Он Дараалал',    en: 'Timeline' },
   'nav.collection':{ mn: 'Цуглуулга',    en: 'Collection' },
   'nav.logout':    { mn: 'Гарах',        en: 'Logout' },
 
