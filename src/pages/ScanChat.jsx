@@ -155,8 +155,20 @@ function TypingIndicator() {
   );
 }
 
-// Stub: Task 9 replaces this with an edge-function call + caching.
-function speakClient(text, lang) {
+async function speakClient(text, lang) {
+  try {
+    const { supabase } = await import('@/lib/supabase');
+    const { data, error } = await supabase.functions.invoke('speak', { body: { text, lang } });
+    if (!error && data?.ok && data.url) {
+      const audio = new Audio(data.url);
+      audio.play().catch(() => speakWithWebSpeech(text, lang));
+      return;
+    }
+  } catch { /* fall through */ }
+  speakWithWebSpeech(text, lang);
+}
+
+function speakWithWebSpeech(text, lang) {
   if (!('speechSynthesis' in window)) return;
   const u = new SpeechSynthesisUtterance(text);
   u.lang = { mn: 'mn-MN', en: 'en-US', cn: 'zh-CN' }[lang] ?? 'mn-MN';
