@@ -94,3 +94,56 @@ begin
 
   delete from tournaments where id = tid;
 end $$;
+
+-- ============================================================
+-- Live rooms RLS smoke (Phase 2).
+-- ============================================================
+
+-- authenticated cannot SELECT current_round_answer from game_participants directly
+do $$
+begin
+  set local role authenticated;
+  begin
+    perform current_round_answer from game_participants limit 1;
+    raise exception 'authenticated should not be able to select current_round_answer directly';
+  exception when insufficient_privilege then
+    null; -- expected
+  end;
+end $$;
+reset role;
+
+-- v_game_participants_safe is grantable and readable by authenticated
+do $$
+declare n int;
+begin
+  set local role authenticated;
+  select count(*) into n from v_game_participants_safe;
+  -- Count may be 0 if no sessions exist for this role; the select just must not raise.
+end $$;
+reset role;
+
+-- Unique partial index rejects double-linking a rematch target
+do $$
+declare a uuid; declare b uuid; declare target uuid;
+begin
+  insert into game_sessions (seed, mode, lang, host_user_id, status)
+  values ('SEED_A', 'live_room', 'mn', (select id from auth.users limit 1), 'open')
+  returning id into a;
+  insert into game_sessions (seed, mode, lang, host_user_id, status)
+  values ('SEED_B', 'live_room', 'mn', (select id from auth.users limit 1), 'open')
+  returning id into b;
+  insert into game_sessions (seed, mode, lang, host_user_id, status)
+  values ('SEED_T', 'live_room', 'mn', (select id from auth.users limit 1), 'open')
+  returning id into target;
+
+  update game_sessions set rematch_session_id = target where id = a;
+
+  begin
+    update game_sessions set rematch_session_id = target where id = b;
+    raise exception 'double-linking rematch_session_id should be blocked by unique index';
+  exception when unique_violation then
+    null; -- expected
+  end;
+
+  delete from game_sessions where id in (a, b, target);
+end $$;
