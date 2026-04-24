@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { CATEGORIES } from '@/lib/figuresData';
 import AdminTournaments from '@/components/admin/Tournaments';
 import AdminVoices from '@/components/admin/Voices';
+import StoryEditorModal from '@/components/admin/StoryEditorModal';
 import { base44 } from '@/api/base44Client';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { listInviteCodes, createInviteCode, deleteInviteCode, listAccounts } from '@/lib/authStore';
@@ -25,6 +26,7 @@ function AdminToast({ message, isError }) {
 export default function AdminPanel({ figures, onClose, onFiguresChange }) {
   const [tab, setTab] = useState('dashboard');
   const [selectedFig, setSelectedFig] = useState(null);
+  const [storyEditing, setStoryEditing] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [figSearch, setFigSearch] = useState('');
   const [toast, setToast] = useState(null);
@@ -421,6 +423,18 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
                   </div>
 
                   <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground font-body">Түүх (Phase C)</label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStoryEditing(selectedFig)}
+                      className="w-full"
+                    >
+                      📝 Түүх засах (mn + en)
+                    </Button>
+                  </div>
+
+                  <div className="space-y-1.5">
                     <label className="text-xs text-muted-foreground font-body">Гавьяа (мөр бүрт нэг)</label>
                     <Textarea value={editForm.achs} onChange={e => setEditForm({...editForm, achs: e.target.value})} className="bg-muted border-none text-sm font-body min-h-[80px]" />
                   </div>
@@ -670,6 +684,15 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
         </TabsContent>
 
       </Tabs>
+
+      {/* Story editor modal */}
+      {storyEditing && (
+        <StoryEditorModal
+          figure={storyEditing}
+          onClose={() => setStoryEditing(null)}
+          onToast={showToast}
+        />
+      )}
 
       {/* Toast */}
       {toast && <AdminToast message={toast.message} isError={toast.isError} />}
