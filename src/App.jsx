@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { LangProvider } from '@/lib/i18n';
@@ -23,6 +23,7 @@ import DuelSummary from '@/pages/DuelSummary';
 import Leaderboard from '@/pages/Leaderboard';
 import Tournaments from '@/pages/Tournaments';
 import TournamentDetail from '@/pages/TournamentDetail';
+import StoryChapter from '@/pages/StoryChapter';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -63,6 +64,8 @@ const AuthenticatedApp = () => {
       <Route path="/games/quotes/live/new" element={<OtpGate><LiveRoomNew /></OtpGate>} />
       <Route path="/games/quotes/live/:code" element={<OtpGate><LiveRoom /></OtpGate>} />
       <Route path="/tour" element={<OtpGate><StoryTour /></OtpGate>} />
+      <Route path="/story/:chapter" element={<OtpGate><StoryChapter /></OtpGate>} />
+      <Route path="/story" element={<Navigate to="/#chapters" replace />} />
       <Route path="/duel/:id" element={<OtpGate><DuelIntro /></OtpGate>} />
       <Route path="/duel/:id/summary" element={<OtpGate><DuelSummary /></OtpGate>} />
       <Route path="/leaderboard" element={<OtpGate><Leaderboard /></OtpGate>} />
