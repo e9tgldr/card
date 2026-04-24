@@ -1,0 +1,381 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Newsreader:ital,opsz,wght@0,6..72,300..800;1,6..72,300..700&family=IBM+Plex+Mono:wght@300;400;500;600&family=Noto+Serif+Mongolian&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Codex palette — bone-ash ground, aged ivory, imperial seal, aged brass, lapis, steppe earth */
+    --ink:          32 24% 6%;     /* #0E0B07  bone-ash ground */
+    --ivory:        42 55% 92%;    /* #F6EEDD  aged ivory */
+    --ivory-dim:    42 40% 82%;    /* parchment highlight */
+    --seal:         0 70% 36%;     /* #9A1B1B  imperial seal red */
+    --seal-soft:    0 55% 42%;     /* softened seal for text */
+    --brass:        39 51% 53%;    /* #C69A4A  aged brass */
+    --brass-deep:   36 45% 38%;    /* oxidized brass for hairlines */
+    --lapis:        210 48% 23%;   /* #1F3857  cold accent */
+    --steppe:       33 15% 25%;    /* #4A4237  earth neutral */
+
+    /* shadcn token remap onto codex palette */
+    --background: var(--ink);
+    --foreground: var(--ivory);
+    --card: 32 20% 9%;
+    --card-foreground: var(--ivory);
+    --popover: 32 20% 8%;
+    --popover-foreground: var(--ivory);
+    --primary: var(--seal);
+    --primary-foreground: var(--ivory);
+    --secondary: var(--brass);
+    --secondary-foreground: var(--ink);
+    --muted: 32 14% 14%;
+    --muted-foreground: 42 15% 58%;
+    --accent: var(--brass);
+    --accent-foreground: var(--ink);
+    --destructive: 0 80% 48%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 36 20% 18%;
+    --input: 36 20% 16%;
+    --ring: var(--brass);
+    --chart-1: var(--seal);
+    --chart-2: var(--brass);
+    --chart-3: var(--lapis);
+    --chart-4: 160 30% 35%;
+    --chart-5: 280 30% 45%;
+    --radius: 0.125rem;  /* hard-edged catalog corners, not rounded SaaS */
+
+    /* legacy aliases (kept for existing components; will look coherent now) */
+    --crimson: #9A1B1B;
+    --gold: #C69A4A;
+    --font-cinzel: 'Fraunces', 'Newsreader', serif;
+    --font-body: 'Newsreader', 'Noto Serif Mongolian', Georgia, serif;
+    --font-playfair: 'Fraunces', serif;
+    --font-cormorant: 'Fraunces', 'Newsreader', serif;
+
+    /* new codex fonts */
+    --font-display: 'Fraunces', 'Newsreader', serif;
+    --font-prose:   'Newsreader', Georgia, serif;
+    --font-meta:    'IBM Plex Mono', ui-monospace, monospace;
+    --font-bichig:  'Noto Serif Mongolian', 'Newsreader', serif;
+
+    --sidebar-background: 32 20% 8%;
+    --sidebar-foreground: var(--ivory);
+    --sidebar-primary: var(--seal);
+    --sidebar-primary-foreground: var(--ivory);
+    --sidebar-accent: var(--brass);
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: 36 20% 18%;
+    --sidebar-ring: var(--brass);
+  }
+
+  .dark {
+    --background: var(--ink);
+    --foreground: var(--ivory);
+    --card: 32 20% 9%;
+    --card-foreground: var(--ivory);
+    --popover: 32 20% 8%;
+    --popover-foreground: var(--ivory);
+    --primary: var(--seal);
+    --primary-foreground: var(--ivory);
+    --secondary: var(--brass);
+    --secondary-foreground: var(--ink);
+    --muted: 32 14% 14%;
+    --muted-foreground: 42 15% 58%;
+    --accent: var(--brass);
+    --accent-foreground: var(--ink);
+    --destructive: 0 80% 48%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 36 20% 18%;
+    --input: 36 20% 16%;
+    --ring: var(--brass);
+    --chart-1: var(--seal);
+    --chart-2: var(--brass);
+    --chart-3: var(--lapis);
+    --chart-4: 160 30% 35%;
+    --chart-5: 280 30% 45%;
+    --sidebar-background: 32 20% 8%;
+    --sidebar-foreground: var(--ivory);
+    --sidebar-primary: var(--seal);
+    --sidebar-primary-foreground: var(--ivory);
+    --sidebar-accent: var(--brass);
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: 36 20% 18%;
+    --sidebar-ring: var(--brass);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html, body {
+    background-color: hsl(var(--ink));
+    color: hsl(var(--ivory));
+  }
+  body {
+    font-family: var(--font-prose);
+    font-feature-settings: "onum" 1, "liga" 1, "kern" 1;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Paper-grain texture overlay — site-wide, very low opacity, warms digital-flat surfaces */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.055;
+  mix-blend-mode: screen;
+  background-image:
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.96  0 0 0 0 0.87  0 0 0 0 0.67  0 0 0 0.8 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 260px 260px;
+}
+
+/* Engraved contour-line ambient background (opt-in with .contour-bg) */
+.contour-bg {
+  position: relative;
+}
+.contour-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.09;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800' fill='none' stroke='%23C69A4A' stroke-width='0.7'%3E%3Cpath d='M-40 620 Q200 500 420 560 T900 500'/%3E%3Cpath d='M-40 560 Q180 440 400 500 T900 440'/%3E%3Cpath d='M-40 500 Q160 380 380 440 T900 380'/%3E%3Cpath d='M-40 440 Q140 320 360 380 T900 320'/%3E%3Cpath d='M-40 380 Q120 260 340 320 T900 260'/%3E%3Cpath d='M-40 320 Q100 200 320 260 T900 200'/%3E%3Cpath d='M-40 260 Q80 140 300 200 T900 140'/%3E%3Cpath d='M-40 200 Q60 80 280 140 T900 80'/%3E%3C/svg%3E");
+  background-size: 120% 120%;
+  background-position: center;
+  background-repeat: no-repeat;
+  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, transparent 72%);
+}
+
+/* Scroll progress bar — brass hairline */
+#scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, hsl(var(--seal)), hsl(var(--brass)));
+  z-index: 9999;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 8px hsla(var(--brass) / 0.35);
+}
+
+/* Card hover sheen — subtle brass */
+.figure-card {
+  --mx: 0.5;
+  --my: 0.5;
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.figure-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at calc(var(--mx) * 100%) calc(var(--my) * 100%),
+    rgba(198, 154, 74, 0.14) 0%,
+    transparent 55%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.figure-card:hover::after {
+  opacity: 1;
+}
+
+/* Reveal animations */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-48px);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-left.visible { opacity: 1; transform: translateX(0); }
+.reveal-right {
+  opacity: 0;
+  transform: translateX(48px);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-right.visible { opacity: 1; transform: translateX(0); }
+
+/* Typing indicator */
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+.typing-dot {
+  animation: typingBounce 1.4s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Ink-blotch pulse for seals */
+@keyframes sealPulse {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(154, 27, 27, 0.35)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(154, 27, 27, 0.70)); }
+}
+.seal-pulse { animation: sealPulse 3.2s ease-in-out infinite; }
+
+/* Brass glow */
+@keyframes brassGlow {
+  0%, 100% { box-shadow: 0 0 6px rgba(198, 154, 74, 0.25), inset 0 0 0 1px rgba(198, 154, 74, 0.25); }
+  50%      { box-shadow: 0 0 14px rgba(198, 154, 74, 0.55), inset 0 0 0 1px rgba(198, 154, 74, 0.55); }
+}
+.brass-glow { animation: brassGlow 3s ease-in-out infinite; }
+
+/* Page-turn reveal (hero) */
+@keyframes pageTurn {
+  from { opacity: 0; transform: translateX(-2%) skewY(0.35deg); filter: blur(6px); }
+  to   { opacity: 1; transform: translateX(0) skewY(0); filter: blur(0); }
+}
+.page-turn { animation: pageTurn 1.15s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Hairline rule with centred wax seal — used as section divider */
+.codex-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: hsl(var(--brass-deep));
+}
+.codex-rule::before,
+.codex-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--brass) / 0.45), transparent);
+}
+
+/* Catalog number — monospaced with drop-cap spacing */
+.catalog-no {
+  font-family: var(--font-meta);
+  font-weight: 500;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: hsl(var(--brass));
+}
+
+/* Section caption — small-caps label */
+.codex-caption {
+  font-family: var(--font-meta);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: hsl(var(--brass));
+}
+
+/* Display title with Fraunces opsz + wonk */
+.display-title {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
+  font-weight: 500;
+  line-height: 0.92;
+  letter-spacing: -0.015em;
+}
+
+/* Editorial prose body */
+.prose-body {
+  font-family: var(--font-prose);
+  font-feature-settings: "onum" 1, "liga" 1;
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: hsl(var(--ivory) / 0.86);
+}
+.prose-body p + p { margin-top: 1em; }
+
+/* Vertical Mongol bichig — display a string top-to-bottom */
+.bichig {
+  font-family: var(--font-bichig);
+  writing-mode: vertical-lr;
+  text-orientation: upright;
+  letter-spacing: 0.05em;
+  color: hsl(var(--brass) / 0.55);
+}
+@supports not (writing-mode: vertical-lr) {
+  .bichig { writing-mode: initial; }
+}
+
+/* Brass "slide-mount" corner ticks — reusable via CSS where an SVG isn't needed */
+.mount-corners {
+  position: relative;
+}
+.mount-corners::before,
+.mount-corners::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border-color: hsl(var(--brass));
+  border-style: solid;
+}
+.mount-corners::before {
+  top: 6px; left: 6px;
+  border-width: 1px 0 0 1px;
+}
+.mount-corners::after {
+  bottom: 6px; right: 6px;
+  border-width: 0 1px 1px 0;
+}
+
+/* Ink-underline link — editorial hyperlink */
+.ink-link {
+  color: hsl(var(--brass));
+  text-decoration: underline;
+  text-decoration-color: hsl(var(--brass) / 0.45);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+.ink-link:hover {
+  color: hsl(var(--ivory));
+  text-decoration-color: hsl(var(--ivory) / 0.7);
+}
+
+/* Custom scrollbar — thin brass */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: hsl(var(--ink)); }
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--brass-deep));
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--brass)); }
+
+/* Font utility classes */
+.font-display  { font-family: var(--font-display); font-optical-sizing: auto; }
+.font-prose    { font-family: var(--font-prose); }
+.font-meta     { font-family: var(--font-meta); }
+.font-bichig   { font-family: var(--font-bichig); }
+
+/* Legacy aliases — existing components keep working */
+.font-cinzel    { font-family: var(--font-display); font-variation-settings: "opsz" 72, "SOFT" 30, "WONK" 1; }
+.font-body      { font-family: var(--font-prose); }
+.font-playfair  { font-family: var(--font-display); }
+.font-cormorant { font-family: var(--font-prose); }
+
+/* Hide scrollbar util */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { scrollbar-width: none; }
+
+/* Selection */
+::selection {
+  background: hsl(var(--seal) / 0.85);
+  color: hsl(var(--ivory));
+}
+
+/* Utility: hairline border in brass */
+.border-brass { border-color: hsl(var(--brass) / 0.4); }
+.border-brass-strong { border-color: hsl(var(--brass) / 0.7); }
