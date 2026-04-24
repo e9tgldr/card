@@ -147,3 +147,25 @@ begin
 
   delete from game_sessions where id in (a, b, target);
 end $$;
+
+-- ─── figure_voices (Story Phase B) ─────────────────────────────────────────
+-- anon CAN read figure_voices (public read)
+do $$
+begin
+  set local role anon;
+  perform count(*) from figure_voices;
+end $$;
+reset role;
+
+-- authenticated (non-admin) cannot insert into figure_voices
+do $$
+begin
+  set local role authenticated;
+  begin
+    insert into figure_voices (fig_id, lang, voice_id) values (1, 'mn', 'test');
+    raise exception 'non-admin insert into figure_voices should have been denied';
+  exception when insufficient_privilege or others then
+    null; -- expected
+  end;
+end $$;
+reset role;
