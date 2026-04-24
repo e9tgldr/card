@@ -246,6 +246,24 @@ export const STRINGS = {
   'admin.t.publishNow':           { mn: 'Одоо нийтлэх',                   en: 'Publish now' },
   'admin.t.published':            { mn: 'Нийтлэгдсэн',                    en: 'Published' },
   'admin.t.create':               { mn: 'Үүсгэх',                         en: 'Create' },
+
+  // Story Phase A
+  'story.play':             { mn: 'Эхлүүлэх',              en: 'Play' },
+  'story.pause':            { mn: 'Түр зогсоох',           en: 'Pause' },
+  'story.prev':             { mn: 'Өмнөх',                 en: 'Previous' },
+  'story.next':             { mn: 'Дараагийн',             en: 'Next' },
+  'story.fullscreen':       { mn: 'Дэлгэц дүүрэн',         en: 'Fullscreen' },
+  'story.exitFullscreen':   { mn: 'Дэлгэц буцаах',         en: 'Exit fullscreen' },
+  'story.chapter':          { mn: 'Бүлэг',                 en: 'Chapter' },
+  'story.slideOf':          { mn: '{n} / {total}',         en: '{n} / {total}' },
+  'story.intro.label':      { mn: 'Эхлэл',                 en: 'Prologue' },
+  'story.outro.label':      { mn: 'Төгсгөл',               en: 'Epilogue' },
+  'story.ending.title':     { mn: 'Бүлэг дуусав',          en: 'Chapter complete' },
+  'story.ending.continue':  { mn: 'Үргэлжлүүлэх',          en: 'Continue' },
+  'story.ending.done':      { mn: 'Кодекс дуусав. Баярлалаа.', en: 'The codex is complete. Thank you.' },
+  'story.empty':            { mn: 'Бүлэг хоосон байна.',   en: 'This chapter is empty.' },
+  'story.notFound':         { mn: 'Бүлэг олдсонгүй.',      en: 'Chapter not found.' },
+  'chapters.play':          { mn: 'Энэ бүлгийн түүхийг үзэх', en: 'Play this chapter' },
 };
 
 const LangContext = createContext({ lang: 'mn', setLang: () => {}, t: (k) => k });
