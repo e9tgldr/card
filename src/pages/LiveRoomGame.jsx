@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLang, translateReason } from '@/lib/i18n';
 import { FIGURES } from '@/lib/figuresData';
 import { buildRoundFromSeed } from '@/lib/seededRound';
-import { submitAnswer, requestRematch } from '@/lib/liveRoomApi';
+import { submitAnswer, requestRematch, requestNext, requestReveal } from '@/lib/liveRoomApi';
 import { pickMvp } from '@/lib/liveScoring';
 import RoundPlayer from '@/components/game/RoundPlayer';
 import Timer from '@/components/game/Timer';
@@ -15,6 +15,8 @@ export default function LiveRoomGame({ room, sessionId, currentUserId, showResul
   const { t, lang } = useLang();
   const navigate = useNavigate();
   const [picked, setPicked] = useState(null);
+
+  const isHost = room.session?.host_user_id === currentUserId;
 
   const round = useMemo(() => {
     if (!room.session?.seed || !room.session?.round_size) return [];
@@ -28,6 +30,17 @@ export default function LiveRoomGame({ room, sessionId, currentUserId, showResul
 
   const revealed = Boolean(room.lastReveal && room.lastReveal.round_idx === currentIdx);
 
+  // Host-only: after reveal, pause ~4s so players see the answer, then advance.
+  // Other clients just wait for the 'question' broadcast. Only the host calls
+  // next_question to avoid parallel calls racing on the server.
+  useEffect(() => {
+    if (!revealed || !isHost || !sessionId) return;
+    const id = setTimeout(() => {
+      requestNext(sessionId).catch(() => { /* swallow — another client already advanced */ });
+    }, 4000);
+    return () => clearTimeout(id);
+  }, [revealed, isHost, sessionId]);
+
   async function onPick(figId) {
     if (picked !== null) return;
     setPicked(figId);
@@ -40,6 +53,16 @@ export default function LiveRoomGame({ room, sessionId, currentUserId, showResul
     setPicked(-1);
     try { await submitAnswer({ session_id: sessionId, pickedFigId: null }); }
     catch { /* swallow */ }
+  }
+
+  async function onHostReveal() {
+    try { await requestReveal(sessionId); }
+    catch (err) { alert(translateReason(t, err.message)); }
+  }
+
+  async function onHostNext() {
+    try { await requestNext(sessionId); }
+    catch (err) { alert(translateReason(t, err.message)); }
   }
 
   const standings = useMemo(() => {
@@ -83,6 +106,27 @@ export default function LiveRoomGame({ room, sessionId, currentUserId, showResul
         />
 
         <Standings standings={standings} mode={revealed ? 'reveal' : 'in_round'} currentUserId={currentUserId} />
+
+        {isHost && (
+          <div className="flex items-center justify-center gap-3">
+            {!revealed && (
+              <button
+                onClick={onHostReveal}
+                className="px-4 py-2 text-xs font-meta tracking-[0.25em] uppercase text-brass border border-brass/40 hover:text-ivory hover:border-brass transition-colors"
+              >
+                {lang === 'en' ? 'Reveal' : 'Нээх'}
+              </button>
+            )}
+            {revealed && (
+              <button
+                onClick={onHostNext}
+                className="px-4 py-2 text-xs font-meta tracking-[0.25em] uppercase text-ivory bg-seal/80 border border-seal hover:bg-seal transition-colors"
+              >
+                {lang === 'en' ? 'Next →' : 'Дараагийн →'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
