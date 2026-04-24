@@ -264,6 +264,17 @@ export const STRINGS = {
   'story.empty':            { mn: 'Бүлэг хоосон байна.',   en: 'This chapter is empty.' },
   'story.notFound':         { mn: 'Бүлэг олдсонгүй.',      en: 'Chapter not found.' },
   'chapters.play':          { mn: 'Энэ бүлгийн түүхийг үзэх', en: 'Play this chapter' },
+
+  // Admin — Voices (Story Phase B)
+  'admin.voices.title':           { mn: 'Дуу хоолой',                 en: 'Voices' },
+  'admin.voices.assign':          { mn: 'Дуу хоолой оноох',          en: 'Assign voice' },
+  'admin.voices.voiceIdLabel':    { mn: 'ElevenLabs voice_id',        en: 'ElevenLabs voice_id' },
+  'admin.voices.preview':         { mn: 'Сонсох',                     en: 'Preview' },
+  'admin.voices.save':            { mn: 'Хадгалах',                   en: 'Save' },
+  'admin.voices.preRender':       { mn: 'Бүлгийг бэлтгэх',           en: 'Pre-render chapter' },
+  'admin.voices.preRendering':    { mn: 'Бэлтгэж байна…',             en: 'Pre-rendering…' },
+  'admin.voices.hasQuoteFilter':  { mn: 'Ишлэлтэй зүтгэлтнүүд',       en: 'Figures with a quote' },
+  'admin.voices.none':            { mn: '— оноогдоогүй —',            en: '— unassigned —' },
 };
 
 const LangContext = createContext({ lang: 'mn', setLang: () => {}, t: (k) => k });
