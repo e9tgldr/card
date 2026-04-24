@@ -275,6 +275,24 @@ export const STRINGS = {
   'admin.voices.preRendering':    { mn: 'Бэлтгэж байна…',             en: 'Pre-rendering…' },
   'admin.voices.hasQuoteFilter':  { mn: 'Ишлэлтэй зүтгэлтнүүд',       en: 'Figures with a quote' },
   'admin.voices.none':            { mn: '— оноогдоогүй —',            en: '— unassigned —' },
+
+  // Admin — Stories (Story Phase C)
+  'admin.stories.storyMn':      { mn: 'Түүх · Монгол',        en: 'Story · Mongolian' },
+  'admin.stories.storyEn':      { mn: 'Түүх · English',       en: 'Story · English' },
+  'admin.stories.edit':         { mn: 'Түүх засах',            en: 'Edit story' },
+  'admin.stories.publish':      { mn: 'Нийтлэх',               en: 'Publish' },
+  'admin.stories.unpublish':    { mn: 'Нийтлэлээс авах',      en: 'Unpublish' },
+  'admin.stories.draft':        { mn: 'Ноорог',                en: 'Draft' },
+  'admin.stories.published':    { mn: 'Нийтлэгдсэн',          en: 'Published' },
+  'admin.stories.preview':      { mn: 'Бүлэгт үзэх',          en: 'Preview in chapter' },
+  'admin.stories.chars':        { mn: '{n} тэмдэгт',           en: '{n} chars' },
+  'admin.stories.save':         { mn: 'Хадгалах',              en: 'Save' },
+  'admin.stories.close':        { mn: 'Хаах',                  en: 'Close' },
+
+  // Admin — Eras (Story Phase C)
+  'admin.eras.title':           { mn: 'Бүлгүүд',              en: 'Eras' },
+  'admin.eras.intro':           { mn: 'Эхлэл',                 en: 'Intro' },
+  'admin.eras.outro':           { mn: 'Төгсгөл',               en: 'Outro' },
 };
 
 const LangContext = createContext({ lang: 'mn', setLang: () => {}, t: (k) => k });
