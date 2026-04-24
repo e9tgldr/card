@@ -157,9 +157,16 @@ export function figureQuote(figure, lang) {
  *   1. Explicit `story` / `story_en` field on the figure record (authored in Admin)
  *   2. Composed narration from bio + fact + quote
  */
-export function storyText(figure, lang) {
+export function storyText(figure, lang, authored) {
   if (!figure) return '';
 
+  // 1. Authored content (Phase C). `authored` is an object with get(slug, lang).
+  if (authored?.get) {
+    const entry = authored.get(`figure:${figure.fig_id}`, lang);
+    if (entry?.text) return entry.text;
+  }
+
+  // 2. Legacy explicit fields on the figure record.
   if (lang === 'en' && figure.story_en) return figure.story_en;
   if (lang !== 'en' && figure.story) return figure.story;
 
