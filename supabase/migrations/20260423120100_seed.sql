@@ -1,6 +1,6 @@
 -- Default app_settings
 insert into app_settings (key, value) values
-  ('site_name', 'Монголын Түүхэн Хөзрүүд'),
+  ('site_name', 'Altan Domog'),
   ('site_logo', '')
 on conflict (key) do nothing;
 
