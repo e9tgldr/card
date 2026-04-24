@@ -169,3 +169,39 @@ begin
   end;
 end $$;
 reset role;
+
+-- ─── story_content (Story Phase C) ─────────────────────────────────────────
+-- anon cannot read draft rows; CAN read published
+do $$
+declare n int;
+begin
+  insert into story_content (slug, lang, text, status) values ('figure:9999', 'mn', 'draft text', 'draft')
+    on conflict (slug, lang) do update set text = excluded.text, status = excluded.status;
+
+  set local role anon;
+  select count(*) into n from story_content where slug = 'figure:9999';
+  if n <> 0 then raise exception 'anon should not see draft rows, got %', n; end if;
+  reset role;
+
+  update story_content set status = 'published' where slug = 'figure:9999' and lang = 'mn';
+
+  set local role anon;
+  select count(*) into n from story_content where slug = 'figure:9999';
+  if n <> 1 then raise exception 'anon should see 1 published row, got %', n; end if;
+  reset role;
+
+  delete from story_content where slug = 'figure:9999';
+end $$;
+
+-- authenticated (non-admin) cannot write to story_content
+do $$
+begin
+  set local role authenticated;
+  begin
+    insert into story_content (slug, lang, text) values ('figure:8888', 'mn', 'nope');
+    raise exception 'non-admin insert into story_content should have been denied';
+  exception when insufficient_privilege or others then
+    null; -- expected
+  end;
+end $$;
+reset role;
