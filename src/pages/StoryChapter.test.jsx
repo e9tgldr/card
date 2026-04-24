@@ -15,6 +15,10 @@ vi.mock('@/hooks/useVoices', () => ({
   useVoices: vi.fn(() => ({ isLoading: false, voiceIdFor: () => null })),
 }));
 
+vi.mock('@/hooks/useAuthoredContent', () => ({
+  useAuthoredContent: vi.fn(() => ({ isLoading: false, get: () => null })),
+}));
+
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
