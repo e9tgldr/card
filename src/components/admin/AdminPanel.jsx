@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { CATEGORIES } from '@/lib/figuresData';
 import AdminTournaments from '@/components/admin/Tournaments';
+import AdminVoices from '@/components/admin/Voices';
 import { base44 } from '@/api/base44Client';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { listInviteCodes, createInviteCode, deleteInviteCode, listAccounts } from '@/lib/authStore';
@@ -273,6 +274,9 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
           </TabsTrigger>
           <TabsTrigger value="tournaments" className="gap-1.5 text-xs font-body">
             🏆 Тэмцээн
+          </TabsTrigger>
+          <TabsTrigger value="voices" className="gap-1.5 text-xs font-body">
+            🎙 Дуу хоолой
           </TabsTrigger>
         </TabsList>
 
@@ -658,6 +662,11 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
         {/* Tournaments */}
         <TabsContent value="tournaments" className="flex-1 overflow-auto p-6">
           <AdminTournaments onToast={showToast} />
+        </TabsContent>
+
+        {/* Voices */}
+        <TabsContent value="voices" className="flex-1 overflow-auto p-6">
+          <AdminVoices onToast={showToast} />
         </TabsContent>
 
       </Tabs>
