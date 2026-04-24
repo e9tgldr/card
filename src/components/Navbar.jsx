@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, BookMarked, LogOut, Trophy } from 'lucide-react';
+import { Menu, X, BookMarked, LogOut, Trophy, Medal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -50,40 +50,40 @@ export default function Navbar({ onScrollTo }) {
       {/* top hairline */}
       <div className="h-px w-full bg-gradient-to-r from-transparent via-brass/50 to-transparent" />
 
-      <div className="max-w-[92rem] mx-auto px-6 md:px-10 h-16 md:h-[4.5rem] flex items-center justify-between">
+      <div className="max-w-[92rem] mx-auto px-4 md:px-8 h-14 md:h-16 flex items-center justify-between gap-4">
 
-        {/* Imprint — monogram + wordmark */}
+        {/* Imprint — monogram + wordmark (subtitle hidden below md) */}
         <button
           onClick={() => handleClick('hero')}
-          className="flex items-center gap-3 group"
+          className="flex items-center gap-2.5 group shrink-0"
           aria-label="Нүүр"
         >
-          <div className="relative w-10 h-10 flex items-center justify-center">
-            <CornerTicks size={8} inset={0} thickness={1} opacity={0.7} />
-            <Fleuron size={22} className="group-hover:scale-105 transition-transform" />
+          <div className="relative w-8 h-8 flex items-center justify-center">
+            <CornerTicks size={7} inset={0} thickness={1} opacity={0.7} />
+            <Fleuron size={18} className="group-hover:scale-105 transition-transform" />
           </div>
           <div className="flex flex-col leading-none">
-            <span className="font-display text-[11px] tracking-[0.44em] text-ivory/90" style={{ fontVariationSettings: '"opsz" 24, "wght" 500' }}>
+            <span className="font-display text-[10.5px] tracking-[0.36em] text-ivory/90" style={{ fontVariationSettings: '"opsz" 24, "wght" 500' }}>
               ALTAN DOMOG
             </span>
-            <span className="font-meta text-[8.5px] tracking-[0.34em] text-brass/80 mt-1">
+            <span className="hidden md:inline font-meta text-[8px] tracking-[0.3em] text-brass/80 mt-0.5">
               CODEX · MMXXVI
             </span>
           </div>
         </button>
 
-        {/* Desktop nav — roman-numeral index */}
-        <div className="hidden lg:flex items-center gap-7">
+        {/* Desktop nav — roman-numeral index (tightened gap + smaller text) */}
+        <div className="hidden lg:flex items-center gap-5 flex-1 justify-center">
           {NAV_ITEMS.map((item) => (
             <button
               key={item.target}
               onClick={() => handleClick(item.target)}
-              className="group flex items-baseline gap-2 py-2"
+              className="group flex items-baseline gap-1.5 py-2"
             >
-              <span className="font-meta text-[9.5px] tracking-[0.3em] text-brass/70 group-hover:text-brass transition-colors">
+              <span className="font-meta text-[9px] tracking-[0.28em] text-brass/70 group-hover:text-brass transition-colors">
                 {item.roman}.
               </span>
-              <span className="font-display text-sm text-ivory/75 group-hover:text-ivory transition-colors tracking-wide"
+              <span className="font-display text-[13px] text-ivory/75 group-hover:text-ivory transition-colors tracking-wide"
                     style={{ fontVariationSettings: '"opsz" 30, "wght" 450, "SOFT" 40' }}>
                 {t(item.key)}
               </span>
@@ -92,8 +92,8 @@ export default function Navbar({ onScrollTo }) {
           ))}
         </div>
 
-        {/* Right-side controls */}
-        <div className="flex items-center gap-2 md:gap-3">
+        {/* Right-side controls — icon-only below xl, tighter gaps */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Language toggle */}
           <div className="relative flex items-center gap-0 border border-brass/40 overflow-hidden">
             <CornerTicks size={5} inset={1} thickness={1} opacity={0.7} />
@@ -103,7 +103,7 @@ export default function Navbar({ onScrollTo }) {
                 <button
                   key={code}
                   onClick={() => setLang(code)}
-                  className={`relative z-10 px-2 py-1.5 font-meta text-[10px] tracking-[0.24em] uppercase transition-colors ${
+                  className={`relative z-10 px-1.5 py-1 font-meta text-[9.5px] tracking-[0.2em] uppercase transition-colors ${
                     active ? 'bg-brass/15 text-ivory' : 'text-brass/70 hover:text-ivory'
                   }`}
                   aria-pressed={active}
@@ -114,72 +114,64 @@ export default function Navbar({ onScrollTo }) {
             })}
           </div>
 
-          {/* Collection button — catalog badge style */}
+          {/* Collection — icon-only with badge (label shown xl+) */}
           <button
             onClick={() => navigate('/collection')}
-            className="relative group flex items-center gap-2 px-3 py-2 text-[10px] font-meta tracking-[0.24em] uppercase text-brass hover:text-ivory transition-colors"
+            title={t('nav.collection')}
+            className="relative group flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-meta tracking-[0.2em] uppercase text-brass hover:text-ivory transition-colors"
           >
             <span className="absolute inset-0 border border-brass/40 group-hover:border-brass/90 transition-colors" />
-            <CornerTicks size={6} inset={2} thickness={1} opacity={0.8} />
             <BookMarked className="w-3.5 h-3.5 relative z-10" />
-            <span className="hidden sm:inline relative z-10">{t('nav.collection')}</span>
+            <span className="hidden xl:inline relative z-10">{t('nav.collection')}</span>
             {total > 0 && (
-              <span className="relative z-10 ml-1 font-display text-[11px] leading-none text-ivory px-1.5 py-0.5 bg-seal/85"
+              <span className="relative z-10 ml-0.5 font-display text-[10px] leading-none text-ivory px-1 py-0.5 bg-seal/85"
                     style={{ fontVariationSettings: '"opsz" 24, "wght" 600' }}>
                 {total}
               </span>
             )}
           </button>
 
-          {/* Leaderboard button — authenticated only */}
+          {/* Leaderboard — icon-only */}
           {session && (
             <button
               onClick={() => navigate('/leaderboard')}
-              className="relative group hidden md:flex items-center gap-2 px-3 py-2 text-[10px] font-meta tracking-[0.24em] uppercase text-brass hover:text-ivory transition-colors"
+              title={t('nav.leaderboard')}
+              className="relative group hidden sm:flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-meta tracking-[0.2em] uppercase text-brass hover:text-ivory transition-colors"
             >
               <span className="absolute inset-0 border border-brass/40 group-hover:border-brass/90 transition-colors" />
-              <CornerTicks size={6} inset={2} thickness={1} opacity={0.8} />
               <Trophy className="w-3.5 h-3.5 relative z-10" />
-              <span className="hidden sm:inline relative z-10">{t('nav.leaderboard')}</span>
+              <span className="hidden xl:inline relative z-10">{t('nav.leaderboard')}</span>
             </button>
           )}
 
-          {/* Tournaments button — always visible when authenticated */}
+          {/* Tournaments — icon-only */}
           {session && (
             <button
               onClick={() => navigate('/app/tournaments')}
-              className="relative group hidden md:flex items-center gap-2 px-3 py-2 text-[10px] font-meta tracking-[0.24em] uppercase text-brass hover:text-ivory transition-colors"
+              title={t('nav.tournaments')}
+              className="relative group hidden sm:flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-meta tracking-[0.2em] uppercase text-brass hover:text-ivory transition-colors"
             >
               <span className="absolute inset-0 border border-brass/40 group-hover:border-brass/90 transition-colors" />
-              <CornerTicks size={6} inset={2} thickness={1} opacity={0.8} />
-              <span className="relative z-10">🏆</span>
-              <span className="hidden sm:inline relative z-10">{t('nav.tournaments')}</span>
+              <Medal className="w-3.5 h-3.5 relative z-10" />
+              <span className="hidden xl:inline relative z-10">{t('nav.tournaments')}</span>
             </button>
           )}
 
-          {/* Session badge */}
-          {session && (
-            <span className="hidden lg:inline-flex items-center gap-2 font-meta text-[10px] tracking-[0.22em] uppercase text-ivory/50">
-              <span className="w-1 h-1 rounded-full bg-brass animate-pulse" />
-              @{session.username}
-            </span>
-          )}
-
-          {/* Logout */}
+          {/* Logout — icon-only */}
           <button
             onClick={() => { clearOtpVerification(); navigate('/'); }}
             title={t('nav.logout')}
-            className="relative group flex items-center gap-2 px-3 py-2 text-[10px] font-meta tracking-[0.24em] uppercase text-ivory/60 hover:text-ivory transition-colors"
+            className="relative group flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-meta tracking-[0.2em] uppercase text-ivory/60 hover:text-ivory transition-colors"
           >
             <span className="absolute inset-0 border border-border group-hover:border-seal/60 transition-colors" />
             <LogOut className="w-3.5 h-3.5 relative z-10" />
-            <span className="hidden sm:inline relative z-10">{t('nav.logout')}</span>
+            <span className="hidden xl:inline relative z-10">{t('nav.logout')}</span>
           </button>
 
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden relative p-2 text-ivory hover:text-brass transition-colors"
+            className="lg:hidden relative p-1.5 text-ivory hover:text-brass transition-colors"
             aria-label="Цэс"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
