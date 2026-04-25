@@ -99,4 +99,15 @@ describe('StoryChapter', () => {
     renderAt('/story/founding?s=5');
     await waitFor(() => expect(screen.getByText(/06 \//)).toBeInTheDocument());
   });
+
+  it('renders fullscreen exit hint when in fullscreen mode', async () => {
+    renderAt('/story/founding');
+    await waitFor(() => expect(screen.getByText(/01 \//)).toBeInTheDocument());
+    Object.defineProperty(document, 'fullscreenElement', { value: document.body, configurable: true });
+    document.dispatchEvent(new Event('fullscreenchange'));
+    await waitFor(() => {
+      expect(screen.getByText(/story\.fullscreenExitHint|Esc/i)).toBeInTheDocument();
+    });
+    Object.defineProperty(document, 'fullscreenElement', { value: null, configurable: true });
+  });
 });

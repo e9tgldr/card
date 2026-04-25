@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { notify, ErrorBoundary, Skeleton } from '@/lib/feedback';
 import { useLang, storyText } from '@/lib/i18n';
 import { ERAS, ERA_KEYS } from '@/lib/figuresData';
 import { buildChapterPlaylist } from '@/lib/storyPlaylist';
@@ -22,7 +22,7 @@ export default function StoryChapter() {
 
   useEffect(() => {
     if (!ERA_KEYS.includes(chapter)) {
-      toast.error(t('story.notFound'));
+      notify.error(t('story.notFound'));
       navigate('/#chapters', { replace: true });
     }
   }, [chapter, navigate, t]);
@@ -106,6 +106,7 @@ export default function StoryChapter() {
     const CONCURRENCY = 3;
     let cancelled = false;
     let cursor = 0;
+    let prefetchFailed = false;
     async function runOne() {
       while (!cancelled && cursor < upcoming.length) {
         const i = cursor++;
@@ -120,11 +121,15 @@ export default function StoryChapter() {
         const vid = s.kind === 'figure' ? voiceIdFor(s.figure.fig_id) : null;
         const body = { text, lang };
         if (vid) body.voice_id = vid;
-        try { await supabase.functions.invoke('speak', { body }); } catch { /* ignore */ }
+        try { await supabase.functions.invoke('speak', { body }); }
+        catch { prefetchFailed = true; }
       }
     }
+    const reportPrefetchFailure = () => {
+      if (prefetchFailed && !cancelled) notify.info('toast.story.prefetchFailed');
+    };
     const workers = Array.from({ length: CONCURRENCY }, () => runOne());
-    Promise.allSettled(workers);
+    Promise.allSettled(workers).then(reportPrefetchFailure);
     return () => { cancelled = true; };
   }, [playlist, slideIdx, lang, voiceIdFor, eraDef]);
 
@@ -195,7 +200,24 @@ export default function StoryChapter() {
     >
       <div className={`${isFullscreen ? 'h-full flex flex-col' : ''}`}>
         <div className={`flex-1 ${isFullscreen ? 'overflow-auto' : ''} px-4 md:px-8 py-6`}>
-          <StoryStage slide={slide} charIndex={charIndex} />
+          <ErrorBoundary
+            fallbackKey="toast.story.narrationFailed"
+            fallback={({ retry }) => (
+              <div className="text-center py-12 space-y-3">
+                <p className="font-prose italic text-ivory/70">{t('toast.story.narrationFailed')}</p>
+                <button onClick={retry} className="font-meta text-[10px] tracking-[0.3em] uppercase text-brass hover:text-ivory">
+                  {t('toast.generic.retry')}
+                </button>
+              </div>
+            )}
+          >
+            {narrationText ? (
+              <StoryStage slide={slide} charIndex={charIndex} />
+            ) : (
+              <Skeleton.Text lines={3} className="max-w-2xl mx-auto py-12" />
+            )}
+          </ErrorBoundary>
+          {isFullscreen && <FullscreenExitHint t={t} />}
         </div>
         <StoryControls
           status={status}
@@ -213,6 +235,20 @@ export default function StoryChapter() {
           onToggleFullscreen={toggleFullscreen}
         />
       </div>
+    </div>
+  );
+}
+
+function FullscreenExitHint({ t }) {
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setVisible(false), 3000);
+    return () => clearTimeout(id);
+  }, []);
+  if (!visible) return null;
+  return (
+    <div className="fixed top-6 right-6 z-[1001] px-3 py-1.5 rounded-md bg-ink/80 border border-brass/40 text-ivory text-xs font-meta tracking-[0.2em] uppercase">
+      {t('story.fullscreenExitHint')}
     </div>
   );
 }
