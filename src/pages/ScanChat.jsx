@@ -4,12 +4,29 @@ import { Send, Volume2, X, ArrowLeft } from 'lucide-react';
 import { FIGURES } from '@/lib/figuresData';
 import { useFigureChat } from '@/hooks/useFigureChat';
 import ScanNotFound from '@/components/ScanNotFound';
+import { ErrorBoundary } from '@/lib/feedback';
 
 const LANG_LABELS = [
   { code: 'mn', label: 'Монгол' },
   { code: 'en', label: 'English' },
   { code: 'cn', label: '中文' },
 ];
+
+const LANG_ARIA = {
+  mn: { mn: 'Монгол хэл рүү шилжих', en: 'Switch to Mongolian', cn: '切换到蒙古语' },
+  en: { mn: 'Англи хэл рүү шилжих',   en: 'Switch to English',   cn: '切换到英语' },
+  cn: { mn: 'Хятад хэл рүү шилжих',   en: 'Switch to Chinese',   cn: '切换到中文' },
+};
+
+const AI_THINKING = { mn: 'AI бодож байна…', en: 'AI is thinking…', cn: 'AI 思考中…' };
+
+const SIGN_UP_BANNER = {
+  mn: { body: 'Яриаг хадгалаад түүх, төхөөрөмжүүд хооронд харж болно.', cta: 'Бүртгэл үүсгэх' },
+  en: { body: 'Sign up to save chats — keep your history across devices.', cta: 'Sign up' },
+  cn: { body: '注册以保存对话历史并跨设备同步。', cta: '注册' },
+};
+
+const DISMISS_LABELS = { mn: 'Хаах', en: 'Dismiss', cn: '关闭' };
 
 export default function ScanChat() {
   const { figId } = useParams();
@@ -26,9 +43,10 @@ function ScanChatInner({ figure }) {
   const [input, setInput] = useState('');
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const scrollRef = useRef(null);
+  const bottomRef = useRef(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, busy]);
 
   const handleSend = (e) => {
@@ -61,6 +79,7 @@ function ScanChatInner({ figure }) {
             <button
               key={code}
               onClick={() => switchLang(code)}
+              aria-label={LANG_ARIA[code]?.[lang] || LANG_ARIA[code]?.en || label}
               className={`rounded-full px-2.5 py-1 font-meta text-[10px] tracking-[0.12em] border transition ${
                 lang === code
                   ? 'bg-brass text-ink border-brass'
@@ -74,21 +93,31 @@ function ScanChatInner({ figure }) {
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {messages.map((m, i) => (
-          <MessageBubble key={i} message={m} />
-        ))}
-        {busy && <TypingIndicator />}
+        <ErrorBoundary fallbackKey="toast.scan.aiFailed">
+          {messages.map((m, i) => (
+            <MessageBubble key={i} message={m} />
+          ))}
+          {busy && (
+            <div className="flex items-center gap-3">
+              <TypingIndicator />
+              <span className="font-meta text-[10px] tracking-[0.2em] uppercase text-brass/70">
+                {AI_THINKING[lang] || AI_THINKING.en}
+              </span>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </ErrorBoundary>
       </div>
 
       {!bannerDismissed && (
         <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2 text-xs font-prose italic border-t border-brass/20 bg-brass/5 text-ivory">
           <span className="flex-1">
-            Яриаг хадгалах уу?{' '}
+            {(SIGN_UP_BANNER[lang] || SIGN_UP_BANNER.en).body}{' '}
             <Link to="/otp?next=/collection" className="underline text-brass">
-              Бүртгэл үүсгэх
+              {(SIGN_UP_BANNER[lang] || SIGN_UP_BANNER.en).cta}
             </Link>
           </span>
-          <button onClick={() => setBannerDismissed(true)} aria-label="Хаах">
+          <button onClick={() => setBannerDismissed(true)} aria-label={DISMISS_LABELS[lang] || DISMISS_LABELS.en}>
             <X className="w-4 h-4 text-ivory/60" />
           </button>
         </div>
