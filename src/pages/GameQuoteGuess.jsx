@@ -10,6 +10,7 @@ import RoundPlayer from '@/components/game/RoundPlayer';
 import Fleuron from '@/components/ornaments/Fleuron';
 import CodexRule from '@/components/ornaments/CodexRule';
 import BrassButton from '@/components/ornaments/BrassButton';
+import { notify, Skeleton } from '@/lib/feedback';
 
 const ROUND_SIZE = 10;
 
@@ -86,7 +87,7 @@ export default function GameQuoteGuess() {
         try {
           await submitResult({ session_id: sessionState.id, answers });
         } catch (err) {
-          console.error('submit failed:', err);
+          notify.error(err, { fallbackKey: 'toast.quote.submitFailed' });
         }
       }
     } else {
@@ -133,8 +134,8 @@ export default function GameQuoteGuess() {
 
   if (!sessionState || round.length === 0) {
     return (
-      <div className="min-h-screen bg-ink flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-muted-foreground/20 border-t-crimson rounded-full animate-spin" />
+      <div className="min-h-screen bg-ink flex items-center justify-center px-6">
+        <Skeleton.Card className="max-w-sm w-full" />
       </div>
     );
   }
@@ -283,10 +284,10 @@ function ResultScreen({ score, total, lang, sessionId, mode, onReplay, navigate,
         }
       } else {
         await navigator.clipboard.writeText(url);
-        alert(t('game.copiedLink'));
+        notify.success(t('game.copiedLink'));
       }
     } catch (err) {
-      alert((lang === 'en' ? 'Failed: ' : 'Алдаа: ') + (err.message ?? 'unknown'));
+      notify.error(err, { fallbackKey: 'toast.generic.unknownError' });
     } finally {
       setChallenging(false);
     }
