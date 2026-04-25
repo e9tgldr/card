@@ -5,6 +5,7 @@ import {
   fetchSession,
   fetchSessionResults,
   fetchLeaderboard,
+  fetchMyLeaderboardRank,
 } from '@/lib/gameApi';
 
 vi.mock('@/lib/supabase', () => ({
@@ -122,5 +123,60 @@ describe('fetchSessionResults', () => {
     const res = await fetchSessionResults('s1');
     expect(eq).toHaveBeenCalledWith('session_id', 's1');
     expect(res).toHaveLength(2);
+  });
+});
+
+describe('fetchMyLeaderboardRank', () => {
+  function makeClient({ above, total, errAbove = null, errTotal = null }) {
+    let callIdx = 0;
+    return {
+      from: vi.fn(() => ({
+        select: vi.fn(() => {
+          // First .from(...).select(...) is for the 'above' query (chained .gt)
+          // Second .from(...).select(...) is for the 'total' query (no .gt)
+          if (callIdx === 0) {
+            callIdx = 1;
+            return {
+              gt: vi.fn().mockResolvedValue({ count: above, error: errAbove }),
+            };
+          }
+          // For the second call, the await is on the select's return — make it thenable
+          callIdx = 0; // reset for safety
+          return Promise.resolve({ count: total, error: errTotal });
+        }),
+      })),
+    };
+  }
+
+  it('returns null when myPoints is null', async () => {
+    const r = await fetchMyLeaderboardRank('weekly', null, makeClient({ above: 0, total: 0 }));
+    expect(r).toBeNull();
+  });
+
+  it('returns null when myPoints is undefined', async () => {
+    const r = await fetchMyLeaderboardRank('weekly', undefined, makeClient({ above: 0, total: 0 }));
+    expect(r).toBeNull();
+  });
+
+  it('returns rank=1 when no one outscores you', async () => {
+    const r = await fetchMyLeaderboardRank('weekly', 100, makeClient({ above: 0, total: 50 }));
+    expect(r).toEqual({ rank: 1, total: 50 });
+  });
+
+  it('returns rank = aboveCount + 1', async () => {
+    const r = await fetchMyLeaderboardRank('weekly', 100, makeClient({ above: 46, total: 200 }));
+    expect(r).toEqual({ rank: 47, total: 200 });
+  });
+
+  it('uses all_time view when kind=all_time', async () => {
+    const client = makeClient({ above: 5, total: 100 });
+    const r = await fetchMyLeaderboardRank('all_time', 50, client);
+    expect(r).toEqual({ rank: 6, total: 100 });
+    expect(client.from).toHaveBeenCalledWith('game_leaderboard_all_time');
+  });
+
+  it('throws when above-query errors', async () => {
+    const client = makeClient({ above: null, total: 0, errAbove: { message: 'nope' } });
+    await expect(fetchMyLeaderboardRank('weekly', 100, client)).rejects.toThrow('nope');
   });
 });

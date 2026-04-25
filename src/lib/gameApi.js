@@ -131,3 +131,18 @@ export async function fetchLeaderboard(kind, limit = 20) {
   if (error) throw new Error(error.message);
   return data ?? [];
 }
+
+export async function fetchMyLeaderboardRank(kind, myPoints, client = supabase) {
+  if (myPoints == null) return null;
+  const view = kind === 'all_time' ? 'game_leaderboard_all_time' : 'game_leaderboard_weekly';
+  const { count: above, error: errAbove } = await client
+    .from(view)
+    .select('*', { count: 'exact', head: true })
+    .gt('total_points', myPoints);
+  if (errAbove) throw new Error(errAbove.message);
+  const { count: total, error: errTotal } = await client
+    .from(view)
+    .select('*', { count: 'exact', head: true });
+  if (errTotal) throw new Error(errTotal.message);
+  return { rank: (above ?? 0) + 1, total: total ?? 0 };
+}
