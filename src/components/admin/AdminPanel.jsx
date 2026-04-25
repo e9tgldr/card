@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, LayoutDashboard, Pencil, Grid3X3, Settings, Save, Trash2, Plus, Upload, Download, Palette, Ticket, Copy, Check } from 'lucide-react';
+import { notify, useDebouncedValue } from '@/lib/feedback';
+
+const MAX_AUDIO_BYTES = 5 * 1024 * 1024; // 5 MB
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -57,18 +60,23 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
 
     // Live sync: refresh figures list when any figure changes in DB
     const unsub = base44.entities.Figure.subscribe(async (event) => {
-      const latest = await base44.entities.Figure.list('-fig_id', 100);
-      onFiguresChange(prev => {
-        const merged = prev.map(f => {
-          const db = latest.find(d => d.fig_id === f.fig_id);
-          return db ? { ...f, ...db } : f;
+      try {
+        const latest = await base44.entities.Figure.list('-fig_id', 100);
+        onFiguresChange(prev => {
+          const merged = prev.map(f => {
+            const db = latest.find(d => d.fig_id === f.fig_id);
+            return db ? { ...f, ...db } : f;
+          });
+          latest.forEach(db => {
+            if (!merged.find(m => m.fig_id === db.fig_id)) merged.push(db);
+          });
+          return merged.sort((a, b) => a.fig_id - b.fig_id);
         });
-        latest.forEach(db => {
-          if (!merged.find(m => m.fig_id === db.fig_id)) merged.push(db);
-        });
-        return merged.sort((a, b) => a.fig_id - b.fig_id);
-      });
-      addLog(`DB өөрчлөлт: ${event.type} #${event.id?.slice(0, 6)}`, 'ok');
+        addLog(`DB өөрчлөлт: ${event.type} #${event.id?.slice(0, 6)}`, 'ok');
+      } catch (err) {
+        notify.error(err, { fallbackKey: 'toast.admin.realtimeFailed' });
+        addLog(`Subscription error: ${err.message}`, 'err');
+      }
     });
 
     return () => { document.body.style.overflow = ''; unsub(); };
@@ -102,24 +110,33 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
       achs: editForm.achs.split('\n').filter(Boolean),
       rel: editForm.rel.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)),
     };
-    
-    try {
+
+    // Optimistic update — snapshot first so we can roll back on error.
+    const snapshot = figures.map(f => ({ ...f }));
+    const newFigs = figures.map(f => f.fig_id === updated.fig_id ? updated : f);
+    if (!figures.find(f => f.fig_id === updated.fig_id)) {
+      newFigs.push(updated);
+    }
+    onFiguresChange(newFigs);
+
+    const promise = (async () => {
       if (selectedFig.id) {
         await base44.entities.Figure.update(selectedFig.id, updated);
       } else {
         const created = await base44.entities.Figure.create(updated);
         updated.id = created.id;
       }
-      
-      const newFigs = figures.map(f => f.fig_id === updated.fig_id ? updated : f);
-      if (!figures.find(f => f.fig_id === updated.fig_id)) {
-        newFigs.push(updated);
-      }
-      onFiguresChange(newFigs);
-      showToast('Амжилттай хадгаллаа!');
       addLog(`${updated.name} хадгалагдлаа`, 'ok');
+    })();
+
+    try {
+      await notify.promise(promise, {
+        loading: 'toast.admin.saving',
+        success: 'toast.admin.saved',
+        error: 'toast.admin.saveFailed',
+      });
     } catch (err) {
-      showToast('Хадгалахад алдаа гарлаа', true);
+      onFiguresChange(snapshot);
       addLog(`Хадгалахад алдаа: ${err.message}`, 'err');
     }
   };
@@ -187,9 +204,8 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
   const handleAudioUpload = async (e, locale) => {
     const file = e.target.files[0];
     if (!file || !selectedFig) return;
-    // Soft cap on file size — local-mode uses data URLs in localStorage.
-    if (file.size > 5 * 1024 * 1024) {
-      showToast(`Файл хэт том (${(file.size / 1024 / 1024).toFixed(1)} MB). 5 MB-аас бага байх ёстой.`, true);
+    if (file.size > MAX_AUDIO_BYTES) {
+      notify.error('toast.admin.audioTooLarge');
       return;
     }
     try {
@@ -235,8 +251,9 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
     showToast('Экспортлогдлоо');
   };
 
+  const debouncedFigSearch = useDebouncedValue(figSearch, 250);
   const filteredFigs = figures.filter(f =>
-    !figSearch || f.name.toLowerCase().includes(figSearch.toLowerCase())
+    !debouncedFigSearch || f.name.toLowerCase().includes(debouncedFigSearch.toLowerCase())
   );
 
   const catCounts = {};
