@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
-import { fetchLeaderboard } from '@/lib/gameApi';
+import { fetchLeaderboard, fetchMyLeaderboardRank } from '@/lib/gameApi';
+import { AsyncStatus, Skeleton, EmptyState } from '@/lib/feedback';
 import Fleuron from '@/components/ornaments/Fleuron';
 import CodexRule from '@/components/ornaments/CodexRule';
 
@@ -16,27 +17,40 @@ export default function Leaderboard() {
   const [tab, setTab] = useState('weekly');
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [myRank, setMyRank] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
+    setMyRank(null);
     fetchLeaderboard(tab, 20)
-      .then((data) => {
-        if (!cancelled) {
-          setRows(data);
-          setLoading(false);
+      .then(async (data) => {
+        if (cancelled) return;
+        setRows(data);
+        setLoading(false);
+        const top20 = data.slice(0, 20);
+        const myRow = data.find((r) => r.user_id === userId);
+        const visible = top20.some((r) => r.user_id === userId);
+        if (myRow && !visible) {
+          try {
+            const rank = await fetchMyLeaderboardRank(tab, myRow.total_points);
+            if (!cancelled) setMyRank(rank);
+          } catch { /* fine, just don't show context line */ }
         }
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setRows([]);
           setLoading(false);
+          setError(err);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [tab]);
+  }, [tab, userId]);
 
   const myRow = rows.find((r) => r.user_id === userId);
   const topRows = rows.slice(0, 20);
@@ -86,16 +100,19 @@ export default function Leaderboard() {
       </div>
 
       <div className="max-w-[50rem] mx-auto px-5 md:px-8 pb-16">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-2 border-muted-foreground/20 border-t-crimson rounded-full animate-spin" />
-          </div>
-        ) : rows.length === 0 ? (
-          <div className="text-center py-12 space-y-3">
-            <Fleuron size={36} className="mx-auto opacity-60" />
-            <p className="font-prose italic text-ivory/70">{t('leaderboard.empty')}</p>
-          </div>
-        ) : (
+        <AsyncStatus
+          loading={loading}
+          error={error}
+          empty={!loading && rows.length === 0}
+          loadingFallback={<Skeleton.Grid count={20} variant="row" className="px-1" />}
+          emptyFallback={
+            <EmptyState
+              icon={<Fleuron size={36} className="opacity-60" />}
+              title="empty.leaderboard.title"
+              description="empty.leaderboard.description"
+            />
+          }
+        >
           <table className="w-full text-ivory">
             <thead>
               <tr className="font-meta text-[9.5px] uppercase tracking-[0.28em] text-brass/70 border-b border-brass/30">
@@ -127,7 +144,7 @@ export default function Leaderboard() {
               ))}
               {myRow && !myRankVisible && (
                 <tr className="border-t-2 border-brass/30 bg-brass/5">
-                  <td className="py-3 pl-3 font-meta text-[11px] text-brass">…</td>
+                  <td className="py-3 pl-3 font-meta text-[11px] text-brass">{myRank?.rank ?? '…'}</td>
                   <td className="py-3 font-display">
                     {myRow.username}{' '}
                     <span className="text-brass/60 text-[10px] ml-1">
@@ -145,7 +162,14 @@ export default function Leaderboard() {
               )}
             </tbody>
           </table>
-        )}
+          {myRow && !myRankVisible && myRank && (
+            <p className="mt-4 text-center font-prose italic text-ivory/60 text-sm">
+              {t('leaderboard.contextLine')
+                .replace('${rank}', String(myRank.rank))
+                .replace('${total}', String(myRank.total))}
+            </p>
+          )}
+        </AsyncStatus>
       </div>
     </div>
   );

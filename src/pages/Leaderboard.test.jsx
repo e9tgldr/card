@@ -5,6 +5,7 @@ import Leaderboard from '@/pages/Leaderboard';
 
 vi.mock('@/lib/gameApi', () => ({
   fetchLeaderboard: vi.fn(),
+  fetchMyLeaderboardRank: vi.fn(),
 }));
 vi.mock('@/lib/i18n', async () => {
   const actual = await vi.importActual('@/lib/i18n');
@@ -14,7 +15,7 @@ vi.mock('@/lib/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'u1' } }),
 }));
 
-import { fetchLeaderboard } from '@/lib/gameApi';
+import { fetchLeaderboard, fetchMyLeaderboardRank } from '@/lib/gameApi';
 
 function R() {
   return render(
@@ -58,7 +59,50 @@ describe('Leaderboard', () => {
     fetchLeaderboard.mockResolvedValue([]);
     R();
     await waitFor(() => {
-      expect(screen.getByText(/leaderboard.empty/i)).toBeInTheDocument();
+      expect(screen.getByText(/empty\.leaderboard\.title/i)).toBeInTheDocument();
     });
+  });
+
+  it('renders skeleton rows while loading', async () => {
+    let resolve;
+    fetchLeaderboard.mockImplementation(() => new Promise((r) => { resolve = r; }));
+    const { container } = R();
+    expect(container.querySelectorAll('[data-skeleton-cell]').length).toBeGreaterThan(0);
+    resolve([]);
+    await waitFor(() => {
+      expect(container.querySelectorAll('[data-skeleton-cell]')).toHaveLength(0);
+    });
+  });
+
+  it('calls fetchMyLeaderboardRank when user is outside top 20', async () => {
+    const rows = Array.from({ length: 20 }, (_, i) => ({
+      user_id: `other${i}`, username: `user${i}`, total_points: 1000 - i, games_played: 5, accuracy_pct: 70,
+    }));
+    rows.push({ user_id: 'u1', username: 'me', total_points: 100, games_played: 2, accuracy_pct: 50 });
+    fetchLeaderboard.mockResolvedValue(rows);
+    fetchMyLeaderboardRank.mockResolvedValue({ rank: 47, total: 200 });
+
+    R();
+    await waitFor(() => {
+      expect(fetchMyLeaderboardRank).toHaveBeenCalledWith('weekly', 100);
+    });
+    // The rank cell renders the resolved rank number
+    await waitFor(() => {
+      expect(screen.getByText('47')).toBeInTheDocument();
+    });
+  });
+
+  it('does not call fetchMyLeaderboardRank when user is in top 20', async () => {
+    const rows = [
+      { user_id: 'u1', username: 'me', total_points: 1000, games_played: 5, accuracy_pct: 90 },
+    ];
+    fetchLeaderboard.mockResolvedValue(rows);
+    fetchMyLeaderboardRank.mockResolvedValue(null);
+
+    R();
+    await waitFor(() => expect(screen.getByText('me')).toBeInTheDocument());
+    // Give effects a moment to settle
+    await new Promise((res) => setTimeout(res, 50));
+    expect(fetchMyLeaderboardRank).not.toHaveBeenCalled();
   });
 });
