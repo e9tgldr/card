@@ -159,13 +159,14 @@ Deno.serve(async (req) => {
       .eq('user_id', userId);
 
     // Fail closed: do not silently fall back to full pool when the
-    // trust-boundary roster lookup fails. The client localizes
-    // `roster_lookup_failed` and surfaces a recoverable create-room error.
-    if (ownedError) {
+    // trust-boundary roster lookup fails or returns a malformed result.
+    // The client localizes `roster_lookup_failed` and surfaces a recoverable
+    // create-room error.
+    if (ownedError || owned == null) {
       return json({ ok: false, reason: 'roster_lookup_failed' }, 503);
     }
 
-    const ownedSet = new Set((owned ?? []).map((r) => r.fig_id));
+    const ownedSet = new Set(owned.map((r) => r.fig_id));
     const eligible = QUOTE_FIG_IDS.filter((id) => ownedSet.has(id));
     insert.eligible_fig_ids =
       eligible.length >= MIN_FIGS_FOR_ROSTER ? eligible : null;
