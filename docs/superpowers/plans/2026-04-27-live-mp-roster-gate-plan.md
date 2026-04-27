@@ -17,7 +17,7 @@
 | File | Responsibility | Status |
 |---|---|---|
 | `supabase/migrations/20260427020000_live_room_eligible_figs.sql` | Add `eligible_fig_ids int[]` to `game_sessions` | Create |
-| `supabase/functions/_shared/figures.ts` | Export `QUOTE_FIG_IDS`, `MIN_FIGS_FOR_ROSTER` constants | Modify |
+| `supabase/functions/_shared/rosterGate.ts` | Export `QUOTE_FIG_IDS`, `MIN_FIGS_FOR_ROSTER` (sibling to figures.ts because the generator wholesale-rewrites figures.ts) | Create |
 | `supabase/functions/game-create-session/index.ts` | Compute `eligible_fig_ids` for live rooms; fail-closed on lookup error | Modify |
 | `supabase/functions/game-live-snapshot/index.ts` | Include `eligible_fig_ids` in session select | Modify |
 | `src/lib/i18n.jsx` | `error.roster_lookup_failed` + roster-badge strings | Modify |
@@ -119,7 +119,7 @@ git -c user.email="indra@amjilt.com" -c user.name="Enkh" commit -m "feat(server)
 At the top of the file, after the existing imports:
 
 ```ts
-import { QUOTE_FIG_IDS, MIN_FIGS_FOR_ROSTER } from '../_shared/figures.ts';
+import { QUOTE_FIG_IDS, MIN_FIGS_FOR_ROSTER } from '../_shared/rosterGate.ts';
 ```
 
 - [ ] **Step 2: Insert the roster lookup before the row insert**
