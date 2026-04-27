@@ -36,13 +36,22 @@ In `supabase/functions/game-create-session/index.ts`, after the existing `live_r
 
 ```ts
 if (mode === 'live_room') {
-  const { data: owned } = await admin
+  const { data: owned, error: ownedError } = await admin
     .from('card_ownership')
     .select('fig_id')
     .eq('user_id', userId);
 
+  // Fail closed: do not silently fall back to full pool when the trust-boundary
+  // roster lookup fails. The client localizes `roster_lookup_failed` and surfaces
+  // a recoverable create-room error so the host can retry.
+  if (ownedError) {
+    return json({ ok: false, reason: 'roster_lookup_failed' }, 503);
+  }
+
   const ownedSet = new Set((owned ?? []).map((r) => r.fig_id));
   const eligible = QUOTE_FIG_IDS.filter((id) => ownedSet.has(id));
+  // Intentional fallback: NULL is set only after a successful lookup proves the
+  // host has too few quote-bearing owned figures for roster-gated live play.
   insert.eligible_fig_ids = eligible.length >= MIN_FIGS_FOR_ROSTER ? eligible : null;
 }
 ```
@@ -54,6 +63,8 @@ if (mode === 'live_room') {
 The `select('id, seed, join_code')` clause on the insert is extended to also return `eligible_fig_ids` so the response includes it for the host (the client doesn't strictly need it on the create call — it'll come back via the live snapshot — but it costs nothing to include).
 
 Solo, async_duel, and tournament modes are untouched.
+
+Add `roster_lookup_failed` to the client-side `translateReason` localizer in `src/lib/i18n.jsx` so hosts see a meaningful retryable error message rather than the raw reason code. This distinguishes the failure mode from the intentional fallback in any logging/observability surface — only the explicit 503 path is the error case; NULL `eligible_fig_ids` means the verified-too-few-cards path.
 
 ## 3. Client — round-build
 
@@ -92,7 +103,10 @@ Guests in the lobby see the same badge: it's per-room state, not per-user. No "y
 
 ## 5. Tests
 
-**Edge function** — the project has no edge-function test harness today (tournaments shipped without one — see memory note). Coverage is therefore manual + indirect via the client tests below. If the server logic warrants direct coverage later, that's a separate workstream.
+**Edge function** — the project has no edge-function test harness today (tournaments shipped without one — see memory note). Coverage is therefore manual + indirect via the client tests below. If the server logic warrants direct coverage later, that's a separate workstream. Manual verification cases that must be exercised before shipping:
+
+- **`card_ownership` query failure does NOT fall back to full pool.** Simulate by temporarily revoking the function's `card_ownership` SELECT grant (or pointing at a dropped table in a branch). Expected: edge function responds with HTTP 503 and `body.reason === 'roster_lookup_failed'`; the row is not inserted; client surfaces the localized retry message.
+- **Successful lookup with < 4 owned-with-quotes** → row inserted with `eligible_fig_ids = NULL` (verified-too-few-cards intentional fallback path; not the error path).
 
 **`src/lib/gameApi.test.js`** (or new `src/pages/LiveRoomNew.test.jsx` cases) — mock `createSession` to assert the lobby/snapshot path correctly threads `eligible_fig_ids` through to `LiveRoomGame` props. The existing `LiveRoomNew.test.jsx` is the natural home.
 
@@ -113,7 +127,7 @@ Vitest baseline at start of work: 185 green. Target: 185 + new cases, all green.
 - Mid-game roster updates. `eligible_fig_ids` is locked at session create.
 - Demo-mode flag for live rooms. YAGNI.
 - "You own X of the room's Y figures" overlay for guests. Nice-to-have, defer.
-- Backfilling existing `game_sessions` rows. They predate the column; NULL means "use FIGURES" so no migration data work.
+- Backfilling existing `game_sessions` rows. They predate the column; NULL means "use FIGURES" for legacy rows or for the intentional verified-too-few-cards fallback. NULL is never acceptable as silent recovery from a roster lookup error — that path returns `503 / roster_lookup_failed` instead.
 
 ## 7. Files touched (preview)
 
@@ -125,4 +139,4 @@ Vitest baseline at start of work: 185 green. Target: 185 + new cases, all green.
 - `src/pages/LiveRoomGame.test.jsx`
 - `src/pages/LiveRoomLobby.jsx`
 - `src/pages/LiveRoomLobby.test.jsx`
-- `src/lib/i18n.jsx` (one new string pair if "Roster figures / Цуглуулсан дүрсүүд" isn't already keyed)
+- `src/lib/i18n.jsx` (string pair for "Roster figures / Цуглуулсан дүрсүүд" if not already keyed; new `translateReason` entry for `roster_lookup_failed`)
