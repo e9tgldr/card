@@ -6,6 +6,7 @@ import GoldButton from './GoldButton';
 
 const tiers = [
   {
+    key: 'basic',
     name: 'Энгийн хувилбар',
     price: '29,900₮',
     features: [
@@ -17,6 +18,7 @@ const tiers = [
     highlighted: false,
   },
   {
+    key: 'premium',
     name: 'Premium хувилбар',
     price: '49,900₮',
     features: [
@@ -29,6 +31,7 @@ const tiers = [
     highlighted: true,
   },
   {
+    key: 'collector',
     name: 'Collector Edition',
     price: '99,000₮',
     features: [
@@ -88,7 +91,7 @@ function PricingCard({ tier, index }) {
         </ul>
       </div>
       <div className="mt-8">
-        <GoldButton to="/app" className="w-full">Захиалах</GoldButton>
+        <GoldButton to={`/order?tier=${tier.key}`} className="w-full">Захиалах</GoldButton>
       </div>
     </div>
   );
