@@ -30,11 +30,13 @@ Existing routes use `<OtpGate>` to require login; `OtpGate` already redirects un
 
 Two new tables and one column addition. SQL migration file: `supabase/migrations/20260427000000_card_ownership.sql`.
 
+Project convention is `references auth.users(id) on delete cascade`. The `profiles` table extends `auth.users` 1:1.
+
 ### `card_ownership`
 
 ```sql
 create table card_ownership (
-  user_id    uuid not null references accounts(id) on delete cascade,
+  user_id    uuid not null references auth.users(id) on delete cascade,
   fig_id     int  not null,
   scanned_at timestamptz not null default now(),
   primary key (user_id, fig_id)
@@ -43,7 +45,7 @@ create table card_ownership (
 
 - Composite PK enforces idempotent re-scans.
 - No FK on `fig_id` — figures are static in `src/lib/figuresData.js`.
-- Validation of `fig_id` happens in the `claim-card` edge function against the canonical list.
+- Validation of `fig_id` happens in the `claim-card` edge function against `_shared/figures.ts`.
 - RLS:
   - `select` allowed where `user_id = auth.uid()`.
   - `insert`/`update`/`delete` denied for clients. Service role (edge fn) is the only writer.
@@ -52,27 +54,26 @@ create table card_ownership (
 
 ```sql
 create table card_chats (
-  user_id    uuid        not null references accounts(id) on delete cascade,
+  user_id    uuid        not null references auth.users(id) on delete cascade,
   fig_id     int         not null,
-  lang       text        not null check (lang in ('mn','en','cn')),
   messages   jsonb       not null default '[]'::jsonb,
   updated_at timestamptz not null default now(),
-  primary key (user_id, fig_id, lang)
+  primary key (user_id, fig_id)
 );
 ```
 
-- One row per (user, figure, language). Switching language in chat opens a separate row.
+- One row per (user, figure). All languages share the same row; messages carry their own `lang`. This matches the existing `useFigureChat` data shape (single chronological array with per-message `lang` field).
 - RLS: full CRUD restricted to `user_id = auth.uid()`.
-- `messages` shape: `[{ role: 'user' | 'assistant', content: string, ts: number }, ...]`.
+- `messages` shape (matches current `useFigureChat`): `[{ role: 'user' | 'ai', text: string, lang: 'mn' | 'en' | 'cn', ts: number, source?: 'rule' | 'edge' | 'rate_limited' | 'error' | 'exception' }, ...]`.
 - A trigger updates `updated_at` on row change.
 
-### `accounts.starter_granted_at`
+### `profiles.starter_granted_at`
 
 ```sql
-alter table accounts add column starter_granted_at timestamptz;
+alter table profiles add column starter_granted_at timestamptz;
 ```
 
-- Tracks one-shot starter-pack grant.
+- Tracks one-shot starter-pack grant. (`profiles` is the existing user-extension table from `20260423120000_init_schema.sql:55`.)
 
 ## 3. Edge function: `claim-card`
 
@@ -98,8 +99,8 @@ Path: `supabase/functions/grant-starter-pack/index.ts`
 - **Trigger:** called from client after successful `login()` / `registerWithCode()`.
 - **Auth:** session JWT required.
 - **Logic:**
-  - If `accounts.starter_granted_at IS NOT NULL` → return `{ granted: false, reason: 'already_granted' }`.
-  - Else: `insert into card_ownership (user_id, fig_id) values ($u,1),($u,3),($u,14) on conflict do nothing;` then `update accounts set starter_granted_at = now() where id = $u;`.
+  - If `profiles.starter_granted_at IS NOT NULL` → return `{ granted: false, reason: 'already_granted' }`.
+  - Else: `insert into card_ownership (user_id, fig_id) values ($u,1),($u,3),($u,14) on conflict do nothing;` then `update profiles set starter_granted_at = now() where id = $u;`.
   - Return `{ granted: true, fig_ids: [1,3,14] }`.
 - Idempotent.
 
@@ -121,17 +122,19 @@ Component: `src/pages/Collection.jsx` (rename from `MyCollection.jsx` if simpler
 Hook: `src/hooks/useFigureChat.js`
 
 - Signature change: `useFigureChat(figure, { userId, owned })`.
-- On mount/lang-switch, if `owned`:
-  - `select messages from card_chats where (user_id, fig_id, lang) = ($u, $f, $l);`
-  - Hydrate state with messages (or `[]` if no row).
-- On every `send()` round-trip completion: debounced 500ms upsert:
+- On mount, if `owned` and `userId`:
+  - `select messages from card_chats where user_id = $u and fig_id = $f;`
+  - If a row exists, hydrate `messages` and `lang` (lang derives from the most recent message's `lang` field, defaulting to `'mn'` if empty).
+  - If no row, follow the existing first-mount behavior: emit the opening greeting, then upsert.
+- On every `pushMessage()` (after state update): debounced 500ms upsert:
   ```sql
-  insert into card_chats (user_id, fig_id, lang, messages)
-  values ($u, $f, $l, $m::jsonb)
-  on conflict (user_id, fig_id, lang)
+  insert into card_chats (user_id, fig_id, messages)
+  values ($u, $f, $m::jsonb)
+  on conflict (user_id, fig_id)
   do update set messages = excluded.messages, updated_at = now();
   ```
-- If `!owned`: in-memory only (preserves current behavior; relevant if any non-collection chat surface remains, e.g., demo previews).
+- If `!owned` or no `userId`: fall back to existing `sessionStorage` persistence (preserves current behavior for any non-collection chat surface).
+- The existing `sessionStorage` fallback path remains; the DB path replaces it only when both `userId` and `owned` are truthy.
 
 ## 7. Hand-off to Sub-project 2
 
@@ -155,7 +158,7 @@ New hook: `src/hooks/useOwnedFigures.js`
 - `claim-card`: rejects unauthed; rejects bad `fig_id`; idempotent on duplicate; honors rate limit (31st call/hour returns 429).
 - `grant-starter-pack`: grants 3 figures + sets timestamp on first call; no-ops on second.
 - `useOwnedFigures`: returns initial fetch correctly; appends on Realtime insert event.
-- `useFigureChat`: hydrates from DB when `owned=true`; writes debounced upsert on send; in-memory only when `owned=false`.
+- `useFigureChat`: hydrates from `card_chats` row when `owned=true` and `userId` present; writes debounced upsert on each `pushMessage`; falls back to `sessionStorage` when `owned=false`.
 - `Collection`: empty state renders both CTAs; populated state renders correct count and grid; tap navigates to `/c/:figId`.
 - `ScanChat`: redirects to `/otp?next=%2Fc%2F123` when unauthed (via `OtpGate`); calls `claim-card` exactly once on mount when authed; skips claim call when already in the owned set; `OtpLogin` shows the "claim hint" line when `next` starts with `/c/`.
 
@@ -165,7 +168,7 @@ New hook: `src/hooks/useOwnedFigures.js`
 ## 10. Risks & open questions
 
 - **Starter pack edge fn timing.** Calling `grant-starter-pack` immediately after `login()` adds latency. Acceptable trade for simplicity. If felt slow in practice, move to a Postgres trigger on `accounts insert`.
-- **`fig_id` constant duplication.** The canonical figure list lives in `figuresData.js` (client). The edge fn needs to validate `fig_id` against it. Plan: a generated JSON file in `supabase/functions/_shared/figure-ids.json` produced by a small `scripts/sync-figure-ids.js` step, kept in sync via a CI check or manual script call. Alternative considered: a `figures` table in DB (rejected — duplicates static data and adds migration burden for content tweaks).
+- **`fig_id` constant duplication.** The canonical figure list lives in `figuresData.js` (client). The existing `scripts/gen-shared-figures.mjs` already generates `supabase/functions/_shared/figures.ts` for edge-function use; both new edge functions reuse it for validation. The existing CI check (`gen:figures --check`) catches drift.
 - **Chat history size.** `messages` is unbounded JSONB. Realistic ceiling per (user, figure, lang): ~few hundred messages = ~100KB. Acceptable. If we ever cross 1MB per row, introduce a separate `card_chat_messages` table.
 
 ## 11. Out of scope (deferred to other sub-projects)
