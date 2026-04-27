@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { fetchSession, fetchSessionResults, createSession } from '@/lib/gameApi';
 import Fleuron from '@/components/ornaments/Fleuron';
 import BrassButton from '@/components/ornaments/BrassButton';
+import { notify } from '@/lib/feedback';
 
 export default function DuelSummary() {
   const { id } = useParams();
@@ -51,7 +52,7 @@ export default function DuelSummary() {
       });
       navigate(`/games/quotes?session=${newId}`);
     } catch (err) {
-      alert(err.message ?? 'Failed to rematch');
+      notify.error(err, { fallbackKey: 'toast.duel.rematchFailed' });
     } finally {
       setRematching(false);
     }

@@ -34,9 +34,19 @@ describe('LiveRoomLobby', () => {
         <LiveRoomLobby room={room} sessionId="s1" currentUserId="u1" />
       </LangProvider>,
     );
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: /start|эхлэх/i }));
     await waitFor(() => expect(notifyMocks.error).toHaveBeenCalled());
     expect(alertSpy).not.toHaveBeenCalled();
     alertSpy.mockRestore();
+  });
+
+  it('renders copy + share buttons next to the join code', () => {
+    render(
+      <LangProvider>
+        <LiveRoomLobby room={room} sessionId="s1" currentUserId="u1" />
+      </LangProvider>,
+    );
+    expect(screen.getByRole('button', { name: /copy code|кодыг хуулах/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /share link|холбоос хуваалцах/i })).toBeInTheDocument();
   });
 });
