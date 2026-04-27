@@ -3,6 +3,9 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Send, Volume2, X, ArrowLeft } from 'lucide-react';
 import { FIGURES } from '@/lib/figuresData';
 import { useFigureChat } from '@/hooks/useFigureChat';
+import { useOwnedFigures } from '@/hooks/useOwnedFigures';
+import { currentSession } from '@/lib/authStore';
+import { supabase } from '@/lib/supabase';
 import ScanNotFound from '@/components/ScanNotFound';
 import { ErrorBoundary } from '@/lib/feedback';
 
@@ -39,7 +42,27 @@ export default function ScanChat() {
 
 function ScanChatInner({ figure }) {
   const navigate = useNavigate();
-  const { messages, lang, busy, send, switchLang } = useFigureChat(figure);
+
+  const session = currentSession();
+  const userId = session?.account_id ?? null;
+  const { figIds } = useOwnedFigures(userId);
+  const owned = figIds.includes(figure.fig_id);
+  const [claimed, setClaimed] = useState(false);
+  const claimAttempted = useRef(false);
+
+  useEffect(() => {
+    if (!userId || owned || claimAttempted.current) return;
+    claimAttempted.current = true;
+    supabase.functions.invoke('claim-card', { body: { fig_id: figure.fig_id } })
+      .then(({ data, error }) => {
+        if (!error && data?.ok && data.owned) setClaimed(true);
+      })
+      .catch((err) => console.warn('claim-card failed', err));
+  }, [userId, owned, figure.fig_id]);
+
+  const isOwnedForChat = owned || claimed;
+
+  const { messages, lang, busy, send, switchLang } = useFigureChat(figure, { userId, owned: isOwnedForChat });
   const [input, setInput] = useState('');
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const scrollRef = useRef(null);

@@ -56,7 +56,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/otp" element={<OtpLogin />} />
-      <Route path="/c/:figId" element={<ScanChat />} />
+      <Route path="/c/:figId" element={<OtpGate><ScanChat /></OtpGate>} />
       <Route path="/app" element={<OtpGate><Home /></OtpGate>} />
       <Route path="/figure/:figId" element={<OtpGate><FigureDetail /></OtpGate>} />
       <Route path="/collection" element={<OtpGate><MyCollection /></OtpGate>} />
