@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { handleOptions, json } from '../_shared/cors.ts';
+import { QUOTE_FIG_IDS, MIN_FIGS_FOR_ROSTER } from '../_shared/rosterGate.ts';
 
 const MODES = new Set(['solo', 'async_duel', 'live_room', 'tournament']);
 const LANGS = new Set(['mn', 'en']);
@@ -149,6 +150,25 @@ Deno.serve(async (req) => {
 
   if (mode === 'async_duel') {
     insert.expires_at = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
+  }
+
+  if (mode === 'live_room') {
+    const { data: owned, error: ownedError } = await admin
+      .from('card_ownership')
+      .select('fig_id')
+      .eq('user_id', userId);
+
+    // Fail closed: do not silently fall back to full pool when the
+    // trust-boundary roster lookup fails. The client localizes
+    // `roster_lookup_failed` and surfaces a recoverable create-room error.
+    if (ownedError) {
+      return json({ ok: false, reason: 'roster_lookup_failed' }, 503);
+    }
+
+    const ownedSet = new Set((owned ?? []).map((r) => r.fig_id));
+    const eligible = QUOTE_FIG_IDS.filter((id) => ownedSet.has(id));
+    insert.eligible_fig_ids =
+      eligible.length >= MIN_FIGS_FOR_ROSTER ? eligible : null;
   }
 
   const { data: session, error: insErr } = await admin
