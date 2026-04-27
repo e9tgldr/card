@@ -55,6 +55,7 @@ export default function OtpLogin() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = params.get('next') || '/app';
+  const isClaimFlow = next.startsWith('/c/');
 
   const [mode, setMode] = useState('redeem'); // 'redeem' | 'login'
   const [bootstrap, setBootstrap] = useState(null);
@@ -124,6 +125,12 @@ export default function OtpLogin() {
               Эхний хэрэглэгч энэ кодыг ашиглаад админ руу нэвтэрч, өөр кодуудыг үүсгэнэ.
             </div>
           </div>
+        )}
+
+        {isClaimFlow && (
+          <p className="mb-3 text-sm text-brass">
+            Бүртгэгдсэний дараа карт цуглуулгад нэмэгдэнэ.
+          </p>
         )}
 
         {mode === 'redeem'

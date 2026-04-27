@@ -33,6 +33,26 @@ beforeEach(() => {
 
 afterEach(() => { cleanup(); });
 
+describe('OtpLogin — claim hint', () => {
+  it('shows the claim hint when next param starts with /c/', () => {
+    render(
+      <MemoryRouter initialEntries={['/otp?next=%2Fc%2F1']}>
+        <OtpLogin />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/Бүртгэгдсэний дараа карт/i)).toBeInTheDocument();
+  });
+
+  it('does not show the claim hint without the next param', () => {
+    render(
+      <MemoryRouter initialEntries={['/otp']}>
+        <OtpLogin />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText(/Бүртгэгдсэний дараа карт/i)).toBeNull();
+  });
+});
+
 describe('OtpLogin polish', () => {
   it('error message has role=alert and aria-live=assertive', async () => {
     authStoreMock.login.mockResolvedValue({ ok: false, reason: 'bad_password' });
