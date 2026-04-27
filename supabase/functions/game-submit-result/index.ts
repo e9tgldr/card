@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { handleOptions, json } from '../_shared/cors.ts';
 import { buildRoundFromSeed } from '../_shared/seededRound.ts';
-import { FIGURES } from '../_shared/figures.ts';
+import { figurePoolFor } from '../_shared/rosterGate.ts';
 
 interface IncomingAnswer {
   idx: number;
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
   const { data: session, error: sErr } = await admin
     .from('game_sessions')
-    .select('id, seed, lang, round_size, status, mode, tournament_id')
+    .select('id, seed, lang, round_size, status, mode, tournament_id, eligible_fig_ids')
     .eq('id', body.session_id)
     .maybeSingle();
   if (sErr || !session) return json({ ok: false, reason: 'not_found' }, 404);
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
   if (existing) return json({ ok: false, reason: 'already_submitted' }, 409);
 
   // Rebuild the authoritative round from the stored seed.
-  const round = buildRoundFromSeed(FIGURES, session.round_size, session.seed);
+  const round = buildRoundFromSeed(figurePoolFor(session.eligible_fig_ids), session.round_size, session.seed);
 
   // Re-score. Client sends pickedFigId; server verifies against the seeded
   // round and ignores any client-sent correctness flag. An answer is correct
