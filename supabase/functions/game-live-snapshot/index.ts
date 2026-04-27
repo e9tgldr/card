@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
   const query = admin
     .from('game_sessions')
-    .select('id, status, mode, lang, round_size, timer_s, host_user_id, current_round_idx, current_sent_at, current_deadline, rematch_session_id, seed, join_code');
+    .select('id, status, mode, lang, round_size, timer_s, host_user_id, current_round_idx, current_sent_at, current_deadline, rematch_session_id, seed, join_code, eligible_fig_ids');
   const { data: session, error: sErr } = await (
     sessionId ? query.eq('id', sessionId) : query.eq('join_code', joinCode)
   ).maybeSingle();
