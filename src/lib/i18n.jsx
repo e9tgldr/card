@@ -182,6 +182,12 @@ export const STRINGS = {
   'live.lobby.players':     { mn: 'Тоглогчид',                     en: 'Players' },
   'live.lobby.start':       { mn: 'Эхлэх',                         en: 'Start' },
   'live.lobby.waitingForHost': { mn: 'Хост эхлэхийг хүлээж байна…', en: 'Waiting for the host to start…' },
+  'live.lobby.rosterFigures':   { mn: 'Цуглуулсан дүрсүүд', en: 'Roster figures' },
+  'live.lobby.allFigures':      { mn: 'Бүгд',                 en: 'All figures' },
+  'live.lobby.allFiguresHint':  {
+    mn: 'Хост 4-өөс цөөн ишлэлт дүрс цуглуулсан тул бүх дүрс ашиглана.',
+    en: 'Host has fewer than 4 quote-bearing figures, so the full set is in play.',
+  },
   'live.game.question':     { mn: 'Асуулт',                        en: 'Question' },
   'live.game.timer':        { mn: 'Хугацаа',                       en: 'Timer' },
   'live.game.standings':    { mn: 'Оноон байрлал',                 en: 'Standings' },
@@ -206,6 +212,10 @@ export const STRINGS = {
   'error.unauthorized':       { mn: 'Нэвтрээгүй байна.',               en: 'Not signed in.' },
   'error.not_found':          { mn: 'Олдсонгүй.',                      en: 'Not found.' },
   'error.duplicate_rematch':  { mn: 'Дахин сорилт аль хэдийн үүсгэгдсэн.', en: 'Rematch already created.' },
+  'error.roster_lookup_failed': {
+    mn: 'Цуглуулга шалгахад алдаа гарлаа. Дахин оролдоорой.',
+    en: 'Could not check your collection. Please try again.',
+  },
 
   // Tournaments (Phase 3)
   'nav.tournaments':              { mn: 'Тэмцээн',                        en: 'Tournaments' },
