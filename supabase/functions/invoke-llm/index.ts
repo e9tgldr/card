@@ -28,6 +28,31 @@ function fallbackForSchema(schema: Record<string, unknown> | undefined): unknown
   return FALLBACK_TEXT;
 }
 
+// Gemini accepts OpenAPI 3.0 subset for responseSchema. Strip fields it commonly
+// rejects (description, additionalProperties, $schema, etc.) recursively.
+function sanitizeSchemaForGemini(schema: unknown): unknown {
+  if (!schema || typeof schema !== 'object') return schema;
+  if (Array.isArray(schema)) return schema.map(sanitizeSchemaForGemini);
+  const STRIP = new Set([
+    'description', 'additionalProperties', '$schema', 'title',
+    'examples', 'default', 'definitions', '$ref', 'oneOf', 'anyOf', 'allOf', 'not',
+  ]);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(schema as Record<string, unknown>)) {
+    if (STRIP.has(k)) continue;
+    out[k] = sanitizeSchemaForGemini(v);
+  }
+  return out;
+}
+
+// Gemini sometimes returns JSON wrapped in ```json ... ``` fences despite
+// responseMimeType. Strip them.
+function stripCodeFences(text: string): string {
+  const trimmed = text.trim();
+  const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return (fenceMatch ? fenceMatch[1] : trimmed).trim();
+}
+
 Deno.serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre;
   if (req.method !== 'POST') return json({ ok: false, reason: 'method_not_allowed' }, 405);
@@ -56,11 +81,11 @@ Deno.serve(async (req) => {
 
   const generationConfig: Record<string, unknown> = {
     temperature: 0.7,
-    maxOutputTokens: 1024,
+    maxOutputTokens: 2048,
   };
   if (schema) {
     generationConfig.responseMimeType = 'application/json';
-    generationConfig.responseSchema = schema;
+    generationConfig.responseSchema = sanitizeSchemaForGemini(schema);
   }
 
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
@@ -76,18 +101,35 @@ Deno.serve(async (req) => {
       }),
     });
     if (resp.status === 429) { source = 'quota_exceeded'; }
-    else if (!resp.ok) { source = `gemini_${resp.status}`; }
+    else if (!resp.ok) {
+      const errBody = await resp.text();
+      console.error('gemini non-2xx', resp.status, errBody.slice(0, 500));
+      source = `gemini_${resp.status}`;
+    }
     else {
       const data = await resp.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) {
-        if (schema) {
-          try { reply = JSON.parse(text); source = 'gemini'; }
-          catch { reply = fallbackForSchema(schema); source = 'parse_error'; }
-        } else {
-          reply = text.trim();
-          source = 'gemini';
+      if (!text) {
+        console.warn('gemini returned no text', JSON.stringify(data).slice(0, 500));
+        source = 'no_text';
+      } else if (schema) {
+        const cleaned = stripCodeFences(text);
+        try { reply = JSON.parse(cleaned); source = 'gemini'; }
+        catch (parseErr) {
+          console.error('gemini JSON parse failed', parseErr, 'text:', text.slice(0, 300));
+          // Last-ditch: surface the raw text in answer/overall fields if present.
+          const fb = fallbackForSchema(schema);
+          if (fb && typeof fb === 'object' && !Array.isArray(fb)) {
+            const r = fb as Record<string, unknown>;
+            if ('answer' in r) r.answer = cleaned;
+            else if ('overall' in r) r.overall = cleaned;
+          }
+          reply = fb;
+          source = 'parse_recovered';
         }
+      } else {
+        reply = text.trim();
+        source = 'gemini';
       }
     }
   } catch (err) {
@@ -95,5 +137,6 @@ Deno.serve(async (req) => {
     source = 'exception';
   }
 
+  console.log('invoke-llm result', { source, hasSchema: Boolean(schema) });
   return json({ ok: true, reply, source });
 });
