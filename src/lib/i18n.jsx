@@ -383,6 +383,7 @@ export const STRINGS = {
   'admin.backVideos.tooBig':    { mn: 'Файл хэт том ({mb} MB > 50 MB)', en: 'File too large ({mb} MB > 50 MB)' },
   'admin.backVideos.tooLong':   { mn: 'Видео хэт урт ({s}s > 60s)',     en: 'Video too long ({s}s > 60s)' },
   'admin.backVideos.notVtt':    { mn: 'WEBVTT файл байх ёстой',         en: 'Must be a WEBVTT file' },
+  'admin.backVideos.notMp4':    { mn: 'MP4 файл байх ёстой', en: 'Must be an MP4 file' },
   'admin.backVideos.empty':     { mn: 'Видео байхгүй',                  en: 'No video' },
 };
 

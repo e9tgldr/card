@@ -26,7 +26,7 @@ export default function BackVideos({ figures, videosById = {}, onChange }) {
   const handleVideoUpload = async (figId, file) => {
     setError('');
     if (file.type !== 'video/mp4') {
-      setError(t('admin.backVideos.notVtt'));
+      setError(t('admin.backVideos.notMp4'));
       return;
     }
     if (file.size > MAX_VIDEO_BYTES) {

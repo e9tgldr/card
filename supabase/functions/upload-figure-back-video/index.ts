@@ -57,15 +57,12 @@ Deno.serve(async (req) => {
         return json({ ok: false, reason: 'too_long' }, 400);
       }
 
-      // Read existing row to delete its old object before overwriting.
+      // Read existing row first so we know which old object to delete after the new one is in place.
       const { data: existing } = await admin
         .from('figure_back_videos')
         .select('video_path')
         .eq('fig_id', figId)
         .maybeSingle();
-      if (existing?.video_path) {
-        await admin.storage.from(BUCKET).remove([existing.video_path]);
-      }
 
       const newPath = `${figId}/back-${Date.now()}.mp4`;
       const buf = new Uint8Array(await file.arrayBuffer());
@@ -85,7 +82,16 @@ Deno.serve(async (req) => {
           uploaded_by: adminUserId,
           uploaded_at: new Date().toISOString(),
         }, { onConflict: 'fig_id' });
-      if (rowErr) return json({ ok: false, reason: 'server', detail: rowErr.message }, 500);
+      if (rowErr) {
+        // DB row not updated — clean up the freshly-uploaded object so we don't orphan it.
+        await admin.storage.from(BUCKET).remove([newPath]);
+        return json({ ok: false, reason: 'server', detail: rowErr.message }, 500);
+      }
+
+      // DB row now points to newPath. Best-effort delete of the old object.
+      if (existing?.video_path && existing.video_path !== newPath) {
+        await admin.storage.from(BUCKET).remove([existing.video_path]);
+      }
 
       const publicUrl = `${url}/storage/v1/object/public/${BUCKET}/${newPath}`;
       return json({ ok: true, video_path: newPath, public_url: publicUrl });
@@ -111,9 +117,6 @@ Deno.serve(async (req) => {
       if (!existing?.video_path) {
         return json({ ok: false, reason: 'no_video' }, 400);
       }
-      if (existing.captions_path) {
-        await admin.storage.from(BUCKET).remove([existing.captions_path]);
-      }
 
       const newPath = `${figId}/back-${Date.now()}.vtt`;
       const buf = new TextEncoder().encode(text);
@@ -128,7 +131,14 @@ Deno.serve(async (req) => {
         .from('figure_back_videos')
         .update({ captions_path: newPath })
         .eq('fig_id', figId);
-      if (rowErr) return json({ ok: false, reason: 'server', detail: rowErr.message }, 500);
+      if (rowErr) {
+        await admin.storage.from(BUCKET).remove([newPath]);
+        return json({ ok: false, reason: 'server', detail: rowErr.message }, 500);
+      }
+
+      if (existing.captions_path && existing.captions_path !== newPath) {
+        await admin.storage.from(BUCKET).remove([existing.captions_path]);
+      }
 
       const publicUrl = `${url}/storage/v1/object/public/${BUCKET}/${newPath}`;
       return json({ ok: true, captions_path: newPath, public_url: publicUrl });
