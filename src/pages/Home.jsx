@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { FIGURES } from '@/lib/figuresData';
@@ -204,8 +204,6 @@ export default function Home() {
   const { settings } = useAppSettings();
   const { compareList, toggleCompare, isInCompare, clearCompare, removeFromCompare } = useCompare();
   const [showCompare, setShowCompare] = useState(false);
-  const adminChord = useRef([]);
-  const adminTimer = useRef(null);
   const location = useLocation();
 
   // Scroll to section when returning from a detail page
@@ -243,34 +241,12 @@ export default function Home() {
     }
   }, [dbFigures]);
 
-  // Admin chord: Ctrl → M → A
+  // Admin panel opens via Navbar button (gated on is_admin); listen for the event.
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      const key = e.key.toLowerCase();
-      if (key === 'control' || key === 'm' || key === 'a') {
-        adminChord.current.push(key);
-        clearTimeout(adminTimer.current);
-        adminTimer.current = setTimeout(() => { adminChord.current = []; }, 1500);
-
-        const seq = adminChord.current.join('');
-        if (seq.includes('controlma')) {
-          adminChord.current = [];
-          promptAdminLogin();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    const open = () => setShowAdmin(true);
+    window.addEventListener('open-admin-panel', open);
+    return () => window.removeEventListener('open-admin-panel', open);
   }, []);
-
-  const promptAdminLogin = () => {
-    const pw = prompt('Админ нууц үг:');
-    if (pw === 'admin2025') {
-      setShowAdmin(true);
-    } else if (pw !== null) {
-      alert('Буруу нууц үг');
-    }
-  };
 
   const scrollTo = useCallback((target) => {
     const el = document.getElementById(target);

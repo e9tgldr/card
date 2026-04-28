@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, BookMarked, LogOut, Trophy, Medal } from 'lucide-react';
+import { Menu, X, BookMarked, LogOut, Trophy, Medal, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -149,6 +149,19 @@ export default function Navbar({ onScrollTo }) {
               <span className="absolute inset-0 border border-brass/40 group-hover:border-brass/90 transition-colors" />
               <Medal className="w-3.5 h-3.5 relative z-10" />
               <span className="hidden xl:inline relative z-10">{t('nav.tournaments')}</span>
+            </button>
+          )}
+
+          {/* Admin — visible only when signed-in user has is_admin */}
+          {session?.is_admin && (
+            <button
+              onClick={() => window.dispatchEvent(new Event('open-admin-panel'))}
+              title={t('nav.admin')}
+              className="relative group hidden sm:flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-meta tracking-[0.2em] uppercase text-brass hover:text-ivory transition-colors"
+            >
+              <span className="absolute inset-0 border border-brass/40 group-hover:border-brass/90 transition-colors" />
+              <Shield className="w-3.5 h-3.5 relative z-10" />
+              <span className="hidden xl:inline relative z-10">{t('nav.admin')}</span>
             </button>
           )}
 

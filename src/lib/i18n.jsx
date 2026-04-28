@@ -32,6 +32,7 @@ export const STRINGS = {
   'nav.timeline':    { mn: 'Он Дараалал',    en: 'Timeline' },
   'nav.collection':{ mn: 'Цуглуулга',    en: 'Collection' },
   'nav.logout':    { mn: 'Гарах',        en: 'Logout' },
+  'nav.admin':     { mn: 'Админ',        en: 'Admin' },
 
   // Gallery
   'gallery.title.prefix': { mn: 'Түүхэн',       en: 'Historical' },

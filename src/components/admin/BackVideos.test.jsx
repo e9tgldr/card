@@ -15,6 +15,8 @@ vi.mock('@/lib/videoMeta', () => ({
   probeVideoDuration: vi.fn().mockResolvedValue(30),
 }));
 
+import BackVideos from '@/components/admin/BackVideos';
+
 const FIGURES = [
   { fig_id: 1, name: 'Чингис Хаан', cat: 'khans', ico: '👑' },
   { fig_id: 2, name: 'Өгөдэй Хаан', cat: 'khans', ico: '👑' },
@@ -26,7 +28,6 @@ beforeEach(() => {
 
 describe('BackVideos', () => {
   it('renders all figures with empty status when no videos exist', async () => {
-    const BackVideos = (await import('@/components/admin/BackVideos')).default;
     render(<BackVideos figures={FIGURES} videosById={{}} />);
     expect(screen.getByText('Чингис Хаан')).toBeInTheDocument();
     expect(screen.getByText('Өгөдэй Хаан')).toBeInTheDocument();
@@ -34,13 +35,11 @@ describe('BackVideos', () => {
   });
 
   it('renders uploaded status with duration for figures that have videos', async () => {
-    const BackVideos = (await import('@/components/admin/BackVideos')).default;
     render(<BackVideos figures={FIGURES} videosById={{ 1: { url: 'https://x/b.mp4', captionsUrl: null, durationS: 42 } }} />);
     expect(screen.getByText(/0:42/)).toBeInTheDocument();
   });
 
   it('rejects an over-50-MB file client-side and does not call invoke', async () => {
-    const BackVideos = (await import('@/components/admin/BackVideos')).default;
     const onChange = vi.fn();
     render(<BackVideos figures={FIGURES} videosById={{}} onChange={onChange} />);
 
@@ -55,7 +54,6 @@ describe('BackVideos', () => {
   });
 
   it('rejects a non-VTT captions file', async () => {
-    const BackVideos = (await import('@/components/admin/BackVideos')).default;
     render(<BackVideos figures={FIGURES} videosById={{ 1: { url: 'https://x/b.mp4', captionsUrl: null, durationS: 30 } }} />);
 
     const input = screen.getByTestId('captions-file-input-1');
@@ -72,7 +70,6 @@ describe('BackVideos', () => {
   it('successful upload invokes the edge function', async () => {
     mockInvoke.mockResolvedValue({ data: { ok: true, public_url: 'https://x/b.mp4' }, error: null });
 
-    const BackVideos = (await import('@/components/admin/BackVideos')).default;
     const onChange = vi.fn();
     render(<BackVideos figures={FIGURES} videosById={{}} onChange={onChange} />);
 
@@ -92,7 +89,6 @@ describe('BackVideos', () => {
     mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });
     window.confirm = vi.fn(() => true);
 
-    const BackVideos = (await import('@/components/admin/BackVideos')).default;
     const onChange = vi.fn();
     render(<BackVideos figures={FIGURES} videosById={{ 1: { url: 'https://x/b.mp4', captionsUrl: null, durationS: 30 } }} onChange={onChange} />);
 

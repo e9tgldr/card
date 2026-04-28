@@ -179,6 +179,7 @@ export const currentSession = () => {
     return {
       account_id: user.id,
       username: user.user_metadata?.username ?? emailToUsername(user.email) ?? '',
+      is_admin: !!user.app_metadata?.is_admin,
       started_at: parsed?.expires_at ? new Date(parsed.expires_at * 1000).toISOString() : null,
     };
   } catch {
