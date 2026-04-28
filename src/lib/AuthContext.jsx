@@ -4,6 +4,7 @@ import {
   getStoredSessionId,
   startHeartbeat,
   stopHeartbeat,
+  clearStoredSessionId,
   onEvicted,
 } from '@/lib/deviceSession';
 
@@ -57,6 +58,8 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
+    clearStoredSessionId();
+    stopHeartbeat();
     base44.auth.logout();
     if (shouldRedirect) {
       window.location.href = '/';
