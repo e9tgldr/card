@@ -350,6 +350,23 @@ export const STRINGS = {
 
   // Story
   'story.fullscreenExitHint':     { mn: 'Esc дарж гарах',                       en: 'Press Esc to exit' },
+
+  // Auth — single-device sign-in
+  'auth.deviceConflictTitle':
+    { mn: 'Энэ данс өөр төхөөрөмж дээр нэвтэрсэн байна',
+      en: 'This account is already signed in elsewhere' },
+  'auth.deviceConflictBody':
+    { mn: 'Сүүлд: {device} · {lastSeen} өмнө',
+      en: 'Last seen: {device} · {lastSeen} ago' },
+  'auth.takeOverButton':
+    { mn: 'Энэ төхөөрөмж дээр нэвтрэх',
+      en: 'Sign in here anyway' },
+  'auth.cancelButton':
+    { mn: 'Болих',
+      en: 'Cancel' },
+  'auth.evictedBanner':
+    { mn: 'Та өөр төхөөрөмж дээр нэвтэрсэн тул энэ төхөөрөмжөөс гарлаа.',
+      en: 'You were signed out because this account signed in on another device.' },
 };
 
 const LangContext = createContext({ lang: 'mn', setLang: () => {}, t: (k) => k });
