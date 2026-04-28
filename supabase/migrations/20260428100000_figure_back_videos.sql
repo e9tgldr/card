@@ -11,8 +11,8 @@ create table if not exists public.figure_back_videos (
 
 alter table public.figure_back_videos enable row level security;
 
-create policy "back_videos public read"
+create policy if not exists "back_videos public read"
   on public.figure_back_videos for select using (true);
 
-create policy "back_videos admin write"
+create policy if not exists "back_videos admin write"
   on public.figure_back_videos for all using (is_admin()) with check (is_admin());
