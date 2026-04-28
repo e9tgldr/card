@@ -1,13 +1,14 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Layers, LayoutGrid } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { FIGURES, CATEGORIES, ERAS, ERA_KEYS, getEra } from '@/lib/figuresData';
+import { CATEGORIES, ERAS, ERA_KEYS, getEra } from '@/lib/figuresData';
 import { useLang } from '@/lib/i18n';
 import FigureCard from './FigureCard';
 import Card3D from './Card3D';
 import Fleuron from '@/components/ornaments/Fleuron';
 import CategoryGlyph from '@/components/ornaments/CategoryGlyph';
 import CodexRule from '@/components/ornaments/CodexRule';
+import { useFigureBackVideos, mergeBackVideos } from '@/hooks/useFigureBackVideos';
 
 const FILTER_OPTIONS = [
   { key: 'all',       label: 'Бүгд',    label_en: 'All',        roman: '∑' },
@@ -26,6 +27,12 @@ export default function GallerySection({ figures, onCardClick, isInTeam, onToggl
   const [view3D, setView3D] = useState(false);
   const containerRef = useRef(null);
   const { t, lang } = useLang();
+
+  const { data: videosById } = useFigureBackVideos();
+  const figuresWithVideos = useMemo(
+    () => mergeBackVideos(figures, videosById),
+    [figures, videosById],
+  );
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 200);
@@ -48,7 +55,7 @@ export default function GallerySection({ figures, onCardClick, isInTeam, onToggl
   }, [filter, eraFilter, debouncedSearch]);
 
   const filtered = useMemo(() => {
-    let list = figures;
+    let list = figuresWithVideos;
     if (filter !== 'all') list = list.filter(f => f.cat === filter);
     if (eraFilter !== 'all') list = list.filter(f => getEra(f) === eraFilter);
     if (debouncedSearch) {
@@ -60,7 +67,7 @@ export default function GallerySection({ figures, onCardClick, isInTeam, onToggl
       );
     }
     return list;
-  }, [figures, filter, eraFilter, debouncedSearch]);
+  }, [figuresWithVideos, filter, eraFilter, debouncedSearch]);
 
   // Group by category
   const grouped = useMemo(() => {
