@@ -23,10 +23,23 @@ vi.mock('@/lib/supabase', () => ({
   emailToUsername: (e) => e.split('@')[0],
 }));
 
+const mockClaim = vi.fn();
+const mockClear = vi.fn();
+const mockStop = vi.fn();
+
+vi.mock('@/lib/deviceSession', () => ({
+  claimDeviceSession: (...a) => mockClaim(...a),
+  clearStoredSessionId: (...a) => mockClear(...a),
+  stopHeartbeat: (...a) => mockStop(...a),
+}));
+
 beforeEach(() => {
   mockInvoke.mockReset();
   mockSignInWithPassword.mockReset();
   mockSetSession.mockReset();
+  mockClaim.mockReset();
+  mockClear.mockReset();
+  mockStop.mockReset();
 });
 
 // ---------------------------------------------------------------------------
@@ -39,6 +52,7 @@ describe('authStore.login', () => {
       data: { user: { id: 'u1' }, session: { access_token: 't' } },
       error: null,
     });
+    mockClaim.mockResolvedValue({ ok: true, exempt: false, session_id: 'sid-1' });
     // grant-starter-pack is the only invoke call in the happy path
     mockInvoke.mockResolvedValue({ data: { ok: true, granted: true }, error: null });
 
@@ -72,14 +86,10 @@ describe('authStore.login', () => {
     const supa = (await import('@/lib/supabase')).supabase;
     supa.auth.signOut = signOutSpy;
 
-    mockInvoke.mockImplementation((name) => {
-      if (name === 'claim-session') {
-        return Promise.resolve({
-          data: { ok: false, blocked: true, device_label: 'Chrome on Windows', last_seen: '2026-04-28T00:00:00Z' },
-          error: null,
-        });
-      }
-      return Promise.resolve({ data: { ok: true }, error: null });
+    mockClaim.mockResolvedValue({
+      ok: false, blocked: true,
+      device_label: 'Chrome on Windows',
+      last_seen: '2026-04-28T00:00:00Z',
     });
 
     const { login } = await import('@/lib/authStore');
@@ -99,16 +109,11 @@ describe('authStore.login', () => {
       data: { user: { id: 'u1' }, session: { access_token: 't' } },
       error: null,
     });
-    mockInvoke.mockImplementation((name, opts) => {
-      if (name === 'claim-session') {
-        expect(opts.body.force).toBe(true);
-        return Promise.resolve({
-          data: { ok: true, exempt: false, session_id: 'sid-2' },
-          error: null,
-        });
-      }
-      return Promise.resolve({ data: { ok: true }, error: null });
+    mockClaim.mockImplementation(async ({ force }) => {
+      expect(force).toBe(true);
+      return { ok: true, exempt: false, session_id: 'sid-2' };
     });
+    mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });
 
     const { login } = await import('@/lib/authStore');
     const res = await login({ username: 'testuser', password: 'pass123', force: true });
@@ -138,6 +143,7 @@ describe('authStore.registerWithCode', () => {
       return Promise.resolve({ data: { ok: true, granted: true }, error: null });
     });
     mockSetSession.mockResolvedValue({ error: null });
+    mockClaim.mockResolvedValue({ ok: true });
 
     const { registerWithCode } = await import('@/lib/authStore');
     const res = await registerWithCode({ code: 'CODE1', username: 'newuser', password: 'pw' });

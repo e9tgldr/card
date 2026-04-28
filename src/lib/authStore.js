@@ -101,6 +101,13 @@ export const registerWithCode = async ({ code, username, password }) => {
         last_seen: claim.last_seen,
       };
     }
+    if (claim?.ok === false) {
+      // Server error during claim: don't leave the user authenticated without a
+      // device-session row (would lead to immediate heartbeat eviction or break
+      // single-device enforcement).
+      await supabase.auth.signOut();
+      return { ok: false, reason: 'server' };
+    }
 
     // Grant the starter pack on first registration (idempotent on the server side).
     try {
@@ -137,6 +144,13 @@ export const login = async ({ username, password, force = false }) => {
       device_label: claim.device_label,
       last_seen: claim.last_seen,
     };
+  }
+  if (claim?.ok === false) {
+    // Server error during claim: don't leave the user authenticated without a
+    // device-session row (would lead to immediate heartbeat eviction or break
+    // single-device enforcement).
+    await supabase.auth.signOut();
+    return { ok: false, reason: 'server' };
   }
 
   // Grant the starter pack on first login (idempotent on the server side).
