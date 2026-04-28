@@ -11,6 +11,7 @@ import {
   bootstrapCode,
 } from '@/lib/authStore';
 import { notify } from '@/lib/feedback';
+import { useLang } from '@/lib/i18n';
 
 const REASON_MSG = {
   not_found: 'Код олдсонгүй.',
@@ -55,7 +56,9 @@ export default function OtpLogin() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = params.get('next') || '/app';
+  const reason = params.get('reason');
   const isClaimFlow = next.startsWith('/c/');
+  const { t } = useLang();
 
   const [mode, setMode] = useState('redeem'); // 'redeem' | 'login'
   const [bootstrap, setBootstrap] = useState(null);
@@ -70,76 +73,88 @@ export default function OtpLogin() {
       className="min-h-screen flex items-center justify-center px-6 py-12"
       style={{ background: 'linear-gradient(180deg, #0a0c14 0%, #100d04 50%, #0a0c14 100%)' }}
     >
-      <div className="w-full max-w-md rounded-2xl p-8 space-y-6" style={panelStyle}>
-        <div className="flex flex-col items-center text-center space-y-3">
+      <div className="w-full max-w-md space-y-4">
+        {reason === 'signed_in_elsewhere' && (
           <div
-            className="w-14 h-14 rounded-full flex items-center justify-center"
-            style={{ border: '1.5px solid #c9a84c', background: 'rgba(201,168,76,0.1)' }}
+            role="status"
+            className="rounded-md p-3 text-sm font-cormorant text-center"
+            style={{ border: '1px solid rgba(220,90,90,0.5)', background: 'rgba(220,90,90,0.08)', color: '#f4caca' }}
           >
-            <ShieldCheck className="w-7 h-7" style={{ color: '#c9a84c' }} />
+            {t('auth.evictedBanner')}
           </div>
-          <h1 className="font-playfair text-2xl font-bold" style={{ color: '#e8d5a3' }}>
-            {mode === 'redeem' ? 'Уригдсан код ашиглах' : 'Нэвтрэх'}
-          </h1>
-          <p className="font-cormorant text-sm" style={{ color: '#e8d5a380' }}>
-            {mode === 'redeem'
-              ? 'Админаас авсан нэг удаагийн кодоо оруулж дансаа үүсгэнэ үү.'
-              : 'Өмнө үүсгэсэн дансаараа нэвтэрнэ үү.'}
-          </p>
-        </div>
+        )}
 
-        <div className="grid grid-cols-2 rounded-full overflow-hidden text-xs font-cormorant tracking-wider uppercase"
-          style={{ border: '1px solid rgba(201,168,76,0.25)' }}
-        >
-          {[
-            { key: 'redeem', label: 'Код ашиглах' },
-            { key: 'login', label: 'Нэвтрэх' },
-          ].map(t => (
-            <button
-              key={t.key}
-              onClick={() => setMode(t.key)}
-              className="py-2 transition-colors"
-              style={{
-                background: mode === t.key ? '#c9a84c' : 'transparent',
-                color: mode === t.key ? '#0a0c14' : '#e8d5a3',
-              }}
+        <div className="rounded-2xl p-8 space-y-6" style={panelStyle}>
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center"
+              style={{ border: '1.5px solid #c9a84c', background: 'rgba(201,168,76,0.1)' }}
             >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {mode === 'redeem' && bootstrap && (
-          <div
-            className="rounded-md p-3 text-xs font-cormorant text-center space-y-1"
-            style={{ border: '1px dashed rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.06)' }}
-          >
-            <div className="tracking-widest uppercase" style={{ color: '#c9a84c' }}>Шинээр эхэлж байна уу?</div>
-            <div style={{ color: '#e8d5a3' }}>
-              Анхны код:
-              <span className="font-playfair tracking-widest ml-2" style={{ color: '#c9a84c' }}>
-                {bootstrap}
-              </span>
+              <ShieldCheck className="w-7 h-7" style={{ color: '#c9a84c' }} />
             </div>
-            <div style={{ color: '#e8d5a360' }}>
-              Эхний хэрэглэгч энэ кодыг ашиглаад админ руу нэвтэрч, өөр кодуудыг үүсгэнэ.
-            </div>
+            <h1 className="font-playfair text-2xl font-bold" style={{ color: '#e8d5a3' }}>
+              {mode === 'redeem' ? 'Уригдсан код ашиглах' : 'Нэвтрэх'}
+            </h1>
+            <p className="font-cormorant text-sm" style={{ color: '#e8d5a380' }}>
+              {mode === 'redeem'
+                ? 'Админаас авсан нэг удаагийн кодоо оруулж дансаа үүсгэнэ үү.'
+                : 'Өмнө үүсгэсэн дансаараа нэвтэрнэ үү.'}
+            </p>
           </div>
-        )}
 
-        {isClaimFlow && (
-          <p className="mb-3 text-sm text-brass">
-            Бүртгэгдсэний дараа карт цуглуулгад нэмэгдэнэ.
+          <div className="grid grid-cols-2 rounded-full overflow-hidden text-xs font-cormorant tracking-wider uppercase"
+            style={{ border: '1px solid rgba(201,168,76,0.25)' }}
+          >
+            {[
+              { key: 'redeem', label: 'Код ашиглах' },
+              { key: 'login', label: 'Нэвтрэх' },
+            ].map(t => (
+              <button
+                key={t.key}
+                onClick={() => setMode(t.key)}
+                className="py-2 transition-colors"
+                style={{
+                  background: mode === t.key ? '#c9a84c' : 'transparent',
+                  color: mode === t.key ? '#0a0c14' : '#e8d5a3',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'redeem' && bootstrap && (
+            <div
+              className="rounded-md p-3 text-xs font-cormorant text-center space-y-1"
+              style={{ border: '1px dashed rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.06)' }}
+            >
+              <div className="tracking-widest uppercase" style={{ color: '#c9a84c' }}>Шинээр эхэлж байна уу?</div>
+              <div style={{ color: '#e8d5a3' }}>
+                Анхны код:
+                <span className="font-playfair tracking-widest ml-2" style={{ color: '#c9a84c' }}>
+                  {bootstrap}
+                </span>
+              </div>
+              <div style={{ color: '#e8d5a360' }}>
+                Эхний хэрэглэгч энэ кодыг ашиглаад админ руу нэвтэрч, өөр кодуудыг үүсгэнэ.
+              </div>
+            </div>
+          )}
+
+          {isClaimFlow && (
+            <p className="mb-3 text-sm text-brass">
+              Бүртгэгдсэний дараа карт цуглуулгад нэмэгдэнэ.
+            </p>
+          )}
+
+          {mode === 'redeem'
+            ? <RedeemForm next={next} navigate={navigate} />
+            : <LoginForm next={next} navigate={navigate} />}
+
+          <p className="text-center text-xs font-cormorant" style={{ color: '#e8d5a350' }}>
+            <button type="button" onClick={() => navigate('/')} className="underline">Нүүр хуудас руу буцах</button>
           </p>
-        )}
-
-        {mode === 'redeem'
-          ? <RedeemForm next={next} navigate={navigate} />
-          : <LoginForm next={next} navigate={navigate} />}
-
-        <p className="text-center text-xs font-cormorant" style={{ color: '#e8d5a350' }}>
-          <button type="button" onClick={() => navigate('/')} className="underline">Нүүр хуудас руу буцах</button>
-        </p>
+        </div>
       </div>
     </div>
   );
@@ -273,22 +288,82 @@ function RedeemForm({ next, navigate }) {
   );
 }
 
+function relativeTime(iso) {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (Number.isNaN(ms) || ms < 0) return '';
+  const m = Math.round(ms / 60_000);
+  if (m < 1) return '<1 min';
+  if (m < 60) return `${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h`;
+  const d = Math.round(h / 24);
+  return `${d} d`;
+}
+
 function LoginForm({ next, navigate }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [conflict, setConflict] = useState(null); // { device_label, last_seen } | null
+  const { t } = useLang();
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const doLogin = async ({ force }) => {
     setError('');
     setBusy(true);
-    const result = await login({ username, password });
+    const result = await login({ username, password, force });
     setBusy(false);
-    if (!result.ok) { setError(errMsg(result.reason)); return; }
-    notify.success('toast.auth.loginSuccess');
-    navigate(next, { replace: true });
+
+    if (result.ok) {
+      setConflict(null);
+      notify.success('toast.auth.loginSuccess');
+      navigate(next, { replace: true });
+      return;
+    }
+    if (result.reason === 'device_conflict') {
+      setConflict({ device_label: result.device_label, last_seen: result.last_seen });
+      return;
+    }
+    setError(errMsg(result.reason));
   };
+
+  const submit = (e) => { e.preventDefault(); doLogin({ force: false }); };
+
+  if (conflict) {
+    return (
+      <div className="space-y-4" role="alertdialog" aria-labelledby="device-conflict-title">
+        <h3 id="device-conflict-title" className="font-playfair text-lg" style={{ color: '#e8d5a3' }}>
+          {t('auth.deviceConflictTitle')}
+        </h3>
+        <p className="text-sm font-cormorant" style={{ color: '#e8d5a3cc' }}>
+          {t('auth.deviceConflictBody', {
+            device: conflict.device_label || '—',
+            lastSeen: relativeTime(conflict.last_seen),
+          })}
+        </p>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setConflict(null)}
+            className="flex-1"
+          >
+            {t('auth.cancelButton')}
+          </Button>
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={() => doLogin({ force: true })}
+            className="flex-1 font-cormorant tracking-wider uppercase"
+            style={{ background: '#c9a84c', color: '#0a0c14' }}
+          >
+            {busy ? '…' : t('auth.takeOverButton')}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form className="space-y-4" onSubmit={submit}>
