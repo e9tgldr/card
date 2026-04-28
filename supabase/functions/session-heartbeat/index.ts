@@ -2,6 +2,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { handleOptions, json } from '../_shared/cors.ts';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
@@ -22,7 +24,9 @@ Deno.serve(async (req) => {
   catch { return json({ ok: false, reason: 'bad_request' }, 400); }
 
   const sessionId = body.session_id ?? '';
-  if (!sessionId) return json({ ok: false, reason: 'bad_request' }, 400);
+  if (!sessionId || !UUID_RE.test(sessionId)) {
+    return json({ ok: false, reason: 'bad_request' }, 400);
+  }
 
   const url = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
