@@ -16,13 +16,15 @@ export function useFigureBackVideos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('figure_back_videos')
-        .select('fig_id, video_path, captions_path, duration_s');
+        .select('fig_id, video_path, captions_path, ar_target_path, duration_s');
       if (error) throw error;
       const byId = {};
       for (const row of data ?? []) {
         byId[row.fig_id] = {
           url: publicUrl(row.video_path),
           captionsUrl: publicUrl(row.captions_path),
+          arTargetUrl: publicUrl(row.ar_target_path),
+          arTargetPath: row.ar_target_path,
           durationS: row.duration_s,
         };
       }
@@ -31,7 +33,6 @@ export function useFigureBackVideos() {
   });
 }
 
-// Helper: merge per-figure URLs into an array of figure objects.
 export function mergeBackVideos(figures, byId) {
   if (!byId) return figures;
   return figures.map((f) => {
@@ -42,6 +43,7 @@ export function mergeBackVideos(figures, byId) {
       back_video_url: v.url,
       back_captions_url: v.captionsUrl,
       back_video_duration: v.durationS,
+      ar_target_url: v.arTargetUrl,
     };
   });
 }
