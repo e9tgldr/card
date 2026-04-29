@@ -87,7 +87,6 @@ export function useFigureChat(figure, { userId, owned } = {}) {
     }
     load();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [figure, useDb, userId]);
 
   const pushMessage = useCallback((msg) => {

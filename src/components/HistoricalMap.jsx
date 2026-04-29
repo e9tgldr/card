@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import { HISTORICAL_LOCATIONS, TYPE_CONFIG, FIGURE_JOURNEYS } from '@/lib/mapData';
 import { FIGURES, CATEGORIES } from '@/lib/figuresData';
-import { X, MapPin, Route } from 'lucide-react';
+import { X, Route } from 'lucide-react';
 import FigureJourney from '@/components/FigureJourney';
 
 import L from 'leaflet';

@@ -70,7 +70,6 @@ export function useLiveRoom(sessionIdOrKeys) {
         channelRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typeof sessionIdOrKeys === 'string' ? sessionIdOrKeys : (sessionIdOrKeys?.sessionId ?? sessionIdOrKeys?.joinCode)]);
 
   return state;

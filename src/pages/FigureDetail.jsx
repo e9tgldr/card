@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, BookOpen, Clock, Users, Quote, Map, HelpCircle, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { CATEGORIES, FIGURES } from '@/lib/figuresData';
 import { motion } from 'framer-motion';
 import FigureTimeline from '@/components/FigureTimeline';
