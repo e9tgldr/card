@@ -16,15 +16,13 @@ export function useFigureBackVideos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('figure_back_videos')
-        .select('fig_id, video_path, captions_path, ar_target_path, model_path, duration_s');
+        .select('fig_id, video_path, captions_path, model_path, duration_s');
       if (error) throw error;
       const byId = {};
       for (const row of data ?? []) {
         byId[row.fig_id] = {
           url: publicUrl(row.video_path),
           captionsUrl: publicUrl(row.captions_path),
-          arTargetUrl: publicUrl(row.ar_target_path),
-          arTargetPath: row.ar_target_path,
           modelUrl: publicUrl(row.model_path),
           modelPath: row.model_path,
           durationS: row.duration_s,
@@ -45,7 +43,6 @@ export function mergeBackVideos(figures, byId) {
       back_video_url: v.url,
       back_captions_url: v.captionsUrl,
       back_video_duration: v.durationS,
-      ar_target_url: v.arTargetUrl,
       model_url: v.modelUrl,
     };
   });
