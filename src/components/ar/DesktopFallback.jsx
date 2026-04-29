@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useLang } from '@/lib/i18n';
+import BrandHeader from '@/components/ornaments/BrandHeader';
 
 export default function DesktopFallback({ figId, figureName }) {
   const { t } = useLang();
@@ -29,7 +30,10 @@ export default function DesktopFallback({ figId, figureName }) {
   };
 
   return (
-    <div className="min-h-screen bg-ink flex items-center justify-center px-6">
+    <div className="min-h-screen bg-ink flex flex-col items-center justify-center px-6">
+      <div className="absolute top-4 left-4 md:top-6 md:left-8">
+        <BrandHeader />
+      </div>
       <div className="max-w-sm w-full text-center space-y-6 border border-brass/40 bg-card/40 backdrop-blur-md p-8 rounded">
         <h1 className="font-cinzel text-xl text-ivory">{figureName}</h1>
         <h2 className="font-meta text-[11px] tracking-[0.3em] uppercase text-gold">

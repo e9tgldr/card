@@ -6,6 +6,7 @@ import { useFigureARTarget } from '@/hooks/useFigureARTarget';
 import { FIGURES } from '@/lib/figuresData';
 import MindARScene from '@/components/ar/MindARScene';
 import DesktopFallback from '@/components/ar/DesktopFallback';
+import BrandHeader from '@/components/ornaments/BrandHeader';
 
 const FIGURE_TO_CHAPTER = {};
 
@@ -13,6 +14,9 @@ function ErrorPanel({ titleKey, bodyKey, onBack, onRetry, retryLabelKey }) {
   const { t } = useLang();
   return (
     <div className="fixed inset-0 bg-ink z-[300] flex items-center justify-center px-6">
+      <div className="absolute top-4 left-4 md:top-6 md:left-8">
+        <BrandHeader />
+      </div>
       <div className="max-w-sm w-full text-center space-y-5 border border-brass/40 p-6 rounded">
         <h2 className="font-cinzel text-lg text-ivory">{t(titleKey)}</h2>
         {bodyKey && <p className="text-sm text-ivory/75 font-body">{t(bodyKey)}</p>}
@@ -57,6 +61,9 @@ export default function ARView() {
         data-testid="ar-view-loading"
         className="fixed inset-0 bg-ink flex items-center justify-center"
       >
+        <div className="absolute top-4 left-4 md:top-6 md:left-8">
+          <BrandHeader />
+        </div>
         <div className="text-center space-y-4">
           <div className="w-16 h-16 rounded-full border-2 border-gold/40 mx-auto" />
           <div className="w-8 h-8 border-2 border-muted-foreground/20 border-t-crimson rounded-full animate-spin mx-auto" />
