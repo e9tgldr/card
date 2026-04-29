@@ -80,7 +80,20 @@ const AuthenticatedApp = () => {
       <Route path="/leaderboard" element={<OtpGate><Leaderboard /></OtpGate>} />
       <Route path="/app/tournaments" element={<OtpGate><Tournaments /></OtpGate>} />
       <Route path="/app/tournaments/:id" element={<OtpGate><TournamentDetail /></OtpGate>} />
-      <Route path="/ar" element={<Suspense fallback={null}><ARQueryRedirect /></Suspense>} />
+      <Route
+        path="/ar"
+        element={
+          <OtpGate>
+            <Suspense fallback={
+              <div className="fixed inset-0 bg-ink flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-muted-foreground/20 border-t-crimson rounded-full animate-spin" />
+              </div>
+            }>
+              <ARQueryRedirect />
+            </Suspense>
+          </OtpGate>
+        }
+      />
       <Route
         path="/ar/:figId"
         element={

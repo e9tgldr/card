@@ -436,6 +436,18 @@ export const STRINGS = {
   'admin.models.replaceWarn': { mn: 'Хуучин 3D загвар устах болно. Үргэлжлүүлэх үү?', en: 'The previous 3D model will be deleted. Continue?' },
   'admin.models.tooBig':      { mn: '.glb файл хэт том ({mb} MB > 20 MB)',    en: 'File too large ({mb} MB > 20 MB)' },
   'admin.models.notGlb':      { mn: '.glb эсвэл .gltf өргөтгөлтэй файл байх ёстой', en: 'File must have a .glb or .gltf extension' },
+  'admin.arPack.tab':         { mn: 'AR багц',                               en: 'AR pack' },
+  'admin.arPack.help':        { mn: 'Бүх 52 картын урд талын зургийг MindAR Target Compiler-аар нэг .mind файл болгож хөрвүүлэн энд хуулна уу. Доорх жагсаалт нь компайлерт хуулсан зургуудын дараалалтай тохирно.', en: 'Compile all 52 card front images into a single .mind file via the MindAR Target Compiler and upload it here. The list below must match the order in which you uploaded the images to the compiler.' },
+  'admin.arPack.upload':      { mn: '.mind хуулах',                          en: 'Upload .mind' },
+  'admin.arPack.replace':     { mn: 'Солих',                                 en: 'Replace' },
+  'admin.arPack.delete':      { mn: 'Устгах',                                en: 'Delete' },
+  'admin.arPack.empty':       { mn: 'Багц хуулагдаагүй байна',               en: 'No pack uploaded' },
+  'admin.arPack.targetOrder': { mn: 'Картуудын дараалал (JSON)',             en: 'Target order (JSON)' },
+  'admin.arPack.tooBig':      { mn: 'Багц файл хэт том ({mb} MB > 30 MB)',    en: 'Pack file too large ({mb} MB > 30 MB)' },
+  'admin.arPack.notMind':     { mn: '.mind өргөтгөлтэй файл байх ёстой',     en: 'File must have a .mind extension' },
+  'admin.arPack.replaceWarn': { mn: 'Хуучин AR багц устах болно. Үргэлжлүүлэх үү?', en: 'The previous AR pack will be deleted. Continue?' },
+  'ar.pack.missing.title':    { mn: 'AR багц одоогоор бэлэн биш',             en: 'AR pack not ready yet' },
+  'ar.pack.missing.body':     { mn: 'Админ AR багцыг удахгүй хуулах болно.',  en: 'The admin will publish the AR pack soon.' },
 };
 
 const LangContext = createContext({ lang: 'mn', setLang: () => {}, t: (k, v) => {

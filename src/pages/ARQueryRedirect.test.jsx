@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+
+vi.mock('@/pages/MultiTargetARView', () => ({
+  default: () => <div data-testid="multi-target-stub" />,
+}));
 
 import ARQueryRedirect from '@/pages/ARQueryRedirect';
 
@@ -37,8 +41,8 @@ describe('ARQueryRedirect', () => {
     expect(screen.getByTestId('home')).toBeInTheDocument();
   });
 
-  it('missing card param → home', () => {
+  it('missing card param → mounts MultiTargetARView (scan-any-card mode)', () => {
     render(ui('/ar'));
-    expect(screen.getByTestId('home')).toBeInTheDocument();
+    expect(screen.getByTestId('multi-target-stub')).toBeInTheDocument();
   });
 });
