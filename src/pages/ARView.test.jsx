@@ -16,6 +16,11 @@ vi.mock('@/components/ar/MindARScene', () => ({
     <div data-testid="mindar-scene-stub" data-fig={props.figId} />
   ),
 }));
+vi.mock('@/components/ar/ModelARScene', () => ({
+  default: (props) => (
+    <div data-testid="model-ar-scene-stub" data-fig={props.figId} data-model={props.modelUrl} />
+  ),
+}));
 vi.mock('@/components/ar/DesktopFallback', () => ({
   default: ({ figId }) => <div data-testid="desktop-fallback-stub" data-fig={figId} />,
 }));
@@ -67,5 +72,21 @@ describe('ARView', () => {
     mockHook.mockReturnValue({ ready: false, loading: true });
     render(ui(7));
     expect(screen.getByTestId('ar-view-loading')).toBeInTheDocument();
+  });
+
+  it('mounts ModelARScene when modelUrl is present (not MindARScene)', () => {
+    mockMobile.mockReturnValue(true);
+    mockHook.mockReturnValue({
+      ready: true,
+      loading: false,
+      videoUrl: 'v',
+      targetUrl: 't',
+      modelUrl: 'm.glb',
+    });
+    render(ui(7));
+    const stub = screen.getByTestId('model-ar-scene-stub');
+    expect(stub).toHaveAttribute('data-fig', '7');
+    expect(stub).toHaveAttribute('data-model', 'm.glb');
+    expect(screen.queryByTestId('mindar-scene-stub')).toBeNull();
   });
 });

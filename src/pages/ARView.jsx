@@ -6,6 +6,7 @@ import { useFigureARTarget } from '@/hooks/useFigureARTarget';
 import { FIGURES } from '@/lib/figuresData';
 import { figureBio } from '@/lib/i18n';
 import MindARScene from '@/components/ar/MindARScene';
+import ModelARScene from '@/components/ar/ModelARScene';
 import DesktopFallback from '@/components/ar/DesktopFallback';
 import BrandHeader from '@/components/ornaments/BrandHeader';
 
@@ -49,7 +50,7 @@ export default function ARView() {
   const navigate = useNavigate();
   const { t, lang } = useLang();
   const isMobile = useIsMobile();
-  const { ready, loading, videoUrl, targetUrl } = useFigureARTarget(figId);
+  const { ready, loading, videoUrl, targetUrl, modelUrl } = useFigureARTarget(figId);
   const [arError, setArError] = useState(null);
 
   const id = Number(figId);
@@ -118,15 +119,28 @@ export default function ARView() {
   };
 
   return (
-    <MindARScene
-      figId={id}
-      figureName={figureName}
-      videoUrl={videoUrl}
-      targetUrl={targetUrl}
-      voiceText={voiceText}
-      lang={lang}
-      storyChapter={FIGURE_TO_CHAPTER[id]}
-      onError={handleArError}
-    />
+    modelUrl ? (
+      <ModelARScene
+        figId={id}
+        figureName={figureName}
+        modelUrl={modelUrl}
+        targetUrl={targetUrl}
+        voiceText={voiceText}
+        lang={lang}
+        storyChapter={FIGURE_TO_CHAPTER[id]}
+        onError={handleArError}
+      />
+    ) : (
+      <MindARScene
+        figId={id}
+        figureName={figureName}
+        videoUrl={videoUrl}
+        targetUrl={targetUrl}
+        voiceText={voiceText}
+        lang={lang}
+        storyChapter={FIGURE_TO_CHAPTER[id]}
+        onError={handleArError}
+      />
+    )
   );
 }
