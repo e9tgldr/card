@@ -62,8 +62,16 @@ export default function Navbar({ onScrollTo }) {
             alt="Altan Domog"
             className="h-10 md:h-12 w-auto group-hover:scale-105 transition-transform"
           />
-          <span className="hidden md:inline font-meta text-[8px] tracking-[0.3em] text-brass/70 self-end pb-2">
-            CODEX · MMXXVI
+          <span className="hidden md:flex flex-col items-start leading-none">
+            <span
+              className="font-display text-base lg:text-lg text-ivory tracking-wide"
+              style={{ fontVariationSettings: '"opsz" 36, "SOFT" 50, "wght" 480' }}
+            >
+              {lang === 'en' ? 'Altan Domog' : 'Алтан Домог'}
+            </span>
+            <span className="font-meta text-[8px] tracking-[0.3em] text-brass/70 mt-1.5">
+              CODEX · MMXXVI
+            </span>
           </span>
         </button>
 
