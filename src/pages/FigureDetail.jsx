@@ -21,6 +21,7 @@ import BrassButton from '@/components/ornaments/BrassButton';
 import StoryPlayer from '@/components/StoryPlayer';
 import { useAuthoredContent } from '@/hooks/useAuthoredContent';
 import ShareCard from '@/components/ShareCard';
+import ARLaunchButton from '@/components/ARLaunchButton';
 import { relType, REL_TYPE_META } from '@/lib/relationships';
 import { useLang, figureName, figureRole, figureBio, figureAchievements, figureFact, figureQuote } from '@/lib/i18n';
 
@@ -148,6 +149,7 @@ export default function FigureDetail() {
             {t('fd.back')}
           </button>
           <div className="flex items-center gap-2">
+            <ARLaunchButton figId={Number(figId)} variant="full" />
             {/* Share */}
             <button
               onClick={() => setShowShare(true)}
