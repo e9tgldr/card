@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '@/lib/i18n';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useFigureARPack } from '@/hooks/useFigureARPack';
 import { useFigureBackVideos } from '@/hooks/useFigureBackVideos';
 import MultiTargetARScene from '@/components/ar/MultiTargetARScene';
-import DesktopFallback from '@/components/ar/DesktopFallback';
 import BrandHeader from '@/components/ornaments/BrandHeader';
 
 function ErrorPanel({ titleKey, bodyKey, onBack, onRetry, retryLabelKey }) {
@@ -44,7 +42,6 @@ function ErrorPanel({ titleKey, bodyKey, onBack, onRetry, retryLabelKey }) {
 export default function MultiTargetARView() {
   const navigate = useNavigate();
   const { t } = useLang();
-  const isMobile = useIsMobile();
   const pack = useFigureARPack();
   const videos = useFigureBackVideos();
   const [arError, setArError] = useState(null);
@@ -65,10 +62,6 @@ export default function MultiTargetARView() {
         </div>
       </div>
     );
-  }
-
-  if (!isMobile) {
-    return <DesktopFallback figureName="AR" />;
   }
 
   if (!pack.ready) {

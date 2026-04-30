@@ -404,9 +404,6 @@ export const STRINGS = {
   'ar.error.permission.retry':{ mn: 'Дахин оролдох',                         en: 'Try again' },
   'ar.error.noCamera':        { mn: 'Энэ төхөөрөмжид камер олдсонгүй',        en: 'No camera found on this device' },
   'ar.error.inAppBrowser':    { mn: 'Аппын дотор камер ашиглах боломжгүй. Safari/Chrome-оор нээнэ үү', en: 'Camera is not available inside in-app browsers. Open in Safari or Chrome.' },
-  'ar.error.copyLink':        { mn: 'Холбоосыг хуулах',                      en: 'Copy link' },
-  'ar.desktop.title':         { mn: 'Утсаараа сканнердана уу',                en: 'Scan with your phone' },
-  'ar.desktop.subtitle':      { mn: 'Эсвэл дараах холбоосыг утсаараа нээнэ үү:', en: 'Or open this link on your phone:' },
 
   // AR feature — admin tab
   'admin.arPack.tab':         { mn: 'AR багц',                               en: 'AR pack' },

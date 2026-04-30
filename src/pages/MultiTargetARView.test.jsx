@@ -5,15 +5,11 @@ import { LangProvider } from '@/lib/i18n';
 
 const mockPack = vi.fn();
 const mockVideos = vi.fn();
-const mockMobile = vi.fn();
 vi.mock('@/hooks/useFigureARPack', () => ({
   useFigureARPack: (...a) => mockPack(...a),
 }));
 vi.mock('@/hooks/useFigureBackVideos', () => ({
   useFigureBackVideos: (...a) => mockVideos(...a),
-}));
-vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: (...a) => mockMobile(...a),
 }));
 vi.mock('@/components/ar/MultiTargetARScene', () => ({
   default: (props) => (
@@ -23,9 +19,6 @@ vi.mock('@/components/ar/MultiTargetARScene', () => ({
       data-targets={(props.targetOrder ?? []).join(',')}
     />
   ),
-}));
-vi.mock('@/components/ar/DesktopFallback', () => ({
-  default: () => <div data-testid="desktop-fallback-stub" />,
 }));
 
 import MultiTargetARView from '@/pages/MultiTargetARView';
@@ -43,36 +36,24 @@ function ui() {
 beforeEach(() => {
   mockPack.mockReset();
   mockVideos.mockReset();
-  mockMobile.mockReset();
 });
 
 describe('MultiTargetARView', () => {
   it('shows loading while pack loads', () => {
-    mockMobile.mockReturnValue(true);
     mockPack.mockReturnValue({ loading: true, ready: false, packUrl: null, targetOrder: null });
     mockVideos.mockReturnValue({ isLoading: false, data: {} });
     render(ui());
     expect(screen.getByTestId('ar-view-loading')).toBeInTheDocument();
   });
 
-  it('shows DesktopFallback on desktop', () => {
-    mockMobile.mockReturnValue(false);
-    mockPack.mockReturnValue({ loading: false, ready: true, packUrl: 'p', targetOrder: [1, 2] });
-    mockVideos.mockReturnValue({ isLoading: false, data: {} });
-    render(ui());
-    expect(screen.getByTestId('desktop-fallback-stub')).toBeInTheDocument();
-  });
-
   it('shows pack-missing panel when no pack uploaded', () => {
-    mockMobile.mockReturnValue(true);
     mockPack.mockReturnValue({ loading: false, ready: false, packUrl: null, targetOrder: null });
     mockVideos.mockReturnValue({ isLoading: false, data: {} });
     render(ui());
     expect(screen.getByRole('heading', { name: /AR багц|AR pack not ready/i })).toBeInTheDocument();
   });
 
-  it('mounts MultiTargetARScene with packUrl + targetOrder when ready on mobile', () => {
-    mockMobile.mockReturnValue(true);
+  it('mounts MultiTargetARScene with packUrl + targetOrder when ready', () => {
     mockPack.mockReturnValue({
       loading: false,
       ready: true,
