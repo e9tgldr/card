@@ -68,7 +68,7 @@ export default function MultiTargetARView() {
   }
 
   if (!isMobile) {
-    return <DesktopFallback figId="" figureName="AR" />;
+    return <DesktopFallback figureName="AR" />;
   }
 
   if (!pack.ready) {

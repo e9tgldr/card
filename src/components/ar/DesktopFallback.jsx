@@ -4,12 +4,12 @@ import QRCode from 'qrcode';
 import { useLang } from '@/lib/i18n';
 import BrandHeader from '@/components/ornaments/BrandHeader';
 
-export default function DesktopFallback({ figId, figureName }) {
+export default function DesktopFallback({ figureName }) {
   const { t } = useLang();
   const [qrSrc, setQrSrc] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  const url = `${window.location.origin}/ar/${figId}`;
+  const url = `${window.location.origin}/ar`;
 
   useEffect(() => {
     let cancelled = false;

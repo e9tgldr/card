@@ -17,32 +17,32 @@ beforeEach(() => {
 });
 
 describe('DesktopFallback', () => {
-  it('renders QR encoding /ar/:figId on this origin', async () => {
+  it('renders QR encoding /ar (multi-target entry) on this origin', async () => {
     render(
       <LangProvider>
-        <DesktopFallback figId={7} figureName="Чингис Хаан" />
+        <DesktopFallback figureName="Чингис Хаан" />
       </LangProvider>,
     );
     const qrcode = await import('qrcode');
     await waitFor(() =>
       expect(qrcode.default.toDataURL).toHaveBeenCalledWith(
-        'https://altan-domog.example/ar/7',
+        'https://altan-domog.example/ar',
         expect.any(Object),
       ),
     );
-    expect(screen.getByText('https://altan-domog.example/ar/7')).toBeInTheDocument();
+    expect(screen.getByText('https://altan-domog.example/ar')).toBeInTheDocument();
   });
 
   it('copies link to clipboard on click', async () => {
     render(
       <LangProvider>
-        <DesktopFallback figId={7} figureName="Чингис Хаан" />
+        <DesktopFallback figureName="Чингис Хаан" />
       </LangProvider>,
     );
     fireEvent.click(screen.getByRole('button', { name: /Хуулах|Copy/i }));
     await waitFor(() =>
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        'https://altan-domog.example/ar/7',
+        'https://altan-domog.example/ar',
       ),
     );
   });
