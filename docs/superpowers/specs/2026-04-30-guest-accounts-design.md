@@ -44,7 +44,7 @@ A signed-in user (the **parent**) may spawn up to 5 **guest** auth accounts so f
    - hashes the token, looks up the row with `FOR UPDATE`. If missing or `expires_at < now()` → 410 with generic `expired_or_invalid` reason (no enumeration leak),
    - DELETEs the token row inside the same transaction (atomic single-use; loses race → 409),
    - generates a fresh password for the guest user, calls `auth.admin.updateUserById(auth_user_id, { password })`,
-   - calls `auth.admin.generateLink({ type: 'magiclink', email })` — but instead of emailing it, returns a freshly issued access+refresh token pair to the client by calling `auth.admin.createSession` (Supabase admin API). Client receives `{access_token, refresh_token}` and does `supabase.auth.setSession(...)`,
+   - issues a fresh session via `auth.admin.generateLink({ type: 'magiclink', email })` followed by a server-side `auth.verifyOtp({ type: 'magiclink', token_hash: <generateLink response> })`. The `verifyOtp` response yields `{access_token, refresh_token}` which are returned to the client; the client calls `supabase.auth.setSession(...)`. (Same pattern as the existing `redeem-code` edge fn.)
    - calls `claim_session_atomic(p_user_id=guest_id, p_session_id=<new uuid>, p_device_label='guest:<friend label>', p_force=true, p_stale_seconds=120)` — the existing single-device claim function. `force=true` evicts any prior friend on the same slot,
    - returns `{ok: true, parent_username, guest_username, session_id}`.
 5. Client stores `session_id`, starts the existing 30s heartbeat, and routes to `/`.
@@ -94,9 +94,28 @@ After first claim, the friend can change `display_name` to whatever (subject to 
 Migration: `supabase/migrations/20260430000000_guest_accounts.sql`
 
 ```sql
--- 1. Add parent_user_id to profiles + immutability + chained-parent block
+-- 1. Add parent_user_id to profiles + immutability + chained-parent block.
+-- The existing auth-trigger (handle_new_auth_user, defined in
+-- 20260423120000_init_schema.sql) is replaced to read parent_user_id from
+-- raw_app_meta_data (service-role-writable) so a single auth.admin.createUser
+-- call lands a profile row already linked to the parent — no second INSERT
+-- needed, no PK conflict, no fight with the immutability trigger.
 alter table public.profiles
   add column parent_user_id uuid references public.profiles(id) on delete restrict;
+
+create or replace function public.handle_new_auth_user()
+returns trigger language plpgsql security definer as $$
+begin
+  insert into public.profiles (id, username, is_admin, parent_user_id)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
+    coalesce((new.raw_app_meta_data->>'is_admin')::boolean, false),
+    nullif(new.raw_app_meta_data->>'parent_user_id', '')::uuid
+  );
+  return new;
+end;
+$$;
 
 create or replace function public.profiles_parent_user_id_immutable()
 returns trigger language plpgsql as $$
@@ -186,8 +205,25 @@ create index guest_tokens_expires_idx on public.guest_tokens(expires_at);
 alter table public.guest_tokens enable row level security;
 -- service role only
 
--- 5. game_results.tournament_owner_id + trigger + new partial unique index
+-- 5. game_results.tournament_owner_id + backfill + trigger + index swap.
+-- ORDER MATTERS:
+--   (a) add column nullable
+--   (b) backfill from existing rows (every existing row's owner = its user_id,
+--       since no parent_user_id values exist yet — column was added in step 1
+--       and no profile has been linked yet)
+--   (c) install the INSERT trigger
+--   (d) drop the old per-user/tournament unique index
+--   (e) create the new per-family/tournament partial unique index
+-- Steps (d) and (e) run inside the same migration transaction; the swap is
+-- atomic from a concurrent-writer's perspective. No quiesce needed.
 alter table public.game_results add column tournament_owner_id uuid;
+
+update public.game_results gr
+   set tournament_owner_id = coalesce(p.parent_user_id, p.id)
+  from public.profiles p
+ where p.id = gr.user_id
+   and gr.tournament_id is not null
+   and gr.tournament_owner_id is null;
 
 create or replace function public.game_results_set_tournament_owner()
 returns trigger language plpgsql as $$
@@ -218,9 +254,13 @@ create unique index game_results_unique_per_family_per_tournament
 -- 20260425000000_tournaments_phase3.sql) join on user_id directly; they need to
 -- group on coalesce(parent_user_id, id) and never expose guest usernames.
 
+-- The existing leaderboard views are security definer (default) and granted
+-- SELECT to authenticated. Keep that posture — these views are intentionally
+-- public-readable rankings. Switching to security_invoker would silently drop
+-- rows under the existing `profiles self-read` policy because cross-user
+-- callers cannot read other profile rows.
 drop view if exists public.game_leaderboard_weekly;
-create view public.game_leaderboard_weekly
-with (security_invoker = true) as
+create view public.game_leaderboard_weekly as
 select
   coalesce(p.parent_user_id, p.id)                  as user_id,
   pp.username                                       as username,
@@ -234,8 +274,7 @@ where r.completed_at >= now() - interval '7 days'
 group by 1, 2;
 
 drop view if exists public.game_leaderboard_all_time;
-create view public.game_leaderboard_all_time
-with (security_invoker = true) as
+create view public.game_leaderboard_all_time as
 select
   coalesce(p.parent_user_id, p.id)                  as user_id,
   pp.username                                       as username,
@@ -250,17 +289,19 @@ group by 1, 2;
 grant select on public.game_leaderboard_weekly   to authenticated;
 grant select on public.game_leaderboard_all_time to authenticated;
 
--- v_tournament_leaderboard rolls up by tournament_owner_id (the family head).
+-- v_tournament_leaderboard rolls up by tournament_owner_id (the family head),
+-- but also exposes the original submitter so existing client code that
+-- highlights "my row" via user_id === auth.uid() keeps working for non-guest
+-- accounts. New `tournament_owner_id` column added for guest-aware UIs.
 -- Each family appears at most once per tournament thanks to the partial unique
--- index above, so we keep the per-row shape, but key on tournament_owner_id
--- and resolve the displayed username from the parent profile.
+-- index above, so the per-row shape is preserved.
 drop view if exists public.v_tournament_leaderboard;
-create view public.v_tournament_leaderboard
-with (security_invoker = true) as
+create view public.v_tournament_leaderboard as
 select
   gr.tournament_id,
-  gr.tournament_owner_id                            as user_id,
-  pp.username                                       as username,
+  gr.user_id,                                       -- the submitter (preserved contract)
+  gr.tournament_owner_id,                           -- the family head (new)
+  pp.username,                                      -- shown on the leaderboard (always parent)
   gr.score,
   gr.total,
   gr.completed_at,
@@ -353,9 +394,13 @@ $$;
 revoke all on function public.claim_guest_token_atomic(bytea) from public;
 grant execute on function public.claim_guest_token_atomic(bytea) to service_role;
 
--- 9. select_profile_with_parent: lets the client load profile + parent_username
--- in one call without leaking sibling guest data.
-create or replace function public.select_profile_with_parent(p_user_id uuid)
+-- 9. select_profile_with_parent: SECURITY DEFINER so guests can read their
+-- own parent's username (which they cannot reach via the SECURITY INVOKER
+-- self-read policy on profiles). The function ignores its argument when
+-- called with a non-service role and always uses auth.uid() — so a guest
+-- can never read sibling guest rows or arbitrary profiles. Returns only the
+-- caller's own profile fields plus the single string `parent_username`.
+create or replace function public.select_profile_with_parent()
 returns table (
   id              uuid,
   username        text,
@@ -364,16 +409,75 @@ returns table (
   parent_username text
 )
 language sql
-security invoker
+security definer
+set search_path = public
 stable
 as $$
   select p.id, p.username, p.is_admin, p.parent_user_id, pp.username
   from public.profiles p
   left join public.profiles pp on pp.id = p.parent_user_id
-  where p.id = p_user_id and (p.id = auth.uid() or auth.role() = 'service_role');
+  where p.id = auth.uid();
 $$;
 
-grant execute on public.select_profile_with_parent(uuid) to authenticated, service_role;
+revoke all on function public.select_profile_with_parent() from public;
+grant execute on function public.select_profile_with_parent() to authenticated;
+
+-- 10. guest_token_audit + atomic rate-limit RPC.
+-- Tokens get DELETEd on revoke/regenerate, so counting current `guest_tokens`
+-- rows does NOT measure "tokens generated in the last hour." We need a
+-- separate append-only audit table that survives rotation. The rate-limit
+-- check + INSERT is wrapped in a service-definer function under a per-parent
+-- advisory xact lock so concurrent requests serialize.
+create table public.guest_token_audit (
+  id              bigserial primary key,
+  parent_user_id  uuid not null references public.profiles(id) on delete restrict,
+  slot_id         uuid not null references public.guest_slots(id) on delete cascade,
+  created_at      timestamptz not null default now()
+);
+
+create index guest_token_audit_parent_time_idx
+  on public.guest_token_audit (parent_user_id, created_at desc);
+
+alter table public.guest_token_audit enable row level security;
+-- service role only
+
+-- pg_cron (already used elsewhere in this project) trims rows >24h old once
+-- per day so the table doesn't grow unboundedly.
+-- (Cron job spec lives in supabase/cron.ts; not part of this migration.)
+
+create or replace function public.guest_record_token_generation(
+  p_parent_user_id uuid,
+  p_slot_id        uuid,
+  p_limit_per_hour int
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_count int;
+begin
+  -- Per-parent advisory lock: serialize concurrent rate-limit checks.
+  perform pg_advisory_xact_lock(hashtext('guest-rate:' || p_parent_user_id::text));
+
+  select count(*) into v_count
+    from public.guest_token_audit
+   where parent_user_id = p_parent_user_id
+     and created_at > now() - interval '1 hour';
+
+  if v_count >= p_limit_per_hour then
+    return false;
+  end if;
+
+  insert into public.guest_token_audit (parent_user_id, slot_id)
+  values (p_parent_user_id, p_slot_id);
+
+  return true;
+end;
+$$;
+
+revoke all on function public.guest_record_token_generation(uuid, uuid, int) from public;
+grant execute on function public.guest_record_token_generation(uuid, uuid, int) to service_role;
 ```
 
 **Constants:**
@@ -391,22 +495,41 @@ All deployed via the Supabase MCP tool, following the existing `_shared/cors.ts`
 
 ```ts
 export async function assertActiveSession(
-  sb: SupabaseClient,
+  sb: SupabaseClient,             // service-role client
   userId: string,
-  providedSessionId: string,
+  providedSessionId: string | null,
 ): Promise<void> {
-  const { data, error } = await sb
+  // DB-side admin freshness: read is_admin from profiles, NOT from the JWT.
+  // A demoted admin's stale JWT must lose the bypass on the next request.
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', userId)
+    .single();
+  if (profile?.is_admin) return;
+
+  if (!providedSessionId) {
+    throw new HttpError(401, 'session_revoked');
+  }
+  const { data } = await sb
     .from('active_sessions')
-    .select('session_id, last_seen')
+    .select('session_id')
     .eq('user_id', userId)
     .single();
-  if (error || !data || data.session_id !== providedSessionId) {
+  if (!data || data.session_id !== providedSessionId) {
     throw new HttpError(401, 'session_revoked');
   }
 }
 ```
 
-Called by `game-create-session`, `game-submit-result`, `game-live-event`, `game-live-snapshot`. Admins bypass via the existing `is_admin` check (same pattern as `claim-session`). The client passes `session_id` in a custom header `X-Session-Id` on every game-mutating request. This same helper closes the existing JWT-after-revoke gap in single-device sign-in (defense in depth).
+**Called by:**
+
+- All four game-mutating fns: `game-create-session`, `game-submit-result`, `game-live-event`, `game-live-snapshot`.
+- All five guest-management fns: `guest-init-slots`, `guest-generate-token`, `guest-claim-token` (only after the new session is claimed in step 8 — pre-claim there is no caller to check), `guest-revoke-slot`, `guest-list-slots`.
+
+The client passes `X-Session-Id` on every authenticated request. Closing this gap is defense-in-depth for both guests and the existing single-device sign-in feature: a stale JWT (after `auth.admin.signOut('global')`) is rejected at the next mutation regardless of which user issued it.
+
+**Admin bypass is DB-driven, not JWT-driven** — even if an admin's JWT still has `is_admin: true` in its claims, this helper queries `profiles.is_admin` fresh on every call, so demoting an admin in the DB takes effect immediately for new requests. (The existing `claim-session` edge fn used the same DB-side `is_admin` check, so this is consistent.)
 
 ### `guest-init-slots`
 
@@ -415,9 +538,10 @@ Called by `game-create-session`, `game-submit-result`, `game-live-event`, `game-
 **Logic:**
 
 1. Verify JWT → `user_id`. Reject 401 if missing.
-2. Read `profiles.parent_user_id` for `user_id`. If non-null → 403 `guests cannot init slots`.
-3. UPSERT 5 rows into `guest_slots` for `parent_user_id = user_id` with `slot_idx = 1..5`, `ON CONFLICT (parent_user_id, slot_idx) DO NOTHING`.
-4. Return `{ok: true}`.
+2. Read `profiles.parent_user_id` server-side for `user_id`. If non-null → 403 `guests cannot init slots`.
+3. Call `assertActiveSession(user_id, X-Session-Id)`.
+4. UPSERT 5 rows into `guest_slots` for `parent_user_id = user_id` with `slot_idx = 1..5`, `ON CONFLICT (parent_user_id, slot_idx) DO NOTHING`.
+5. Return `{ok: true}`.
 
 Idempotent: safe to call on every panel mount.
 
@@ -427,16 +551,16 @@ Idempotent: safe to call on every panel mount.
 
 **Logic:**
 
-1. Verify JWT → `user_id`. Reject if guest.
-2. Rate-limit: count `guest_tokens` rows for this parent in the last hour via `slot_id IN (select id from guest_slots where parent_user_id = $1)`. If ≥10 → 429.
-3. Look up the slot row. If absent → 404.
+1. Verify JWT → `user_id`. Server-side read `profiles.parent_user_id` for that uid (do NOT trust JWT metadata) — if non-null → 403 `guests cannot manage slots`.
+2. Call `assertActiveSession(user_id, X-Session-Id)` (admins bypass after a server-side `is_admin` lookup; see helper definition).
+3. Look up the slot row by `(parent_user_id = user_id, slot_idx)`. If absent → 404.
 4. If `slot.auth_user_id IS NULL`:
    - synthesize `email`, `username`, random `password` per the deterministic scheme,
-   - `auth.admin.createUser({ email, password, email_confirm: true })` → `new_user_id`,
-   - INSERT `profiles { id: new_user_id, username, parent_user_id: user_id }`,
+   - `auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { username }, app_metadata: { parent_user_id: user_id } })` → `new_user_id`. The replaced `handle_new_auth_user` trigger reads `app_metadata.parent_user_id` and creates the profile row already linked to the parent — no second INSERT, no PK conflict, no fight with the immutability trigger,
    - UPDATE the slot row with `auth_user_id = new_user_id`.
-5. Generate `raw_token = crypto.randomBytes(32)` and `token_hash = sha256(raw_token)`. INSERT into `guest_tokens` with `expires_at = now() + 15min`, deleting any prior unexpired token for the same slot.
-6. Return `{ok: true, url: 'https://<host>/guest/join?token=<base64url(raw_token)>', expires_at}`.
+5. Call `guest_record_token_generation(parent_user_id => user_id, slot_id => slot.id, limit_per_hour => 10)`. If returns `false` → 429 `rate_limited`. (This RPC takes the per-parent advisory xact lock so concurrent requests serialize.)
+6. Generate `raw_token = crypto.randomBytes(32)`, `token_hash = sha256(raw_token)`. Inside one statement: DELETE any prior unexpired token for the same slot, then INSERT the new row with `expires_at = now() + 15min`.
+7. Return `{ok: true, url: 'https://<host>/guest/join?token=<base64url(raw_token)>', expires_at}`. Never log `raw_token`.
 
 ### `guest-claim-token`
 
@@ -445,20 +569,20 @@ Idempotent: safe to call on every panel mount.
 **Logic:**
 
 1. `token_hash = sha256(base64url_decode(token))`.
-2. Inside an RPC `claim_guest_token_atomic(p_token_hash bytea)` (service-definer, `FOR UPDATE` lock, single round trip):
-   - SELECT the row + slot + parent username FOR UPDATE,
+2. Inside the RPC `claim_guest_token_atomic(p_token_hash bytea)` (service definer, `FOR UPDATE` lock, single round trip):
+   - SELECT the row + slot + parent username under the lock,
    - if missing or expired → return `{found: false}`,
-   - DELETE the token row,
-   - return `{found: true, slot_id, auth_user_id, parent_username}`.
-3. If `found: false` → 410 `expired_or_invalid` (single generic code, no enumeration leak).
-4. Generate a new `password = crypto.randomUUID()`. `auth.admin.updateUserById(auth_user_id, { password })`.
-5. Call `auth.admin.signOut(auth_user_id, 'global')` to revoke any prior friend's refresh tokens.
-6. Get a fresh session: `auth.admin.generateLink({ type: 'magiclink', email })` returns an `action_link` containing a `?token=...` we can resolve server-side via `auth.verifyOtp({ type: 'magiclink', token_hash })`. Use the resulting `{access_token, refresh_token}` — return them to the client.
-7. UPDATE `guest_slots.claimed_at = now()`.
-8. Generate `new_session_id = crypto.randomUUID()`. Call `claim_session_atomic(auth_user_id, new_session_id, 'guest', force=true, stale_seconds=120)`.
+   - DELETE the token row in the same transaction,
+   - return `{found: true, slot_id, auth_user_id, parent_username, guest_username}`.
+3. If `found: false` → 410 `expired_or_invalid`. **Both replay and race-loser collapse to this single status** — once the token row is gone, the second caller sees no row, period. Do not try to distinguish 409 from 410 to the client; the user-facing message is identical ("This link expired or was already used. Ask {parent} for a new one.") so a single status keeps the contract simple and avoids leaking "this token did exist" through a 409.
+4. Generate `password = crypto.randomUUID()`. `auth.admin.updateUserById(auth_user_id, { password })`. Failure here → 502; the token row is already gone and the friend must ask for a new link (acceptable trade-off; documented under Risks).
+5. `auth.admin.signOut(auth_user_id, 'global')` to revoke any prior friend's refresh tokens.
+6. Issue a fresh session: `auth.admin.generateLink({ type: 'magiclink', email })` returns `{properties: {hashed_token, ...}}`; call `auth.verifyOtp({ type: 'magiclink', token_hash: properties.hashed_token })` server-side. The `verifyOtp` response yields `{session: {access_token, refresh_token}}`. (This is the same admin-driven sign-in pattern the existing `redeem-code` edge fn uses.)
+7. UPDATE `guest_slots.claimed_at = now()` for `slot_id`.
+8. Generate `new_session_id = crypto.randomUUID()`. Call the existing `claim_session_atomic(auth_user_id, new_session_id, 'guest', force=true, stale_seconds=120)`.
 9. Return `{ok: true, access_token, refresh_token, session_id: new_session_id, parent_username, guest_username}`.
 
-If any step after (3) throws, the token row is already gone (single-use is preserved), but the friend can ask the parent for a new link.
+**Burn-on-failure trade-off:** because the token row is deleted inside step 2 (necessary for atomic single-use), any failure in steps 4–8 leaves the slot in a "claimable but no live session" state. The friend's UI shows the generic 410 message and the parent regenerates a link in seconds. Reversing this (issue session first, delete after) would leak a window where two friends could each claim. The atomic-single-use property is more important than the rare-failure recovery, given this is a casual game with a 15-minute TTL.
 
 ### `guest-revoke-slot`
 
@@ -466,8 +590,9 @@ If any step after (3) throws, the token row is already gone (single-use is prese
 
 **Logic:**
 
-1. Verify JWT → `user_id`. Reject if guest.
-2. Look up the slot. If absent → 404. If `auth_user_id IS NULL` → no-op, return `{ok: true}`.
+1. Verify JWT → `user_id`. Server-side read `profiles.parent_user_id`; non-null → 403.
+2. Call `assertActiveSession(user_id, X-Session-Id)`.
+3. Look up the slot. If absent → 404. If `auth_user_id IS NULL` → no-op, return `{ok: true}`.
 3. DELETE `active_sessions WHERE user_id = slot.auth_user_id` (kills heartbeat continuity).
 4. `auth.admin.updateUserById(slot.auth_user_id, { password: crypto.randomUUID() })` (forces fresh sign-in next claim).
 5. `auth.admin.signOut(slot.auth_user_id, 'global')` (revokes refresh tokens).
@@ -482,9 +607,10 @@ The slot row itself stays — `auth_user_id` is preserved so historical `tournam
 
 **Logic:**
 
-1. Verify JWT → `user_id`. Reject if guest.
-2. SELECT slots WHERE `parent_user_id = user_id` (server-derived; never trust client param). LEFT JOIN `profiles` on `auth_user_id` for the guest's display name + `active_sessions` for "currently online" status.
-3. Return `[{slot_idx, auth_user_id, display_name, claimed_at, online}, ...]`.
+1. Verify JWT → `user_id`. Server-side read `profiles.parent_user_id`; non-null → 403.
+2. Call `assertActiveSession(user_id, X-Session-Id)`.
+3. SELECT slots WHERE `parent_user_id = user_id` (server-derived; never trust client param). LEFT JOIN `profiles` on `auth_user_id` for the guest's display name + `active_sessions` for "currently online" status.
+4. Return `[{slot_idx, auth_user_id, display_name, claimed_at, online}, ...]`.
 
 ### Guards on existing edge fns
 
@@ -503,7 +629,7 @@ The slot row itself stays — `auth_user_id` is preserved so historical `tournam
 ### Wire-ups
 
 - `src/lib/authStore.js`:
-  - On profile fetch, also fetch parent username via the same RPC: `select_profile_with_parent(uuid)` → returns `{...profile, parent_username}`.
+  - On profile fetch, replace the existing `from('profiles').select(...)` with a call to the new RPC `select_profile_with_parent()` (no argument; the function ignores its caller's request and uses `auth.uid()` server-side, returning own profile + `parent_username`).
   - Expose `isGuest`.
 - `src/lib/api.js`: every game-mutating fetch attaches `X-Session-Id: <stored>` header (for `assertActiveSession`).
 - `src/App.jsx`: existing eviction toast handler now also fires when any game fetch returns 401 `session_revoked`.
@@ -566,8 +692,8 @@ The existing `{var}` interpolation pattern (per the single-device-signin fix) ha
 ### Edge function tests (`supabase/functions/_shared/__tests__/guest_*.test.ts` — deno test)
 
 - `guest-init-slots` — idempotent (call twice → still 5 rows); rejects guests.
-- `guest-generate-token` — happy path; rate limit (11th call/hour → 429); rejects guests; rejects when caller doesn't own the slot.
-- `guest-claim-token` — happy path (signs in + writes `active_sessions`); expired → 410; replay → 410; race → loser 409; single-use enforced (token row deleted post-claim, not pre-claim).
+- `guest-generate-token` — happy path; rate limit via `guest_record_token_generation` (11th call/hour → 429); concurrent generation under advisory lock cannot exceed the limit; rejects guests; rejects when caller doesn't own the slot.
+- `guest-claim-token` — happy path (signs in + writes `active_sessions`); expired → 410; replay → 410; race-loser → 410 (single-use is atomic; both replay and race converge on the same status); token row deleted inside the same RPC transaction as the consume.
 - `guest-revoke-slot` — happy path (deletes `active_sessions`, rotates password, signs out); rejects when caller isn't parent of slot.
 - `guest-list-slots` — returns only caller's slots; never honours a client-supplied `parent_user_id`; rejects guests.
 - `redeem-code` guard — guest caller → 403.
@@ -600,9 +726,15 @@ Baseline 241 tests across 50 files. This feature adds ~30 tests (8 DB + 14 edge-
 
 ## Risks and trade-offs
 
-- **JWT residual window after revoke.** Even after `auth.admin.signOut('global')`, the access token remains valid until exp (default 1h). Mitigated by `assertActiveSession` checking `active_sessions` on every game-mutating call. The 1h window only matters for read-only fetches (e.g. `/figures` browse), which are acceptable for a casual game. Strong revoke is enforced where it matters: game state mutation.
+- **JWT residual window after revoke.** Even after `auth.admin.signOut('global')`, the access token remains valid until exp (default 1h). Mitigated by `assertActiveSession` on every game-mutating fn AND every guest-management fn (init/generate/revoke/list/claim-post-step-8). The residual window only matters for read-only RLS-gated SELECTs (`/figures` browse, profile reads), which are acceptable for a casual game. Strong revoke is enforced everywhere it matters: any mutation, guest or game.
+
+- **Demoted-admin JWT bypass.** A revoked admin's stale JWT could otherwise sail past `assertActiveSession` if `is_admin` were JWT-derived. The helper instead reads `profiles.is_admin` from the DB on every call, so demoting an admin in the database takes effect on the next request — no waiting for token expiry.
 
 - **Magic-link URL hygiene.** The token in `?token=` is convenient but leakable via Referer / browser history / screenshots. Mitigations: 15-min TTL, single-use (atomic delete), 32-byte entropy, `Referrer-Policy: no-referrer`, `history.replaceState` scrub on mount, `email_confirm: true` so the password-rotation step makes a leaked URL useless once claimed. Still, do not log full URLs anywhere — the `guest-generate-token` edge fn must not emit the raw token to logs.
+
+- **Burn-on-failure for partial claims.** `guest-claim-token` deletes the token row atomically with consumption (step 2). If steps 4–8 fail (Supabase admin rate limit, mailer config, transient outage), the token is already gone and the friend gets a generic 410. This trade-off is intentional: keeping the delete atomic with consumption is the only way to guarantee single-use under concurrent claims. Recovery = parent regenerates a new link in seconds; for a casual game with a 15-min TTL on every link, this is acceptable. The alternative ("issue session first, then delete") would open a window where two friends could each claim the same token.
+
+- **`v_tournament_leaderboard` shape changed.** The view now exposes `tournament_owner_id` as a new column AND preserves `user_id` as the original submitter. Existing client code that filters or highlights by `user_id` keeps working for non-guest accounts. For guest-aware "is this my family on the board?" UIs, prefer `tournament_owner_id`. The implementation plan should grep client code for any consumer of this view and audit which column is the right one for each callsite.
 
 - **Tournament fairness.** Treating parent + 5 guests as one tournament identity caps guest farming, but it also means a parent who shares slots with 5 friends only gets one shared submission — first to finish wins. This is the intended design (Codex review confirmed this is correct policy, not a bug). Surface this in the tournament rules screen so users aren't surprised.
 
