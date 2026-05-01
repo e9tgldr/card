@@ -424,7 +424,36 @@ $$;
 
 revoke all on function public.guest_record_token_generation(uuid, uuid, int) from public;
 grant execute on function public.guest_record_token_generation(uuid, uuid, int) to service_role;
+
+-- ─── 11. revoke_auth_sessions: service-role helper for guest revoke ─────────
+-- supabase-js v2.45 has no admin method to globally revoke a specific user's
+-- refresh tokens by user_id (auth.admin.signOut takes a JWT, not a uid). The
+-- guest-revoke-slot edge fn deletes the user's auth.sessions rows directly via
+-- this security-definer function.
+create or replace function public.revoke_auth_sessions(p_user_id uuid)
+returns void
+language sql
+security definer
+set search_path = auth
+as $$
+  delete from auth.sessions where user_id = p_user_id;
+$$;
+
+revoke all on function public.revoke_auth_sessions(uuid) from public;
+grant execute on function public.revoke_auth_sessions(uuid) to service_role;
 ```
+
+> **Preflight before applying:** the partial unique migration (`profiles_username_unique_humans`) requires no two humans to share a username. Run this query against the live DB before applying:
+>
+> ```sql
+> select username, count(*)
+> from public.profiles
+> where parent_user_id is null
+> group by username
+> having count(*) > 1;
+> ```
+>
+> If any rows return, resolve duplicates first or the migration transaction will roll back on the `CREATE UNIQUE INDEX`.
 
 - [ ] **Step 2: Apply the migration via Supabase MCP**
 
@@ -500,17 +529,17 @@ d('guest schema invariants', () => {
     if (guestRow2)  await admin.auth.admin.deleteUser(guestRow2.id);
   });
 
-  it('chained-parent block: cannot point at a guest as parent', async () => {
-    const { data: c } = await admin.auth.admin.createUser({
+  it('chained-parent block: createUser fails when parent is itself a guest', async () => {
+    // RAISE EXCEPTION inside an AFTER INSERT trigger aborts the *entire*
+    // statement, including the auth.users insert that fired it. So createUser
+    // returns an error and no auth.users row is committed — no cleanup needed.
+    const { data, error } = await admin.auth.admin.createUser({
       email: `gtest_chain_${Date.now()}@guests.local`,
       password: 'pw', email_confirm: true,
       app_metadata: { parent_user_id: guestRow1.id },
     });
-    // Trigger should have rejected creating the chained profile row, so the
-    // auth user exists but the profile row does NOT.
-    const { data: prof } = await admin.from('profiles').select('id').eq('id', c.user.id).maybeSingle();
-    expect(prof).toBeNull();
-    await admin.auth.admin.deleteUser(c.user.id);
+    expect(error?.message).toMatch(/parent must itself be a top-level account/);
+    expect(data?.user).toBeFalsy();
   });
 
   it('parent_user_id is immutable on UPDATE', async () => {
@@ -876,6 +905,13 @@ async function sha256(bytes: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(buf);
 }
 
+// Postgres bytea expects a `\x<hex>` literal when sent as a JSON string via
+// PostgREST. A JS number array is serialized as `[1,2,3,...]` and CANNOT be
+// coerced to bytea — use this helper instead.
+function toByteaHex(bytes: Uint8Array): string {
+  return '\\x' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
@@ -890,7 +926,11 @@ Deno.serve(async (req) => {
 
   const url = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const publicHost = Deno.env.get('PUBLIC_HOST') ?? url.replace(/^https?:\/\/[^/]+/, '');
+  // Prefer an explicit env var; fall back to the request's Origin header.
+  // (Stripping the host off SUPABASE_URL would yield an empty string and a
+  // relative URL, which is useless to the parent who needs to share a link.)
+  const publicHost = Deno.env.get('PUBLIC_HOST') ?? req.headers.get('origin');
+  if (!publicHost) return json({ ok: false, reason: 'server_misconfiguration' }, 500);
   const admin = createClient(url, serviceKey);
 
   const auth = req.headers.get('authorization')?.replace(/^Bearer /, '') ?? '';
@@ -954,7 +994,7 @@ Deno.serve(async (req) => {
   await admin.from('guest_tokens').delete().eq('slot_id', slot.id);
   const { error: insErr } = await admin.from('guest_tokens').insert({
     slot_id: slot.id,
-    token_hash: Array.from(hash), // bytea: supabase-js serializes Uint8Array → hex; pass as array
+    token_hash: toByteaHex(hash),
     expires_at: expiresAt,
   });
   if (insErr) return json({ ok: false, reason: 'server' }, 500);
@@ -963,8 +1003,6 @@ Deno.serve(async (req) => {
   return json({ ok: true, url: fullUrl, expires_at: expiresAt });
 });
 ```
-
-(Note: bytea over supabase-js works best as `\x<hex>` literal. If `Array.from(hash)` does not store correctly, switch to `'\\x' + Array.from(hash).map(b => b.toString(16).padStart(2,'0')).join('')` and `.insert({...token_hash: hexString})`. Verify with a SELECT after the first call.)
 
 - [ ] **Step 6: Deploy + smoke**
 
@@ -1052,25 +1090,30 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const admin = createClient(url, serviceKey);
 
-  const raw = b64urlDecode(body.token);
+  let raw: Uint8Array;
+  try { raw = b64urlDecode(body.token); }
+  catch { return json({ ok: false, reason: 'expired_or_invalid' }, 410); }
   const hash = await sha256(raw);
 
-  // Atomic single-use claim
+  // Atomic single-use claim. RETURNS TABLE → PostgREST always gives an array.
   const { data, error } = await admin.rpc('claim_guest_token_atomic', { p_token_hash: toHex(hash) });
   if (error) return json({ ok: false, reason: 'server' }, 500);
-  const row = Array.isArray(data) ? data[0] : data;
+  const row = data?.[0];
   if (!row?.found) return json({ ok: false, reason: 'expired_or_invalid' }, 410);
 
   const { slot_id, auth_user_id, parent_username, guest_username } = row;
 
-  // Rotate password + revoke any prior session
+  // Rotate password
   const newPw = crypto.randomUUID();
   const { error: updErr } = await admin.auth.admin.updateUserById(auth_user_id, { password: newPw });
   if (updErr) return json({ ok: false, reason: 'rotate_failed' }, 502);
-  await admin.auth.admin.signOut(auth_user_id, 'global');
+
+  // Fetch the canonical email — username is mutable, so do not derive it.
+  const { data: authUser, error: authErr } = await admin.auth.admin.getUserById(auth_user_id);
+  if (authErr || !authUser?.user?.email) return json({ ok: false, reason: 'lookup_failed' }, 502);
+  const guestEmail = authUser.user.email;
 
   // Issue a fresh session via generateLink + verifyOtp
-  const guestEmail = `${guest_username}@guests.local`;
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email: guestEmail,
@@ -1083,6 +1126,11 @@ Deno.serve(async (req) => {
   });
   if (verifyErr || !verify?.session) return json({ ok: false, reason: 'verify_failed' }, 502);
   const { access_token, refresh_token } = verify.session;
+
+  // Now that we have a fresh JWT, use signOut('others') to revoke prior
+  // sessions for THIS user. (signOut takes a JWT, not a user_id; calling it
+  // with a UUID would silently no-op.)
+  await admin.auth.admin.signOut(access_token, 'others');
 
   // Mark slot claimed
   await admin.from('guest_slots').update({ claimed_at: new Date().toISOString() }).eq('id', slot_id);
@@ -1194,9 +1242,14 @@ Deno.serve(async (req) => {
   if (!slot.auth_user_id) return json({ ok: true });
 
   // Kill heartbeat, rotate password, revoke refresh tokens, drop pending invites.
+  // Note: auth.admin.signOut takes a JWT not a user_id, so to revoke ALL of a
+  // specific user's sessions from a service-role context we delete from
+  // auth.sessions directly via the revoke_auth_sessions RPC (defined in the
+  // migration). The next mutation any stale JWT makes will then fail
+  // assertActiveSession because active_sessions is also gone.
   await admin.from('active_sessions').delete().eq('user_id', slot.auth_user_id);
   await admin.auth.admin.updateUserById(slot.auth_user_id, { password: crypto.randomUUID() });
-  await admin.auth.admin.signOut(slot.auth_user_id, 'global');
+  await admin.rpc('revoke_auth_sessions', { p_user_id: slot.auth_user_id });
   await admin.from('guest_tokens').delete().eq('slot_id', slot.id);
   await admin.from('guest_slots').update({ claimed_at: null }).eq('id', slot.id);
 
@@ -1352,21 +1405,20 @@ git commit -m "feat(guest): block guests from redeeming codes + hosting live/tou
 
 **Files:**
 - Modify: `src/lib/supabase.js`
+- Modify: `supabase/functions/_shared/cors.ts`
 
-The Supabase JS v2 client takes a `global.fetch` override. Wrap fetch to attach `X-Session-Id` from localStorage on every authenticated request.
+The Supabase JS v2 client takes a `global.fetch` override. Wrap fetch to attach `X-Session-Id` from localStorage on every authenticated request. CORS preflight on edge fns must also allow this header — the existing `_shared/cors.ts` does NOT include it, so without the CORS update browsers will block every preflighted POST that carries it.
 
-- [ ] **Step 1: Locate the existing client init**
+- [ ] **Step 1: Verify the actual localStorage key in `deviceSession.js`**
 
-Read `src/lib/supabase.js`. Identify the `createClient(url, key, options)` call.
+Read `src/lib/deviceSession.js` and find the localStorage key it uses (should be `'mhh.device_session_id'` per the existing single-device-signin feature). Use whatever key is actually there in step 2 below — do NOT guess.
 
-- [ ] **Step 2: Wrap fetch**
-
-Modify the createClient options:
+- [ ] **Step 2: Wrap fetch in `src/lib/supabase.js`**
 
 ```javascript
 import { createClient } from '@supabase/supabase-js';
 
-const SESSION_ID_KEY = 'altan_device_session_id'; // existing key from deviceSession.js
+const SESSION_ID_KEY = 'mhh.device_session_id'; // must match deviceSession.js
 
 const wrappedFetch = (input, init = {}) => {
   const sid = typeof window !== 'undefined' ? window.localStorage?.getItem(SESSION_ID_KEY) : null;
@@ -1381,18 +1433,33 @@ export const supabase = createClient(url, key, {
 });
 ```
 
-(Verify the localStorage key matches what `deviceSession.js` uses. If the key is different, use that one.)
+(`supabase-js` v2 routes auth/REST/RPC/functions/storage all through `global.fetch`, so this single wrapper covers every callsite — including `supabase.functions.invoke(...)`.)
 
-- [ ] **Step 3: Run the existing test suite**
+- [ ] **Step 3: Allow `x-session-id` in CORS preflight**
+
+Read `supabase/functions/_shared/cors.ts`. Find the `Access-Control-Allow-Headers` value and add `x-session-id`:
+
+```ts
+'Access-Control-Allow-Headers':
+  'authorization, x-client-info, apikey, content-type, x-session-id',
+```
+
+(The exact prior list may differ — preserve everything that's already there and append `x-session-id`.)
+
+- [ ] **Step 4: Redeploy ALL existing edge fns so they pick up the CORS change**
+
+Use the Supabase MCP `deploy_edge_function` for each function whose CORS handler imports `_shared/cors.ts`. (Inline `_shared` files are bundled at deploy time, so a CORS change in the shared file does not propagate until each consumer is redeployed.)
+
+- [ ] **Step 5: Run the existing test suite**
 
 Run: `npm test`
-Expected: no regressions. The header-injection is a no-op when no session_id is stored, so existing tests should pass unchanged.
+Expected: no regressions. The header-injection is a no-op when no session_id is stored.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add src/lib/supabase.js
-git commit -m "feat(client): attach X-Session-Id header from localStorage on every supabase request"
+git add src/lib/supabase.js supabase/functions/_shared/cors.ts
+git commit -m "feat(client): attach X-Session-Id from localStorage + allow it in edge fn CORS"
 ```
 
 ---
