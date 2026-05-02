@@ -12,6 +12,8 @@ import { LangProvider } from '@/lib/i18n';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Home from '@/pages/Home';
 import Landing from '@/pages/Landing';
+import LandingV2 from '@/pages/LandingV2';
+import HomeV2 from '@/pages/HomeV2';
 import OtpLogin from '@/pages/OtpLogin';
 import OtpGate from '@/components/OtpGate';
 import FigureDetail from '@/pages/FigureDetail';
@@ -62,6 +64,8 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/v2" element={<LandingV2 />} />
+      <Route path="/v2/app" element={<OtpGate><HomeV2 /></OtpGate>} />
       <Route path="/otp" element={<OtpLogin />} />
       <Route path="/c/:figId" element={<OtpGate><ScanChat /></OtpGate>} />
       <Route path="/app" element={<OtpGate><Home /></OtpGate>} />

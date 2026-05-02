@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Newsreader:ital,opsz,wght@0,6..72,300..800;1,6..72,300..700&family=IBM+Plex+Mono:wght@300;400;500;600&family=Noto+Serif+Mongolian&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Newsreader:ital,opsz,wght@0,6..72,300..800;1,6..72,300..700&family=IBM+Plex+Mono:wght@300;400;500;600&family=Noto+Serif+Mongolian&family=Inter+Tight:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
