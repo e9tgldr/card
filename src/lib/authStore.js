@@ -80,24 +80,6 @@ export const deleteInviteCode = async (code) => {
 };
 
 // ---------------------------------------------------------------------------
-// OTP keys (numeric 1..1000) — admin tools
-// ---------------------------------------------------------------------------
-
-export const listOtpKeys = async () => {
-  const { data, error } = await supabase.functions.invoke('list-otp-keys', { body: {} });
-  if (error) throw error;
-  return data?.keys ?? [];
-};
-
-export const recycleOtpKey = async (number) => {
-  const { data, error } = await supabase.functions.invoke('recycle-otp-key', {
-    body: { number },
-  });
-  if (error) throw error;
-  return data;
-};
-
-// ---------------------------------------------------------------------------
 // Accounts
 // ---------------------------------------------------------------------------
 

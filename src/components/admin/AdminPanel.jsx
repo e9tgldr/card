@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, LayoutDashboard, Pencil, Grid3X3, Settings, Save, Trash2, Plus, Upload, Download, Palette, Ticket, Copy, Check, Hash, RotateCcw } from 'lucide-react';
+import { X, LayoutDashboard, Pencil, Grid3X3, Settings, Save, Trash2, Plus, Upload, Download, Palette, Ticket, Copy, Check } from 'lucide-react';
 import { notify, useDebouncedValue } from '@/lib/feedback';
 
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -20,7 +20,7 @@ import ARPackUploader from '@/components/admin/ARPackUploader';
 import { useFigureBackVideos } from '@/hooks/useFigureBackVideos';
 import { base44 } from '@/api/base44Client';
 import { useAppSettings } from '@/hooks/useAppSettings';
-import { listInviteCodes, createInviteCode, deleteInviteCode, listAccounts, listOtpKeys, recycleOtpKey } from '@/lib/authStore';
+import { listInviteCodes, createInviteCode, deleteInviteCode, listAccounts } from '@/lib/authStore';
 
 function AdminToast({ message, isError }) {
   return (
@@ -292,9 +292,6 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
           </TabsTrigger>
           <TabsTrigger value="invites" className="gap-1.5 text-xs font-body">
             <Ticket className="w-3.5 h-3.5" /> Уригдсан код
-          </TabsTrigger>
-          <TabsTrigger value="otp_keys" className="gap-1.5 text-xs font-body">
-            <Hash className="w-3.5 h-3.5" /> OTP түлхүүр
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-1.5 text-xs font-body">
             <Settings className="w-3.5 h-3.5" /> Тохиргоо
@@ -649,11 +646,6 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
           <InvitesTab onToast={showToast} onLog={addLog} />
         </TabsContent>
 
-        {/* OTP keys */}
-        <TabsContent value="otp_keys" className="flex-1 overflow-auto p-6">
-          <OtpKeysTab onToast={showToast} onLog={addLog} />
-        </TabsContent>
-
         {/* Settings */}
         <TabsContent value="settings" className="flex-1 overflow-auto p-6">
           <div className="max-w-2xl mx-auto space-y-8">
@@ -932,167 +924,6 @@ function InvitesTab({ onToast, onLog }) {
       <p className="text-xs text-muted-foreground font-body">
         💡 Боломжит кодыг бусдад өгвөл тэд "Код ашиглах" хэсэгт оруулж, <strong>нэг</strong> данс үүсгэх боломжтой болно.
         Код ашиглагдсаны дараа дахин хэрэглэгдэхгүй.
-      </p>
-    </div>
-  );
-}
-
-function OtpKeysTab({ onToast, onLog }) {
-  const [keys, setKeys] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all' | 'available' | 'used'
-
-  const refresh = async () => {
-    setLoading(true);
-    try {
-      const list = await listOtpKeys();
-      setKeys(list);
-    } catch (e) {
-      onToast('OTP жагсаалт ачаалахад алдаа: ' + (e.message ?? e), true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { refresh(); }, []);
-
-  const handleRecycle = async (number) => {
-    if (!confirm(`OTP ${number}-г сэргээх үү? Энэ нь дансыг устгахгүй, зөвхөн тоог дахин ашиглах боломжтой болгоно.`)) return;
-    try {
-      await recycleOtpKey(number);
-      await refresh();
-      onToast(`OTP ${number} сэргээгдлээ`);
-      onLog(`OTP ${number} сэргээгдлээ`, 'warn');
-    } catch (e) {
-      onToast('Алдаа: ' + (e.message ?? e), true);
-    }
-  };
-
-  const total = keys.length;
-  const used = keys.filter((k) => k.redeemed_at).length;
-  const available = total - used;
-
-  const visible = keys.filter((k) => {
-    if (filter === 'available') return !k.redeemed_at;
-    if (filter === 'used') return !!k.redeemed_at;
-    return true;
-  });
-
-  return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Нийт', value: total, ico: '🔢' },
-          { label: 'Боломжит', value: available, ico: '🟢' },
-          { label: 'Ашиглагдсан', value: used, ico: '✔️' },
-        ].map((s, i) => (
-          <div key={i} className="bg-card border border-border rounded-xl p-4 space-y-1">
-            <span className="text-2xl">{s.ico}</span>
-            <div className="font-cinzel text-xl font-bold text-foreground">{s.value}</div>
-            <div className="text-xs text-muted-foreground font-body">{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-cinzel font-bold text-foreground">OTP түлхүүр (1–1000)</h3>
-          <p className="text-xs text-muted-foreground font-body">
-            Тоо → нэг данс. Хэрэглэгч устсан үед автоматаар сэргэнэ.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {[
-            { id: 'all', label: 'Бүгд' },
-            { id: 'available', label: 'Боломжит' },
-            { id: 'used', label: 'Ашиглагдсан' },
-          ].map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className="px-3 py-1.5 rounded-full text-xs font-body transition-colors"
-              style={{
-                border: '1px solid rgba(212,168,67,0.3)',
-                background: filter === f.id ? 'rgba(212,168,67,0.2)' : 'transparent',
-                color: filter === f.id ? '#D4A843' : 'inherit',
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-sm text-muted-foreground font-body">Уншиж байна…</div>
-        ) : visible.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground font-body">Хоосон.</div>
-        ) : (
-          <table className="w-full text-sm font-body">
-            <thead className="bg-muted/50 text-muted-foreground text-xs">
-              <tr>
-                <th className="text-left px-4 py-2 font-normal">№</th>
-                <th className="text-left px-4 py-2 font-normal">Төлөв</th>
-                <th className="text-left px-4 py-2 font-normal">Ашигласан</th>
-                <th className="text-right px-4 py-2 font-normal">Үйлдэл</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((k) => {
-                const isUsed = !!k.redeemed_at;
-                return (
-                  <tr key={k.number} className="border-t border-border">
-                    <td className="px-4 py-2 font-mono tracking-widest text-foreground">
-                      {String(k.number).padStart(3, '0')}
-                    </td>
-                    <td className="px-4 py-2">
-                      <Badge
-                        variant="outline"
-                        className={isUsed
-                          ? 'border-muted text-muted-foreground'
-                          : 'border-green-500/60 text-green-400'}
-                      >
-                        {isUsed ? 'Ашиглагдсан' : 'Боломжит'}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-2 text-foreground">
-                      {isUsed ? (
-                        <div>
-                          <div className="font-medium">{k.username ?? '(устгагдсан)'}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(k.redeemed_at).toLocaleString()}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {isUsed && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleRecycle(k.number)}
-                          className="gap-1 text-xs text-muted-foreground hover:text-gold"
-                          title="Тоог сэргээх (данс үлдэнэ)"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <p className="text-xs text-muted-foreground font-body">
-        💡 OTP түлхүүр нь 1–1000 хооронд тогтсон 1000 тооноос бүрдэнэ. Хэрэглэгч "OTP" таб дээр тоогоо оруулж шинэ данс үүсгэдэг.
-        Данс устгагдвал тухайн тоо <strong>автоматаар</strong> сэргэнэ. "Сэргээх" товч нь дансыг хадгалж зөвхөн тоог дахин чөлөөлнө.
       </p>
     </div>
   );
