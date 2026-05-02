@@ -6,100 +6,102 @@
 
 @layer base {
   :root {
-    /* Codex palette — bone-ash ground, aged ivory, imperial seal, aged brass, lapis, steppe earth */
-    --ink:          32 24% 6%;     /* #0E0B07  bone-ash ground */
-    --ivory:        42 55% 92%;    /* #F6EEDD  aged ivory */
-    --ivory-dim:    42 40% 82%;    /* parchment highlight */
-    --seal:         0 70% 36%;     /* #9A1B1B  imperial seal red */
-    --seal-soft:    0 55% 42%;     /* softened seal for text */
-    --brass:        39 51% 53%;    /* #C69A4A  aged brass */
-    --brass-deep:   36 45% 38%;    /* oxidized brass for hairlines */
-    --lapis:        210 48% 23%;   /* #1F3857  cold accent */
+    /* Codex palette — black ground, ivory text, gold + bronze accents (Stitch v2 alignment) */
+    --ink:          228 33% 6%;    /* #0a0c14  cool black ground */
+    --ivory:        47 40% 88%;    /* #EDE8D5  warm ivory */
+    --ivory-dim:    47 30% 75%;    /* parchment highlight */
+    --seal:         18 60% 42%;    /* #B05926  burnished red-bronze (was imperial red) */
+    --seal-soft:    18 55% 50%;    /* softened bronze-red */
+    --brass:        42 63% 55%;    /* #D4A843  primary gold (Stitch v2 brand) */
+    --brass-deep:   42 50% 38%;    /* deep gold for hairlines */
+    --bronze:       30 61% 50%;    /* #CD7F32  bronze secondary accent */
+    --bronze-soft:  30 50% 60%;    /* softened bronze */
+    --lapis:        210 48% 23%;   /* #1F3857  cold accent (rare) */
     --steppe:       33 15% 25%;    /* #4A4237  earth neutral */
 
     /* shadcn token remap onto codex palette */
     --background: var(--ink);
     --foreground: var(--ivory);
-    --card: 32 20% 9%;
+    --card: 222 27% 14%;
     --card-foreground: var(--ivory);
-    --popover: 32 20% 8%;
+    --popover: 228 25% 10%;
     --popover-foreground: var(--ivory);
-    --primary: var(--seal);
-    --primary-foreground: var(--ivory);
-    --secondary: var(--brass);
+    --primary: var(--brass);
+    --primary-foreground: var(--ink);
+    --secondary: var(--bronze);
     --secondary-foreground: var(--ink);
-    --muted: 32 14% 14%;
-    --muted-foreground: 42 15% 58%;
+    --muted: 222 22% 14%;
+    --muted-foreground: 47 20% 65%;
     --accent: var(--brass);
     --accent-foreground: var(--ink);
     --destructive: 0 80% 48%;
     --destructive-foreground: 0 0% 98%;
-    --border: 36 20% 18%;
-    --input: 36 20% 16%;
+    --border: 42 35% 25%;
+    --input: 222 25% 12%;
     --ring: var(--brass);
-    --chart-1: var(--seal);
-    --chart-2: var(--brass);
-    --chart-3: var(--lapis);
+    --chart-1: var(--brass);
+    --chart-2: var(--bronze);
+    --chart-3: var(--seal);
     --chart-4: 160 30% 35%;
     --chart-5: 280 30% 45%;
-    --radius: 0.125rem;  /* hard-edged catalog corners, not rounded SaaS */
+    --radius: 0.5rem;  /* slightly rounded — modern but still editorial */
 
-    /* legacy aliases (kept for existing components; will look coherent now) */
-    --crimson: #9A1B1B;
-    --gold: #C69A4A;
-    --font-cinzel: 'Fraunces', 'Newsreader', serif;
-    --font-body: 'Newsreader', 'Noto Serif Mongolian', Georgia, serif;
-    --font-playfair: 'Fraunces', serif;
-    --font-cormorant: 'Fraunces', 'Newsreader', serif;
+    /* legacy aliases (kept for existing components) */
+    --crimson: #B05926;
+    --gold: #D4A843;
+    --font-cinzel: 'Inter Tight', 'Fraunces', system-ui, sans-serif;
+    --font-body: 'Inter', 'Newsreader', system-ui, sans-serif;
+    --font-playfair: 'Inter Tight', 'Fraunces', system-ui, sans-serif;
+    --font-cormorant: 'Inter', 'Newsreader', system-ui, sans-serif;
 
-    /* new codex fonts */
-    --font-display: 'Fraunces', 'Newsreader', serif;
-    --font-prose:   'Newsreader', Georgia, serif;
+    /* Stitch v2 fonts — sans-serif throughout (Mongolian script keeps its serif face) */
+    --font-display: 'Inter Tight', 'Fraunces', system-ui, sans-serif;
+    --font-prose:   'Inter', 'Newsreader', system-ui, sans-serif;
     --font-meta:    'IBM Plex Mono', ui-monospace, monospace;
     --font-bichig:  'Noto Serif Mongolian', 'Newsreader', serif;
 
-    --sidebar-background: 32 20% 8%;
+    --sidebar-background: 228 25% 10%;
     --sidebar-foreground: var(--ivory);
-    --sidebar-primary: var(--seal);
-    --sidebar-primary-foreground: var(--ivory);
-    --sidebar-accent: var(--brass);
+    --sidebar-primary: var(--brass);
+    --sidebar-primary-foreground: var(--ink);
+    --sidebar-accent: var(--bronze);
     --sidebar-accent-foreground: var(--ink);
-    --sidebar-border: 36 20% 18%;
+    --sidebar-border: 42 35% 25%;
     --sidebar-ring: var(--brass);
   }
 
   .dark {
     --background: var(--ink);
     --foreground: var(--ivory);
-    --card: 32 20% 9%;
+    --card: 222 27% 14%;
     --card-foreground: var(--ivory);
-    --popover: 32 20% 8%;
+    --popover: 228 25% 10%;
     --popover-foreground: var(--ivory);
-    --primary: var(--seal);
-    --primary-foreground: var(--ivory);
-    --secondary: var(--brass);
+    --primary: var(--brass);
+    --primary-foreground: var(--ink);
+    --secondary: var(--bronze);
     --secondary-foreground: var(--ink);
-    --muted: 32 14% 14%;
-    --muted-foreground: 42 15% 58%;
+    --muted: 222 22% 14%;
+    --muted-foreground: 47 20% 65%;
     --accent: var(--brass);
     --accent-foreground: var(--ink);
     --destructive: 0 80% 48%;
     --destructive-foreground: 0 0% 98%;
-    --border: 36 20% 18%;
-    --input: 36 20% 16%;
+    --border: 42 35% 25%;
+    --input: 222 25% 12%;
     --ring: var(--brass);
-    --chart-1: var(--seal);
-    --chart-2: var(--brass);
-    --chart-3: var(--lapis);
+    --chart-1: var(--brass);
+    --chart-2: var(--bronze);
+    --chart-3: var(--seal);
     --chart-4: 160 30% 35%;
     --chart-5: 280 30% 45%;
-    --sidebar-background: 32 20% 8%;
+    --sidebar-background: 228 25% 10%;
     --sidebar-foreground: var(--ivory);
-    --sidebar-primary: var(--seal);
-    --sidebar-primary-foreground: var(--ivory);
-    --sidebar-accent: var(--brass);
+    --sidebar-primary: var(--brass);
+    --sidebar-primary-foreground: var(--ink);
+    --sidebar-accent: var(--bronze);
     --sidebar-accent-foreground: var(--ink);
-    --sidebar-border: 36 20% 18%;
+    --sidebar-border: 42 35% 25%;
     --sidebar-ring: var(--brass);
   }
 }
@@ -120,17 +122,17 @@
   }
 }
 
-/* Paper-grain texture overlay — site-wide, very low opacity, warms digital-flat surfaces */
+/* Subtle gold-noise texture overlay — keeps surfaces from feeling digitally flat */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.055;
+  opacity: 0.022;
   mix-blend-mode: screen;
   background-image:
-    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.96  0 0 0 0 0.87  0 0 0 0 0.67  0 0 0 0.8 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.83  0 0 0 0 0.66  0 0 0 0 0.26  0 0 0 0.8 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 260px 260px;
 }
 
@@ -277,13 +279,12 @@ body::before {
   color: hsl(var(--brass));
 }
 
-/* Display title with Fraunces opsz + wonk */
+/* Display title — Inter Tight at editorial weight */
 .display-title {
   font-family: var(--font-display);
-  font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
-  font-weight: 500;
-  line-height: 0.92;
-  letter-spacing: -0.015em;
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
 }
 
 /* Editorial prose body */
@@ -376,9 +377,13 @@ body::before {
   color: hsl(var(--ivory));
 }
 
-/* Utility: hairline border in brass */
+/* Utility: hairline border in brass / bronze */
 .border-brass { border-color: hsl(var(--brass) / 0.4); }
 .border-brass-strong { border-color: hsl(var(--brass) / 0.7); }
+.border-bronze { border-color: hsl(var(--bronze) / 0.45); }
+.border-bronze-strong { border-color: hsl(var(--bronze) / 0.75); }
+.text-bronze { color: hsl(var(--bronze)); }
+.bg-bronze { background-color: hsl(var(--bronze)); }
 
 @keyframes arPulse {
   0%   { transform: scale(1);   opacity: 0.9; }
