@@ -63,12 +63,14 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
+      <Route path="/" element={<LandingV2 />} />
+      <Route path="/v1" element={<Landing />} />
+      <Route path="/v1/app" element={<OtpGate><Home /></OtpGate>} />
       <Route path="/v2" element={<LandingV2 />} />
       <Route path="/v2/app" element={<OtpGate><HomeV2 /></OtpGate>} />
       <Route path="/otp" element={<OtpLogin />} />
       <Route path="/c/:figId" element={<OtpGate><ScanChat /></OtpGate>} />
-      <Route path="/app" element={<OtpGate><Home /></OtpGate>} />
+      <Route path="/app" element={<OtpGate><HomeV2 /></OtpGate>} />
       <Route path="/figure/:figId" element={<OtpGate><FigureDetail /></OtpGate>} />
       <Route path="/collection" element={<OtpGate><Collection /></OtpGate>} />
       <Route path="/figures" element={<OtpGate><Figures /></OtpGate>} />

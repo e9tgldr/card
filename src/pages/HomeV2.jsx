@@ -21,25 +21,28 @@ import { FIGURES } from '@/lib/figuresData';
 import { useMyTeam } from '@/hooks/useMyTeam';
 import { base44 } from '@/api/base44Client';
 import ChatFAB from '@/components/ChatFAB';
+import Card3D from '@/components/Card3D';
 
 const FONT_SANS =
   '"Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
 const tokens = {
-  bg: '#FFFFFF',
-  surface: '#FFFFFF',
-  surfaceMuted: '#F1F5F9',
-  surfaceHigh: '#E2E8F0',
-  ink: '#0F172A',
-  inkSoft: '#334155',
-  body: '#475569',
-  hint: '#64748B',
-  border: '#E2E8F0',
-  borderStrong: '#CBD5E1',
-  brand: '#0D9488',
-  brandStrong: '#0F766E',
-  brandSoft: '#CCFBF1',
-  brandOnSoft: '#134E4A',
+  bg: '#0a0c14',
+  surface: '#11141F',
+  surfaceMuted: '#1A1F2E',
+  surfaceHigh: '#252B3D',
+  ink: '#EDE8D5',
+  inkSoft: '#C9C0A8',
+  body: '#A89F8A',
+  hint: '#6B6557',
+  border: 'rgba(212,168,67,0.18)',
+  borderStrong: 'rgba(212,168,67,0.42)',
+  brand: '#D4A843',
+  brandStrong: '#E6BC52',
+  brandSoft: 'rgba(212,168,67,0.12)',
+  brandOnSoft: '#F2D88A',
+  bronze: '#CD7F32',
+  bronzeSoft: 'rgba(205,127,50,0.14)',
 };
 
 const SECTION_PADY = 64;
@@ -66,6 +69,9 @@ const COPY = {
       title: 'Өнөөдөр хэнтэй уулзах вэ?',
       lede: 'Хаад, хатад, жанжид, зөвлөх, соёлын зүтгэлтэн — эхлэхдээ тохирох хэдийг сонгож үзээрэй.',
       all: 'Бүх 52',
+      view2D: '🃏 2D',
+      view3D: '🎴 3D',
+      viewLabel: 'Үзэх горим',
     },
     engagements: {
       chip: 'Оролц',
@@ -120,6 +126,9 @@ const COPY = {
       title: 'Who are you meeting today?',
       lede: 'Khans, queens, generals, advisors, cultural figures — pick a few to start with.',
       all: 'See all 52',
+      view2D: '🃏 2D',
+      view3D: '🎴 3D',
+      viewLabel: 'View mode',
     },
     engagements: {
       chip: 'Play',
@@ -194,8 +203,8 @@ function Reveal({ children, delay = 0, className = '' }) {
 function Chip({ children, tone = 'neutral' }) {
   const palettes = {
     neutral: { bg: tokens.surfaceMuted, fg: tokens.inkSoft, bd: tokens.border },
-    brand: { bg: tokens.brandSoft, fg: tokens.brandOnSoft, bd: 'rgba(13,148,136,0.18)' },
-    dark: { bg: 'rgba(15,23,42,0.06)', fg: tokens.ink, bd: tokens.border },
+    brand: { bg: tokens.brandSoft, fg: tokens.brandOnSoft, bd: tokens.borderStrong },
+    dark: { bg: 'rgba(212,168,67,0.06)', fg: tokens.ink, bd: tokens.border },
   };
   const p = palettes[tone] || palettes.neutral;
   return (
@@ -233,22 +242,22 @@ function PrimaryButton({ to, href, onClick, children, ...rest }) {
         gap: 8,
         padding: '12px 22px',
         borderRadius: 14,
-        background: tokens.ink,
-        color: '#fff',
-        fontWeight: 600,
+        background: tokens.brand,
+        color: tokens.bg,
+        fontWeight: 700,
         fontSize: 15,
         letterSpacing: 0.1,
         textDecoration: 'none',
         cursor: 'pointer',
         transition: 'transform 180ms ease, box-shadow 180ms ease, background 180ms ease',
-        boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 24px rgba(15,23,42,0.18)',
+        boxShadow: '0 1px 0 rgba(255,255,255,0.12) inset, 0 8px 24px rgba(212,168,67,0.32)',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = '#1E293B';
+        e.currentTarget.style.background = tokens.brandStrong;
         e.currentTarget.style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = tokens.ink;
+        e.currentTarget.style.background = tokens.brand;
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
@@ -271,7 +280,7 @@ function GhostButton({ to, href, onClick, children, ...rest }) {
         gap: 8,
         padding: '11px 20px',
         borderRadius: 14,
-        background: tokens.surface,
+        background: 'transparent',
         color: tokens.ink,
         fontWeight: 600,
         fontSize: 14.5,
@@ -279,10 +288,16 @@ function GhostButton({ to, href, onClick, children, ...rest }) {
         textDecoration: 'none',
         cursor: 'pointer',
         border: `1px solid ${tokens.borderStrong}`,
-        transition: 'background 180ms ease, transform 180ms ease',
+        transition: 'background 180ms ease, transform 180ms ease, border-color 180ms ease',
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = tokens.surfaceMuted)}
-      onMouseLeave={(e) => (e.currentTarget.style.background = tokens.surface)}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = tokens.brandSoft;
+        e.currentTarget.style.borderColor = tokens.brand;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'transparent';
+        e.currentTarget.style.borderColor = tokens.borderStrong;
+      }}
     >
       {children}
     </Tag>
@@ -300,11 +315,11 @@ function LangToggle() {
         style={{
           padding: '6px 12px',
           borderRadius: 9999,
-          background: active ? tokens.ink : 'transparent',
-          color: active ? '#fff' : tokens.body,
+          background: active ? tokens.brand : 'transparent',
+          color: active ? tokens.bg : tokens.body,
           border: 'none',
           fontSize: 12.5,
-          fontWeight: 600,
+          fontWeight: 700,
           letterSpacing: 0.4,
           cursor: 'pointer',
           transition: 'all 160ms ease',
@@ -353,7 +368,7 @@ function NavBar({ c }) {
         position: 'sticky',
         top: 0,
         zIndex: 50,
-        background: scrolled ? 'rgba(250,248,244,0.85)' : 'rgba(250,248,244,0.0)',
+        background: scrolled ? 'rgba(10,12,20,0.85)' : 'rgba(10,12,20,0.0)',
         backdropFilter: scrolled ? 'saturate(180%) blur(12px)' : 'none',
         WebkitBackdropFilter: scrolled ? 'saturate(180%) blur(12px)' : 'none',
         borderBottom: scrolled ? `1px solid ${tokens.border}` : '1px solid transparent',
@@ -377,8 +392,8 @@ function NavBar({ c }) {
               width: 32,
               height: 32,
               borderRadius: 10,
-              background: tokens.ink,
-              color: '#fff',
+              background: tokens.brand,
+              color: tokens.bg,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -416,7 +431,7 @@ function NavBar({ c }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <LangToggle />
-          <GhostButton to="/app" className="hidden-on-mobile">
+          <GhostButton to="/v1/app" className="hidden-on-mobile">
             <span style={{ fontSize: 13.5 }}>{c.nav.classic}</span>
           </GhostButton>
           <PrimaryButton to="/ar">
@@ -502,12 +517,12 @@ function Hero({ c, figureCount }) {
 }
 
 const PORTRAIT_FALLBACKS = {
-  khans: '#FEF3E5',
-  queens: '#FCE7E5',
-  warriors: '#FFF1D4',
-  political: '#F4F1EA',
-  cultural: '#EAF1F4',
-  modern: '#F0EAEA',
+  khans: '#2A2218',
+  queens: '#2A1C1C',
+  warriors: '#2C2615',
+  political: '#1F1B14',
+  cultural: '#1A2024',
+  modern: '#221A1A',
 };
 
 function CategoryIcon({ cat, size = 14 }) {
@@ -582,12 +597,13 @@ function FigureTile({ figure, onClick }) {
             gap: 5,
             padding: '4px 10px',
             borderRadius: 9999,
-            background: 'rgba(255,255,255,0.85)',
-            color: tokens.ink,
+            background: 'rgba(10,12,20,0.72)',
+            color: tokens.brandOnSoft,
             fontSize: 11,
             fontWeight: 600,
             letterSpacing: 0.4,
             backdropFilter: 'blur(6px)',
+            border: `1px solid ${tokens.border}`,
           }}
         >
           <CategoryIcon cat={figure.cat} size={11} />
@@ -708,6 +724,7 @@ function MyTeamStrip({ c, figures }) {
 
 function ExploreFigures({ c, figures }) {
   const navigate = useNavigate();
+  const [view3D, setView3D] = useState(false);
   const featured = useMemo(() => {
     const order = ['khans', 'queens', 'warriors', 'political', 'cultural', 'modern'];
     const seen = new Set();
@@ -725,6 +742,30 @@ function ExploreFigures({ c, figures }) {
     });
     return picks.slice(0, 8);
   }, [figures]);
+
+  const toggleOpt = (mode, label) => {
+    const active = (mode === '3d') === view3D;
+    return (
+      <button
+        key={mode}
+        onClick={() => setView3D(mode === '3d')}
+        style={{
+          padding: '6px 14px',
+          borderRadius: 9999,
+          background: active ? tokens.brand : 'transparent',
+          color: active ? tokens.bg : tokens.body,
+          border: 'none',
+          fontSize: 12.5,
+          fontWeight: 700,
+          letterSpacing: 0.4,
+          cursor: 'pointer',
+          transition: 'all 160ms ease',
+        }}
+      >
+        {label}
+      </button>
+    );
+  };
 
   return (
     <section id="explore" style={{ padding: `${SECTION_PADY}px 24px`, background: tokens.bg }}>
@@ -765,35 +806,57 @@ function ExploreFigures({ c, figures }) {
                 {c.explore.lede}
               </p>
             </div>
-            <Link
-              to="/figures"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                color: tokens.ink,
-                fontWeight: 600,
-                fontSize: 14.5,
-                textDecoration: 'none',
-                borderBottom: `1px solid ${tokens.borderStrong}`,
-                paddingBottom: 4,
-              }}
-            >
-              {c.explore.all} <ArrowRight size={14} />
-            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: 3,
+                  borderRadius: 9999,
+                  background: tokens.surfaceMuted,
+                  border: `1px solid ${tokens.border}`,
+                }}
+                aria-label={c.explore.viewLabel}
+              >
+                {toggleOpt('2d', c.explore.view2D)}
+                {toggleOpt('3d', c.explore.view3D)}
+              </div>
+              <Link
+                to="/figures"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  color: tokens.ink,
+                  fontWeight: 600,
+                  fontSize: 14.5,
+                  textDecoration: 'none',
+                  borderBottom: `1px solid ${tokens.borderStrong}`,
+                  paddingBottom: 4,
+                }}
+              >
+                {c.explore.all} <ArrowRight size={14} />
+              </Link>
+            </div>
           </div>
         </Reveal>
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-            gap: 18,
+            gridTemplateColumns: view3D
+              ? 'repeat(auto-fill, minmax(260px, 1fr))'
+              : 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: view3D ? 22 : 18,
           }}
         >
           {featured.map((f, i) => (
             <Reveal key={f.fig_id} delay={i * 50}>
-              <FigureTile figure={f} onClick={() => navigate(`/figure/${f.fig_id}`)} />
+              {view3D ? (
+                <Card3D figure={f} onClick={() => navigate(`/figure/${f.fig_id}`)} index={i} />
+              ) : (
+                <FigureTile figure={f} onClick={() => navigate(`/figure/${f.fig_id}`)} />
+              )}
             </Reveal>
           ))}
         </div>
@@ -1094,8 +1157,8 @@ function MapBand({ c }) {
                 padding: '12px 20px',
                 borderRadius: 16,
                 background: tokens.brand,
-                color: '#fff',
-                fontWeight: 600,
+                color: tokens.bg,
+                fontWeight: 700,
                 fontSize: 14.5,
                 textDecoration: 'none',
               }}
@@ -1173,8 +1236,8 @@ function Foot({ c }) {
               width: 28,
               height: 28,
               borderRadius: 9,
-              background: tokens.ink,
-              color: '#fff',
+              background: tokens.brand,
+              color: tokens.bg,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',

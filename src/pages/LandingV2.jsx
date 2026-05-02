@@ -21,20 +21,22 @@ const FONT_SANS =
   '"Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
 const tokens = {
-  bg: '#FFFFFF',
-  surface: '#FFFFFF',
-  surfaceMuted: '#F1F5F9',
-  surfaceHigh: '#E2E8F0',
-  ink: '#0F172A',
-  inkSoft: '#334155',
-  body: '#475569',
-  hint: '#64748B',
-  border: '#E2E8F0',
-  borderStrong: '#CBD5E1',
-  brand: '#0D9488',
-  brandStrong: '#0F766E',
-  brandSoft: '#CCFBF1',
-  brandOnSoft: '#134E4A',
+  bg: '#0a0c14',
+  surface: '#11141F',
+  surfaceMuted: '#1A1F2E',
+  surfaceHigh: '#252B3D',
+  ink: '#EDE8D5',
+  inkSoft: '#C9C0A8',
+  body: '#A89F8A',
+  hint: '#6B6557',
+  border: 'rgba(212,168,67,0.18)',
+  borderStrong: 'rgba(212,168,67,0.42)',
+  brand: '#D4A843',
+  brandStrong: '#E6BC52',
+  brandSoft: 'rgba(212,168,67,0.12)',
+  brandOnSoft: '#F2D88A',
+  bronze: '#CD7F32',
+  bronzeSoft: 'rgba(205,127,50,0.14)',
 };
 
 const COPY = {
@@ -257,21 +259,21 @@ function PrimaryButton({ to, href, children, ...rest }) {
         gap: 8,
         padding: '12px 22px',
         borderRadius: 14,
-        background: tokens.ink,
-        color: '#fff',
-        fontWeight: 600,
+        background: tokens.brand,
+        color: tokens.bg,
+        fontWeight: 700,
         fontSize: 15,
         letterSpacing: 0.1,
         textDecoration: 'none',
         transition: 'transform 180ms ease, box-shadow 180ms ease, background 180ms ease',
-        boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 24px rgba(15,23,42,0.18)',
+        boxShadow: '0 1px 0 rgba(255,255,255,0.12) inset, 0 8px 24px rgba(212,168,67,0.32)',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = '#1E293B';
+        e.currentTarget.style.background = tokens.brandStrong;
         e.currentTarget.style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = tokens.ink;
+        e.currentTarget.style.background = tokens.brand;
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
@@ -293,20 +295,22 @@ function GhostButton({ to, href, children, ...rest }) {
         gap: 8,
         padding: '11px 20px',
         borderRadius: 14,
-        background: tokens.surface,
+        background: 'transparent',
         color: tokens.ink,
         fontWeight: 600,
         fontSize: 14.5,
         letterSpacing: 0.1,
         textDecoration: 'none',
         border: `1px solid ${tokens.borderStrong}`,
-        transition: 'background 180ms ease, transform 180ms ease',
+        transition: 'background 180ms ease, transform 180ms ease, border-color 180ms ease',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = tokens.surfaceMuted;
+        e.currentTarget.style.background = tokens.brandSoft;
+        e.currentTarget.style.borderColor = tokens.brand;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = tokens.surface;
+        e.currentTarget.style.background = 'transparent';
+        e.currentTarget.style.borderColor = tokens.borderStrong;
       }}
     >
       {children}
@@ -317,7 +321,7 @@ function GhostButton({ to, href, children, ...rest }) {
 function Chip({ children, tone = 'neutral' }) {
   const palettes = {
     neutral: { bg: tokens.surfaceMuted, fg: tokens.inkSoft, bd: tokens.border },
-    brand: { bg: tokens.brandSoft, fg: tokens.brandOnSoft, bd: 'rgba(13,148,136,0.18)' },
+    brand: { bg: tokens.brandSoft, fg: tokens.brandOnSoft, bd: tokens.borderStrong },
   };
   const p = palettes[tone] || palettes.neutral;
   return (
@@ -352,11 +356,11 @@ function LangToggle() {
         style={{
           padding: '6px 12px',
           borderRadius: 9999,
-          background: active ? tokens.ink : 'transparent',
-          color: active ? '#fff' : tokens.body,
+          background: active ? tokens.brand : 'transparent',
+          color: active ? tokens.bg : tokens.body,
           border: 'none',
           fontSize: 12.5,
-          fontWeight: 600,
+          fontWeight: 700,
           letterSpacing: 0.4,
           cursor: 'pointer',
           transition: 'all 160ms ease',
@@ -405,7 +409,7 @@ function NavBar({ c }) {
         position: 'sticky',
         top: 0,
         zIndex: 50,
-        background: scrolled ? 'rgba(250,248,244,0.85)' : 'rgba(250,248,244,0.0)',
+        background: scrolled ? 'rgba(10,12,20,0.85)' : 'rgba(10,12,20,0.0)',
         backdropFilter: scrolled ? 'saturate(180%) blur(12px)' : 'none',
         WebkitBackdropFilter: scrolled ? 'saturate(180%) blur(12px)' : 'none',
         borderBottom: scrolled ? `1px solid ${tokens.border}` : '1px solid transparent',
@@ -429,8 +433,8 @@ function NavBar({ c }) {
               width: 32,
               height: 32,
               borderRadius: 10,
-              background: tokens.ink,
-              color: '#fff',
+              background: tokens.brand,
+              color: tokens.bg,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -468,7 +472,7 @@ function NavBar({ c }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <LangToggle />
-          <GhostButton to="/" className="hidden-on-mobile">
+          <GhostButton to="/v1" className="hidden-on-mobile">
             <span style={{ fontSize: 13.5 }}>{c.nav.old}</span>
           </GhostButton>
           <PrimaryButton to="/app">
@@ -501,9 +505,9 @@ function HeroVisual({ c }) {
           aspectRatio: '5 / 7',
           borderRadius: 24,
           overflow: 'hidden',
-          background: '#FEF3E5',
+          background: '#2A2218',
           border: `1px solid ${tokens.border}`,
-          boxShadow: '0 30px 60px -28px rgba(15,23,42,0.28), 0 12px 24px -16px rgba(15,23,42,0.18)',
+          boxShadow: '0 30px 60px -28px rgba(0,0,0,0.6), 0 12px 24px -16px rgba(212,168,67,0.2)',
           transform: 'rotate(-4deg)',
           zIndex: 3,
         }}
@@ -519,7 +523,7 @@ function HeroVisual({ c }) {
             position: 'absolute',
             top: 14,
             left: 16,
-            color: '#1A0A00',
+            color: tokens.brand,
             fontWeight: 800,
             fontSize: 26,
             lineHeight: 1,
@@ -555,9 +559,9 @@ function HeroVisual({ c }) {
           aspectRatio: '5 / 7',
           borderRadius: 22,
           overflow: 'hidden',
-          background: '#FCE7E5',
+          background: '#2A1C1C',
           border: `1px solid ${tokens.border}`,
-          boxShadow: '0 24px 48px -28px rgba(15,23,42,0.22)',
+          boxShadow: '0 24px 48px -28px rgba(0,0,0,0.55)',
           transform: 'rotate(6deg)',
           zIndex: 2,
         }}
@@ -593,9 +597,9 @@ function HeroVisual({ c }) {
           aspectRatio: '5 / 7',
           borderRadius: 18,
           overflow: 'hidden',
-          background: '#FFF1D4',
+          background: '#2C2615',
           border: `1px solid ${tokens.border}`,
-          boxShadow: '0 16px 32px -22px rgba(15,23,42,0.2)',
+          boxShadow: '0 16px 32px -22px rgba(0,0,0,0.5)',
           transform: 'rotate(-9deg)',
           zIndex: 1,
         }}
@@ -630,8 +634,8 @@ function HeroVisual({ c }) {
             width: 40,
             height: 40,
             borderRadius: 10,
-            background: tokens.ink,
-            color: '#fff',
+            background: tokens.brand,
+            color: tokens.bg,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -951,7 +955,7 @@ function CardCollectionV2({ c }) {
                     aspectRatio: '4/5',
                     position: 'relative',
                     overflow: 'hidden',
-                    background: '#F4F1EA',
+                    background: '#1F1B14',
                   }}
                 >
                   <img
@@ -965,18 +969,18 @@ function CardCollectionV2({ c }) {
                       position: 'absolute',
                       top: 14,
                       left: 16,
-                      color: '#1A0A00',
+                      color: tokens.brand,
                       fontWeight: 800,
                       fontSize: 22,
                       lineHeight: 1,
-                      textShadow: '0 1px 2px rgba(255,255,255,0.4)',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.6)',
                     }}
                   >
                     {card.rank}
                     <div
                       style={{
                         fontSize: 16,
-                        color: card.suit === '♥' || card.suit === '♦' ? tokens.brand : '#1A0A00',
+                        color: card.suit === '♥' || card.suit === '♦' ? tokens.bronze : tokens.brand,
                         marginTop: 2,
                       }}
                     >
@@ -1096,7 +1100,7 @@ function Features({ c }) {
                       borderRadius: 12,
                       background: isHero ? tokens.brand : tokens.surface,
                       border: isHero ? 'none' : `1px solid ${tokens.border}`,
-                      color: isHero ? '#fff' : tokens.ink,
+                      color: isHero ? tokens.bg : tokens.brand,
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1213,9 +1217,9 @@ function Pricing({ c }) {
                       padding: '4px 12px',
                       borderRadius: 9999,
                       background: tokens.brand,
-                      color: '#fff',
+                      color: tokens.bg,
                       fontSize: 11.5,
-                      fontWeight: 600,
+                      fontWeight: 700,
                       letterSpacing: 0.6,
                       textTransform: 'uppercase',
                     }}
@@ -1293,12 +1297,13 @@ function Pricing({ c }) {
                     width: '100%',
                     padding: '13px 18px',
                     borderRadius: 16,
-                    background: t.highlighted ? tokens.brand : tokens.ink,
-                    color: '#fff',
-                    fontWeight: 600,
+                    background: t.highlighted ? tokens.brand : 'transparent',
+                    color: t.highlighted ? tokens.bg : tokens.brand,
+                    fontWeight: 700,
                     fontSize: 15,
                     textDecoration: 'none',
-                    transition: 'transform 180ms ease',
+                    border: t.highlighted ? 'none' : `1px solid ${tokens.borderStrong}`,
+                    transition: 'transform 180ms ease, background 180ms ease',
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
                   onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
@@ -1365,8 +1370,8 @@ function CTABand({ c }) {
               padding: '13px 20px',
               borderRadius: 16,
               background: tokens.brand,
-              color: '#fff',
-              fontWeight: 600,
+              color: tokens.bg,
+              fontWeight: 700,
               fontSize: 15,
               textDecoration: 'none',
             }}
@@ -1420,8 +1425,8 @@ function Footer({ c }) {
               width: 28,
               height: 28,
               borderRadius: 9,
-              background: tokens.ink,
-              color: '#fff',
+              background: tokens.brand,
+              color: tokens.bg,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
