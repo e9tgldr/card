@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ShieldCheck, KeyRound, UserRound, LogIn, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, KeyRound, UserRound, LogIn, Eye, EyeOff, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   checkInviteCode,
   registerWithCode,
+  redeemOtpKey,
   login,
   currentSession,
   bootstrapCode,
@@ -21,6 +22,9 @@ const REASON_MSG = {
   username_taken: 'Энэ хэрэглэгчийн нэр аль хэдийн бүртгэлтэй.',
   bad_password: 'Нууц үг буруу байна.',
   device_conflict: 'Энэ данс өөр төхөөрөмж дээр нэвтэрсэн байна. Тэндээс гарсны дараа дахин оролдоно уу.',
+  bad_number: 'Тоо 1-1000 хооронд байх ёстой.',
+  invalid_or_used: 'Энэ түлхүүр буруу эсвэл ашиглагдсан байна.',
+  rate_limited: 'Хэт олон оролдлого. Дараа дахин оролдоно уу.',
 };
 
 const errMsg = (reason) => REASON_MSG[reason] || 'Алдаа гарлаа.';
@@ -61,7 +65,7 @@ export default function OtpLogin() {
   const isClaimFlow = next.startsWith('/c/');
   const { t } = useLang();
 
-  const [mode, setMode] = useState('redeem'); // 'redeem' | 'login'
+  const [mode, setMode] = useState('redeem'); // 'redeem' | 'otp_key' | 'login'
   const [bootstrap, setBootstrap] = useState(null);
 
   useEffect(() => {
@@ -94,20 +98,23 @@ export default function OtpLogin() {
               <ShieldCheck className="w-7 h-7" style={{ color: '#c9a84c' }} />
             </div>
             <h1 className="font-playfair text-2xl font-bold" style={{ color: '#e8d5a3' }}>
-              {mode === 'redeem' ? 'Уригдсан код ашиглах' : 'Нэвтрэх'}
+              {mode === 'redeem' && 'Уригдсан код ашиглах'}
+              {mode === 'otp_key' && 'Нэг удаагийн түлхүүр'}
+              {mode === 'login' && 'Нэвтрэх'}
             </h1>
             <p className="font-cormorant text-sm" style={{ color: '#e8d5a380' }}>
-              {mode === 'redeem'
-                ? 'Админаас авсан нэг удаагийн кодоо оруулж дансаа үүсгэнэ үү.'
-                : 'Өмнө үүсгэсэн дансаараа нэвтэрнэ үү.'}
+              {mode === 'redeem' && 'Админаас авсан нэг удаагийн кодоо оруулж дансаа үүсгэнэ үү.'}
+              {mode === 'otp_key' && '1-1000 хооронд тоо оруулж шинэ данс үүсгэнэ үү.'}
+              {mode === 'login' && 'Өмнө үүсгэсэн дансаараа нэвтэрнэ үү.'}
             </p>
           </div>
 
-          <div className="grid grid-cols-2 rounded-full overflow-hidden text-xs font-cormorant tracking-wider uppercase"
+          <div className="grid grid-cols-3 rounded-full overflow-hidden text-[11px] font-cormorant tracking-wider uppercase"
             style={{ border: '1px solid rgba(201,168,76,0.25)' }}
           >
             {[
-              { key: 'redeem', label: 'Код ашиглах' },
+              { key: 'redeem', label: 'Код' },
+              { key: 'otp_key', label: 'OTP' },
               { key: 'login', label: 'Нэвтрэх' },
             ].map(t => (
               <button
@@ -148,9 +155,9 @@ export default function OtpLogin() {
             </p>
           )}
 
-          {mode === 'redeem'
-            ? <RedeemForm next={next} navigate={navigate} />
-            : <LoginForm next={next} navigate={navigate} />}
+          {mode === 'redeem'  && <RedeemForm  next={next} navigate={navigate} />}
+          {mode === 'otp_key' && <OtpKeyForm  next={next} navigate={navigate} />}
+          {mode === 'login'   && <LoginForm   next={next} navigate={navigate} />}
 
           <p className="text-center text-xs font-cormorant" style={{ color: '#e8d5a350' }}>
             <button type="button" onClick={() => navigate('/')} className="underline">Нүүр хуудас руу буцах</button>
@@ -285,6 +292,112 @@ function RedeemForm({ next, navigate }) {
           {busy ? 'Үүсгэж байна…' : 'Данс үүсгэх'}
         </Button>
       </div>
+    </form>
+  );
+}
+
+function OtpKeyForm({ next, navigate }) {
+  const [number, setNumber] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const numericValid = /^\d{1,4}$/.test(number) && +number >= 1 && +number <= 1000;
+  const canSubmit = numericValid && username.trim().length >= 3 && password.length >= 4 && password === confirm;
+
+  const onNumberChange = (e) => {
+    // Strip non-digits, cap at 4 chars (1000 is the max).
+    const cleaned = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setNumber(cleaned);
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!numericValid) { setError(REASON_MSG.bad_number); return; }
+    if (password !== confirm) { setError('Нууц үг таарахгүй байна.'); return; }
+    setBusy(true);
+    const result = await redeemOtpKey({
+      number: +number,
+      username: username.trim().toLowerCase(),
+      password,
+    });
+    setBusy(false);
+    if (!result.ok) { setError(errMsg(result.reason)); return; }
+    notify.success('toast.auth.loginSuccess');
+    navigate(next, { replace: true });
+  };
+
+  return (
+    <form className="space-y-4" onSubmit={submit}>
+      <label className="block space-y-2">
+        <span className="text-xs font-cormorant tracking-widest uppercase" style={{ color: '#c9a84c' }}>
+          Тоо (1–1000)
+        </span>
+        <div className="flex items-center gap-2 rounded-md px-3" style={inputWrapStyle}>
+          <Hash className="w-4 h-4" style={{ color: '#c9a84c' }} />
+          <Input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            min={1}
+            max={1000}
+            value={number}
+            onChange={onNumberChange}
+            placeholder="1 – 1000"
+            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground tracking-[0.3em] font-playfair text-center"
+            autoFocus
+          />
+        </div>
+      </label>
+
+      <label className="block space-y-2">
+        <span className="text-xs font-cormorant tracking-widest uppercase" style={{ color: '#c9a84c' }}>
+          Хэрэглэгчийн нэр
+        </span>
+        <div className="flex items-center gap-2 rounded-md px-3" style={inputWrapStyle}>
+          <UserRound className="w-4 h-4" style={{ color: '#c9a84c' }} />
+          <Input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="ner"
+            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground"
+          />
+        </div>
+      </label>
+
+      <label className="block space-y-2">
+        <span className="text-xs font-cormorant tracking-widest uppercase" style={{ color: '#c9a84c' }}>
+          Нууц үг
+        </span>
+        <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} />
+      </label>
+
+      <label className="block space-y-2">
+        <span className="text-xs font-cormorant tracking-widest uppercase" style={{ color: '#c9a84c' }}>
+          Нууц үг давтах
+        </span>
+        <PasswordInput value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+      </label>
+
+      {error && (
+        <p role="alert" aria-live="assertive" className="text-sm text-red-400 font-body">{error}</p>
+      )}
+
+      <Button
+        type="submit"
+        disabled={busy || !canSubmit}
+        className="w-full text-base font-cormorant tracking-wider uppercase"
+        style={{ background: '#c9a84c', color: '#0a0c14' }}
+      >
+        {busy ? 'Үүсгэж байна…' : 'Данс үүсгэх'}
+      </Button>
+
+      <p className="text-center text-[11px] font-cormorant" style={{ color: '#e8d5a350' }}>
+        Тоо нь зөвхөн нэг удаа ашиглагдана.
+      </p>
     </form>
   );
 }

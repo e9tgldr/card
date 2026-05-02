@@ -153,6 +153,51 @@ export const registerWithCode = async ({ code, username, password }) => {
   }
 };
 
+// Redeem a one-time numeric OTP key (1..1000). Single-use; the number is
+// permanently consumed on success. Mirrors registerWithCode but calls the
+// redeem-otp-key edge function and accepts a number instead of a code string.
+export const redeemOtpKey = async ({ number, username, password }) => {
+  try {
+    const { data, error } = await supabase.functions.invoke('redeem-otp-key', {
+      body: { number, username, password },
+    });
+    if (error) return { ok: false, reason: 'server' };
+    if (!data?.ok) return data ?? { ok: false, reason: 'server' };
+
+    const { error: setErr } = await supabase.auth.setSession({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    });
+    if (setErr) return { ok: false, reason: 'session_failed' };
+
+    const claim = await claimDeviceSession();
+    if (claim?.ok === false && claim.blocked) {
+      await supabase.auth.signOut();
+      return {
+        ok: false,
+        reason: 'device_conflict',
+        device_label: claim.device_label,
+        last_seen: claim.last_seen,
+      };
+    }
+    if (claim?.ok === false) {
+      await supabase.auth.signOut();
+      return { ok: false, reason: 'server' };
+    }
+
+    try {
+      await supabase.functions.invoke('grant-starter-pack', { body: {} });
+    } catch (err) {
+      console.warn('grant-starter-pack invoke failed (will retry next login)', err);
+    }
+
+    await refreshParentDisplayName();
+    return { ok: true, account: { username } };
+  } catch {
+    return { ok: false, reason: 'server' };
+  }
+};
+
 export const login = async ({ username, password, force = false }) => {
   const email = usernameToEmail(username);
   const { error } = await supabase.auth.signInWithPassword({ email, password });
