@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
@@ -12,14 +12,25 @@ import {
   ScanLine,
   Map as MapIcon,
   Plus,
+  Wrench,
+  Clock,
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
 import { FIGURES } from '@/lib/figuresData';
 import { useMyTeam } from '@/hooks/useMyTeam';
+import { useCompare } from '@/hooks/useCompare';
+import { useAppSettings } from '@/hooks/useAppSettings';
 import { base44 } from '@/api/base44Client';
 import ChatFAB from '@/components/ChatFAB';
 import Card3D from '@/components/Card3D';
 import FigureTileV2 from '@/components/FigureTileV2';
+import ScrollProgress from '@/components/ScrollProgress';
+import FigureModal from '@/components/FigureModal';
+import CompareBar from '@/components/CompareBar';
+import CompareModal from '@/components/CompareModal';
+import HistoricalMap from '@/components/HistoricalMap';
+import TimelineSection from '@/components/TimelineSection';
+import AdminPanel from '@/components/admin/AdminPanel';
 
 const FONT_SANS =
   '"Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -101,6 +112,12 @@ const COPY = {
       desc: 'Хархорумаас Багдад, Будапештээс Дайду хүртэл — байлдааны замнал, ноёрхлын хил.',
       cta: 'Зураг үзэх',
     },
+    timeline: {
+      chip: 'Цаг хугацаа',
+      title: 'Кодекс цагийн шугаман дээр',
+      lede: '52 түүхэн дүрийг үе хоорондын хамаарал, ноёрхлын тэлэлтээр цогцолсон харах.',
+    },
+    nav_admin: 'Удирдлага',
     foot: { rights: 'Алтан Домог · Codex I · Ulaanbaatar' },
   },
   en: {
@@ -158,6 +175,12 @@ const COPY = {
       desc: 'From Karakorum to Baghdad, Budapest to Dadu — the campaigns and the borders of dominion.',
       cta: 'Open the map',
     },
+    timeline: {
+      chip: 'Timeline',
+      title: 'The codex on a timeline',
+      lede: 'See all 52 figures placed against each other and against the rise and ebb of imperial reach.',
+    },
+    nav_admin: 'Admin',
     foot: { rights: 'Altan Domog · Codex I · Ulaanbaatar' },
   },
 };
@@ -344,7 +367,7 @@ function LangToggle() {
   );
 }
 
-function NavBar({ c }) {
+function NavBar({ c, isAdmin = false, onOpenAdmin }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -429,6 +452,38 @@ function NavBar({ c }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <LangToggle />
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              aria-label={c.nav_admin}
+              className="hidden-on-mobile"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                borderRadius: 14,
+                background: 'transparent',
+                color: tokens.brand,
+                border: `1px solid ${tokens.borderStrong}`,
+                fontSize: 13.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background 160ms ease, border-color 160ms ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = tokens.brandSoft;
+                e.currentTarget.style.borderColor = tokens.brand;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = tokens.borderStrong;
+              }}
+            >
+              <Wrench size={14} /> {c.nav_admin}
+            </button>
+          )}
           <GhostButton to="/v1/app" className="hidden-on-mobile">
             <span style={{ fontSize: 13.5 }}>{c.nav.classic}</span>
           </GhostButton>
@@ -517,9 +572,8 @@ function Hero({ c, figureCount }) {
 // FigureTile, PORTRAIT_FALLBACKS, and CategoryIcon now live in @/components/FigureTileV2
 // (re-exported for shared use across Figures and Collection pages).
 
-function MyTeamStrip({ c, figures }) {
-  const { team, removeFromTeam } = useMyTeam();
-  const navigate = useNavigate();
+function MyTeamStrip({ c, figures, onFigureClick }) {
+  const { team } = useMyTeam();
   const teamFigures = useMemo(
     () => team.map((id) => figures.find((f) => f.fig_id === id)).filter(Boolean),
     [team, figures]
@@ -595,7 +649,7 @@ function MyTeamStrip({ c, figures }) {
             {teamFigures.map((figure, i) => (
               <Reveal key={figure.fig_id} delay={i * 60}>
                 <div style={{ width: 260, flexShrink: 0, scrollSnapAlign: 'start' }}>
-                  <FigureTileV2 figure={figure} onClick={() => navigate(`/figure/${figure.fig_id}`)} />
+                  <FigureTileV2 figure={figure} owned onClick={() => onFigureClick(figure)} />
                 </div>
               </Reveal>
             ))}
@@ -606,8 +660,7 @@ function MyTeamStrip({ c, figures }) {
   );
 }
 
-function ExploreFigures({ c, figures }) {
-  const navigate = useNavigate();
+function ExploreFigures({ c, figures, onFigureClick, onToggleCompare, isInCompare }) {
   const [view3D, setView3D] = useState(false);
   const featured = useMemo(() => {
     const order = ['khans', 'queens', 'warriors', 'political', 'cultural', 'modern'];
@@ -737,9 +790,14 @@ function ExploreFigures({ c, figures }) {
           {featured.map((f, i) => (
             <Reveal key={f.fig_id} delay={i * 50}>
               {view3D ? (
-                <Card3D figure={f} onClick={() => navigate(`/figure/${f.fig_id}`)} index={i} />
+                <Card3D figure={f} onClick={() => onFigureClick(f)} index={i} />
               ) : (
-                <FigureTileV2 figure={f} onClick={() => navigate(`/figure/${f.fig_id}`)} />
+                <FigureTileV2
+                  figure={f}
+                  onClick={() => onFigureClick(f)}
+                  onToggleCompare={onToggleCompare}
+                  isInCompare={isInCompare?.(f.fig_id)}
+                />
               )}
             </Reveal>
           ))}
@@ -1052,48 +1110,84 @@ function MapBand({ c }) {
           </div>
         </div>
         <div
-          aria-hidden
+          id="map"
           style={{
             position: 'relative',
             aspectRatio: '4 / 3',
             borderRadius: 16,
             background: tokens.surface,
-            border: `1px solid ${tokens.border}`,
+            border: `1px solid ${tokens.borderStrong}`,
             overflow: 'hidden',
           }}
         >
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage:
-                `linear-gradient(to right, ${tokens.border} 1px, transparent 1px), linear-gradient(to bottom, ${tokens.border} 1px, transparent 1px)`,
-              backgroundSize: '32px 32px',
-              opacity: 0.6,
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: '38%',
-              left: '36%',
-              width: 12,
-              height: 12,
-              borderRadius: '50%',
-              background: tokens.brand,
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: '54%',
-              left: '60%',
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: tokens.brandStrong,
-            }}
-          />
+          <HistoricalMap />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TimelineBand({ c }) {
+  return (
+    <section
+      id="timeline"
+      style={{ padding: `${SECTION_PADY}px 24px`, background: tokens.bg, borderTop: `1px solid ${tokens.border}` }}
+    >
+      <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+        <Reveal>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 9999,
+                background: tokens.brandSoft,
+                color: tokens.brandOnSoft,
+                border: `1px solid ${tokens.borderStrong}`,
+                fontSize: 12.5,
+                fontWeight: 600,
+                letterSpacing: 0.4,
+              }}
+            >
+              <Clock size={14} /> {c.timeline.chip}
+            </span>
+            <h2
+              style={{
+                marginTop: 14,
+                fontSize: 'clamp(2rem, 4vw, 2.75rem)',
+                color: tokens.ink,
+                fontWeight: 800,
+                letterSpacing: -0.4,
+                lineHeight: 1.1,
+              }}
+            >
+              {c.timeline.title}
+            </h2>
+            <p
+              style={{
+                marginTop: 14,
+                maxWidth: 600,
+                margin: '14px auto 0',
+                color: tokens.body,
+                fontSize: 17,
+                lineHeight: 1.6,
+              }}
+            >
+              {c.timeline.lede}
+            </p>
+          </div>
+        </Reveal>
+        <div
+          style={{
+            background: tokens.surface,
+            border: `1px solid ${tokens.border}`,
+            borderRadius: 22,
+            overflow: 'hidden',
+          }}
+        >
+          <TimelineSection />
         </div>
       </div>
     </section>
@@ -1143,7 +1237,15 @@ function Foot({ c }) {
 export default function HomeV2() {
   const { lang } = useLang();
   const c = COPY[lang] || COPY.mn;
+  const location = useLocation();
   const [figures, setFigures] = useState(FIGURES);
+  const [selectedFigure, setSelectedFigure] = useState(null);
+  const [chatQuestion, setChatQuestion] = useState(null);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
+  const { isInTeam, toggleTeam } = useMyTeam();
+  const { compareList, toggleCompare, isInCompare, removeFromCompare, clearCompare } = useCompare();
+  const { settings } = useAppSettings();
 
   const { data: dbFigures } = useQuery({
     queryKey: ['figures'],
@@ -1165,6 +1267,34 @@ export default function HomeV2() {
     }
   }, [dbFigures]);
 
+  // Admin panel opens via Navbar event (legacy contract — keep listening so older
+  // admin-trigger surfaces still work when they redirect to /app).
+  useEffect(() => {
+    const open = () => setShowAdmin(true);
+    window.addEventListener('open-admin-panel', open);
+    return () => window.removeEventListener('open-admin-panel', open);
+  }, []);
+
+  // Scroll-to-section when returning from a detail page (replicates legacy Home behavior).
+  useEffect(() => {
+    if (location.state?.scrollTo) {
+      const id = location.state.scrollTo;
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [location.state]);
+
+  const openModal = useCallback((figure) => setSelectedFigure(figure), []);
+  const askAI = useCallback((figure) => {
+    setSelectedFigure(null);
+    const phrase = lang === 'en'
+      ? `Tell me more about ${figure.name}`
+      : `${figure.name}-ын тухай дэлгэрэнгүй ярина уу`;
+    setChatQuestion(phrase);
+  }, [lang]);
+
   return (
     <div
       style={{
@@ -1176,15 +1306,64 @@ export default function HomeV2() {
         MozOsxFontSmoothing: 'grayscale',
       }}
     >
-      <NavBar c={c} />
+      <ScrollProgress />
+      <NavBar
+        c={c}
+        isAdmin={!!settings?.is_admin}
+        onOpenAdmin={() => setShowAdmin(true)}
+      />
       <Hero c={c} figureCount={figures.length} />
-      <MyTeamStrip c={c} figures={figures} />
-      <ExploreFigures c={c} figures={figures} />
+      <MyTeamStrip c={c} figures={figures} onFigureClick={openModal} />
+      <ExploreFigures
+        c={c}
+        figures={figures}
+        onFigureClick={openModal}
+        onToggleCompare={(f) => toggleCompare(f.fig_id)}
+        isInCompare={isInCompare}
+      />
       <Engagements c={c} />
       <Chapters c={c} />
+      <TimelineBand c={c} />
       <MapBand c={c} />
       <Foot c={c} />
-      <ChatFAB />
+
+      {selectedFigure && (
+        <FigureModal
+          figure={selectedFigure}
+          onClose={() => setSelectedFigure(null)}
+          onSelectFigure={openModal}
+          onAskAI={askAI}
+          isInTeam={isInTeam(selectedFigure.fig_id)}
+          onToggleTeam={toggleTeam}
+        />
+      )}
+
+      <CompareBar
+        figures={figures}
+        compareList={compareList}
+        onRemove={removeFromCompare}
+        onClear={clearCompare}
+        onOpenCompare={() => setShowCompare(true)}
+      />
+
+      {showCompare && (
+        <CompareModal
+          figures={figures}
+          compareList={compareList}
+          onClose={() => setShowCompare(false)}
+        />
+      )}
+
+      <ChatFAB initialQuestion={chatQuestion} onOpenModal={openModal} />
+
+      {showAdmin && (
+        <AdminPanel
+          figures={figures}
+          onClose={() => setShowAdmin(false)}
+          onFiguresChange={setFigures}
+        />
+      )}
+
       <style>{`
         @media (max-width: 880px) {
           .hidden-on-mobile { display: none !important; }

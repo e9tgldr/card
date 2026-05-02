@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Crown, Sparkles, Shield, BookOpen, Check } from 'lucide-react';
+import { Crown, Sparkles, Shield, BookOpen, Check, GitCompare } from 'lucide-react';
 
 export const FIGURE_TILE_TOKENS = {
   bg: '#0a0c14',
@@ -33,7 +33,7 @@ export function CategoryIcon({ cat, size = 14 }) {
   return <BookOpen size={size} />;
 }
 
-export default function FigureTileV2({ figure, onClick, owned = false }) {
+export default function FigureTileV2({ figure, onClick, owned = false, onToggleCompare, isInCompare }) {
   const [hover, setHover] = useState(false);
   const t = FIGURE_TILE_TOKENS;
   const fallback = PORTRAIT_FALLBACKS[figure.cat] || t.surfaceMuted;
@@ -135,6 +135,37 @@ export default function FigureTileV2({ figure, onClick, owned = false }) {
           >
             <Check size={11} strokeWidth={3} />
           </div>
+        )}
+
+        {onToggleCompare && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCompare(figure);
+            }}
+            aria-label={isInCompare ? 'remove from compare' : 'add to compare'}
+            style={{
+              position: 'absolute',
+              bottom: 12,
+              right: 12,
+              width: 32,
+              height: 32,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 9999,
+              background: isInCompare ? t.brand : 'rgba(10,12,20,0.72)',
+              color: isInCompare ? t.bg : t.brandOnSoft,
+              border: `1px solid ${isInCompare ? t.brand : t.border}`,
+              cursor: 'pointer',
+              backdropFilter: 'blur(6px)',
+              transition: 'all 160ms ease',
+              zIndex: 2,
+            }}
+          >
+            <GitCompare size={14} strokeWidth={isInCompare ? 2.5 : 2} />
+          </button>
         )}
 
         <div

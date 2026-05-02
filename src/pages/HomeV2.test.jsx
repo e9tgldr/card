@@ -4,8 +4,19 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const { teamHook, base44Mock } = vi.hoisted(() => ({
-  teamHook: { team: [], removeFromTeam: vi.fn() },
-  base44Mock: { entities: { Figure: { list: vi.fn().mockResolvedValue([]) } } },
+  teamHook: { team: [], removeFromTeam: vi.fn(), isInTeam: () => false, toggleTeam: vi.fn() },
+  base44Mock: {
+    entities: {
+      Figure: { list: vi.fn().mockResolvedValue([]) },
+      AppSettings: {
+        list: vi.fn().mockResolvedValue([]),
+        subscribe: vi.fn().mockReturnValue(() => {}),
+        filter: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue({}),
+        create: vi.fn().mockResolvedValue({}),
+      },
+    },
+  },
 }));
 
 vi.mock('@/lib/i18n', async () => {
@@ -15,6 +26,10 @@ vi.mock('@/lib/i18n', async () => {
 vi.mock('@/hooks/useMyTeam', () => ({ useMyTeam: () => teamHook }));
 vi.mock('@/api/base44Client', () => ({ base44: base44Mock }));
 vi.mock('@/components/ChatFAB', () => ({ default: () => null }));
+vi.mock('@/components/ScrollProgress', () => ({ default: () => null }));
+vi.mock('@/components/HistoricalMap', () => ({ default: () => <div data-testid="historical-map" /> }));
+vi.mock('@/components/TimelineSection', () => ({ default: () => <div data-testid="timeline-section" /> }));
+vi.mock('@/components/CompareBar', () => ({ default: () => null }));
 
 import HomeV2 from './HomeV2';
 
