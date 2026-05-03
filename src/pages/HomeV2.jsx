@@ -14,9 +14,10 @@ import {
   Plus,
   Wrench,
   Clock,
+  Search,
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
-import { FIGURES } from '@/lib/figuresData';
+import { FIGURES, CATEGORIES, ERAS, ERA_KEYS, getEra } from '@/lib/figuresData';
 import { useMyTeam } from '@/hooks/useMyTeam';
 import { useCompare } from '@/hooks/useCompare';
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -81,6 +82,13 @@ const COPY = {
       view2D: '🃏 2D',
       view3D: '🎴 3D',
       viewLabel: 'Үзэх горим',
+      searchPlaceholder: 'Нэр, цол, эсвэл намтраар хайх…',
+      catLabel: 'Бүлэг',
+      eraLabel: 'Үе',
+      allLabel: 'Бүгд',
+      results: 'үр дүн',
+      featuredHint: 'санал болгосон 8',
+      empty: 'Үр дүн олдсонгүй. Хайлтын үгээ дахин оролдоорой.',
     },
     engagements: {
       chip: 'Оролц',
@@ -144,6 +152,13 @@ const COPY = {
       view2D: '🃏 2D',
       view3D: '🎴 3D',
       viewLabel: 'View mode',
+      searchPlaceholder: 'Search by name, role, or biography…',
+      catLabel: 'Group',
+      eraLabel: 'Era',
+      allLabel: 'All',
+      results: 'results',
+      featuredHint: 'curated 8',
+      empty: 'No matches. Try a different search term.',
     },
     engagements: {
       chip: 'Play',
@@ -660,8 +675,82 @@ function MyTeamStrip({ c, figures, onFigureClick }) {
   );
 }
 
-function ExploreFigures({ c, figures, onFigureClick, onToggleCompare, isInCompare }) {
+function FilterChip({ active, onClick, roman, label }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'baseline',
+        gap: 6,
+        padding: '6px 0',
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        color: active ? tokens.ink : tokens.body,
+        transition: 'color 160ms ease',
+        flexShrink: 0,
+        whiteSpace: 'nowrap',
+      }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.color = tokens.inkSoft;
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.color = tokens.body;
+      }}
+    >
+      <span
+        style={{
+          fontSize: 10,
+          letterSpacing: 2.4,
+          fontWeight: 600,
+          color: active ? tokens.brand : tokens.hint,
+        }}
+      >
+        {roman}.
+      </span>
+      <span
+        style={{
+          fontSize: 13.5,
+          fontWeight: active ? 700 : 500,
+          letterSpacing: 0.2,
+        }}
+      >
+        {label}
+      </span>
+      {active && (
+        <span
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: -2,
+            height: 1,
+            background: tokens.brand,
+          }}
+        />
+      )}
+    </button>
+  );
+}
+
+function ExploreFigures({ c, figures, onFigureClick, onToggleCompare, isInCompare, lang }) {
   const [view3D, setView3D] = useState(false);
+  const [catFilter, setCatFilter] = useState('all');
+  const [eraFilter, setEraFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search.trim()), 200);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  const filtersActive =
+    catFilter !== 'all' || eraFilter !== 'all' || debouncedSearch.length > 0;
+
   const featured = useMemo(() => {
     const order = ['khans', 'queens', 'warriors', 'political', 'cultural', 'modern'];
     const seen = new Set();
@@ -679,6 +768,23 @@ function ExploreFigures({ c, figures, onFigureClick, onToggleCompare, isInCompar
     });
     return picks.slice(0, 8);
   }, [figures]);
+
+  const filtered = useMemo(() => {
+    let list = figures;
+    if (catFilter !== 'all') list = list.filter((f) => f.cat === catFilter);
+    if (eraFilter !== 'all') list = list.filter((f) => getEra(f) === eraFilter);
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      list = list.filter((f) =>
+        ((f.name || '').toLowerCase().includes(q)) ||
+        ((f.role || '').toLowerCase().includes(q)) ||
+        ((f.bio || '').toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [figures, catFilter, eraFilter, debouncedSearch]);
+
+  const display = filtersActive ? filtered : featured;
 
   const toggleOpt = (mode, label) => {
     const active = (mode === '3d') === view3D;
@@ -704,6 +810,24 @@ function ExploreFigures({ c, figures, onFigureClick, onToggleCompare, isInCompar
     );
   };
 
+  const catOpts = [
+    { key: 'all', roman: '∑', label: c.explore.allLabel },
+    ...Object.entries(CATEGORIES).map(([key, cat]) => ({
+      key,
+      roman: cat.roman,
+      label: lang === 'en' ? cat.label_en : cat.label,
+    })),
+  ];
+
+  const eraOpts = [
+    { key: 'all', roman: '∑', label: c.explore.allLabel },
+    ...ERA_KEYS.map((key) => ({
+      key,
+      roman: ERAS[key].roman,
+      label: lang === 'en' ? ERAS[key].label_en : ERAS[key].label,
+    })),
+  ];
+
   return (
     <section id="explore" style={{ padding: `${SECTION_PADY}px 24px`, background: tokens.bg }}>
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
@@ -714,7 +838,7 @@ function ExploreFigures({ c, figures, onFigureClick, onToggleCompare, isInCompar
               alignItems: 'flex-end',
               justifyContent: 'space-between',
               gap: 24,
-              marginBottom: 32,
+              marginBottom: 24,
               flexWrap: 'wrap',
             }}
           >
@@ -778,30 +902,198 @@ function ExploreFigures({ c, figures, onFigureClick, onToggleCompare, isInCompar
           </div>
         </Reveal>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: view3D
-              ? 'repeat(auto-fill, minmax(280px, 1fr))'
-              : 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: 22,
-          }}
-        >
-          {featured.map((f, i) => (
-            <Reveal key={f.fig_id} delay={i * 50}>
-              {view3D ? (
-                <Card3D figure={f} onClick={() => onFigureClick(f)} index={i} />
-              ) : (
-                <FigureTileV2
-                  figure={f}
-                  onClick={() => onFigureClick(f)}
-                  onToggleCompare={onToggleCompare}
-                  isInCompare={isInCompare?.(f.fig_id)}
+        <Reveal delay={60}>
+          <div
+            style={{
+              borderTop: `1px solid ${tokens.border}`,
+              borderBottom: `1px solid ${tokens.border}`,
+              padding: '14px 0',
+              marginBottom: 28,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 16,
+              }}
+            >
+              <div style={{ position: 'relative', minWidth: 220, flex: '0 0 auto' }}>
+                <Search
+                  size={14}
+                  style={{
+                    position: 'absolute',
+                    left: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: tokens.brand,
+                    opacity: 0.7,
+                    pointerEvents: 'none',
+                  }}
                 />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={c.explore.searchPlaceholder}
+                  aria-label={c.explore.searchPlaceholder}
+                  style={{
+                    width: '100%',
+                    height: 38,
+                    padding: '0 14px 0 34px',
+                    borderRadius: 9999,
+                    background: tokens.surfaceMuted,
+                    border: `1px solid ${tokens.border}`,
+                    color: tokens.ink,
+                    fontSize: 13.5,
+                    fontFamily: FONT_SANS,
+                    outline: 'none',
+                    transition: 'border-color 160ms ease, background 160ms ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = tokens.brand;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = tokens.border;
+                  }}
+                />
+              </div>
+
+              <div
+                className="filter-row"
+                style={{
+                  display: 'flex',
+                  gap: 18,
+                  alignItems: 'baseline',
+                  overflowX: 'auto',
+                  flex: '1 1 auto',
+                  minWidth: 0,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: 2.4,
+                    textTransform: 'uppercase',
+                    color: tokens.hint,
+                    fontWeight: 600,
+                    flexShrink: 0,
+                  }}
+                >
+                  {c.explore.catLabel}
+                </span>
+                {catOpts.map((opt) => (
+                  <FilterChip
+                    key={opt.key}
+                    active={catFilter === opt.key}
+                    onClick={() => setCatFilter(opt.key)}
+                    roman={opt.roman}
+                    label={opt.label}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div
+              className="filter-row"
+              style={{
+                marginTop: 10,
+                paddingTop: 10,
+                borderTop: `1px dashed ${tokens.border}`,
+                display: 'flex',
+                gap: 18,
+                alignItems: 'baseline',
+                overflowX: 'auto',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 10,
+                  letterSpacing: 2.4,
+                  textTransform: 'uppercase',
+                  color: tokens.hint,
+                  fontWeight: 600,
+                  flexShrink: 0,
+                }}
+              >
+                {c.explore.eraLabel}
+              </span>
+              {eraOpts.map((opt) => (
+                <FilterChip
+                  key={opt.key}
+                  active={eraFilter === opt.key}
+                  onClick={() => setEraFilter(opt.key)}
+                  roman={opt.roman}
+                  label={opt.label}
+                />
+              ))}
+            </div>
+
+            <p
+              style={{
+                marginTop: 10,
+                fontSize: 11,
+                letterSpacing: 1.6,
+                textTransform: 'uppercase',
+                color: tokens.hint,
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ color: tokens.ink }}>
+                {String(display.length).padStart(2, '0')}
+              </span>
+              {' / '}
+              {figures.length} {c.explore.results}
+              {!filtersActive && (
+                <span style={{ marginLeft: 12, color: tokens.brand }}>
+                  · {c.explore.featuredHint}
+                </span>
               )}
-            </Reveal>
-          ))}
-        </div>
+            </p>
+          </div>
+        </Reveal>
+
+        {display.length === 0 ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '64px 24px',
+              color: tokens.body,
+              fontSize: 15,
+              lineHeight: 1.6,
+              background: tokens.surface,
+              border: `1px dashed ${tokens.border}`,
+              borderRadius: 22,
+            }}
+          >
+            {c.explore.empty}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: 22,
+            }}
+          >
+            {display.map((f, i) => (
+              <Reveal key={f.fig_id} delay={Math.min(i * 30, 480)}>
+                {view3D ? (
+                  <Card3D figure={f} onClick={() => onFigureClick(f)} index={i} />
+                ) : (
+                  <FigureTileV2
+                    figure={f}
+                    onClick={() => onFigureClick(f)}
+                    onToggleCompare={onToggleCompare}
+                    isInCompare={isInCompare?.(f.fig_id)}
+                  />
+                )}
+              </Reveal>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -1316,6 +1608,7 @@ export default function HomeV2() {
       <MyTeamStrip c={c} figures={figures} onFigureClick={openModal} />
       <ExploreFigures
         c={c}
+        lang={lang}
         figures={figures}
         onFigureClick={openModal}
         onToggleCompare={(f) => toggleCompare(f.fig_id)}

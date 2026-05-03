@@ -70,7 +70,7 @@ describe('HomeV2 — render smoke', () => {
     ['I', 'II', 'III', 'IV', 'V', 'VI'].forEach((numeral) => {
       expect(screen.getAllByText(numeral).length).toBeGreaterThan(0);
     });
-    expect(screen.getByText(/^Хаад$/)).toBeInTheDocument();
+    expect(screen.getAllByText(/^Хаад$/).length).toBeGreaterThan(0);
     expect(screen.getByText(/^Орчин үе$/)).toBeInTheDocument();
   });
 });
