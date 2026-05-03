@@ -63,6 +63,7 @@
     "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
     "jspdf": "^4.0.0",
+    "leaflet": "^1.9.4",
     "lodash": "^4.17.21",
     "lucide-react": "^0.475.0",
     "mind-ar": "^1.2.5",
