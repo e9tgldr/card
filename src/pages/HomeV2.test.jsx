@@ -73,4 +73,18 @@ describe('HomeV2 — render smoke', () => {
     expect(screen.getAllByText(/^Хаад$/).length).toBeGreaterThan(0);
     expect(screen.getByText(/^Орчин үе$/)).toBeInTheDocument();
   });
+
+  it('renders the featured-figure photo strip with non-empty alt', () => {
+    renderPage();
+    const img = document.querySelector('img[data-photo="sepia"]');
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('alt')).toBeTruthy();
+  });
+
+  it('renders the bottom rotates-daily caption', () => {
+    renderPage();
+    const cap = document.querySelector('[data-hero="rotates-caption"]');
+    expect(cap).not.toBeNull();
+    expect(cap.textContent).toMatch(/rotates daily/i);
+  });
 });

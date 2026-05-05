@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
 import { FIGURES, CATEGORIES, ERAS, ERA_KEYS, getEra } from '@/lib/figuresData';
+import { SepiaPortrait } from '@/components/photo/SepiaPortrait';
+import { useFeaturedToday } from '@/hooks/useFeaturedToday';
 import { useMyTeam } from '@/hooks/useMyTeam';
 import { useCompare } from '@/hooks/useCompare';
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -53,6 +55,8 @@ const tokens = {
   brandOnSoft: '#F2D88A',
   bronze: '#CD7F32',
   bronzeSoft: 'rgba(205,127,50,0.14)',
+  serif: '"Fraunces", "Source Serif 4", "EB Garamond", Georgia, serif',
+  accent: '#FFCC00',
 };
 
 const SECTION_PADY = 64;
@@ -511,75 +515,165 @@ function NavBar({ c, isAdmin = false, onOpenAdmin }) {
   );
 }
 
-function Hero({ c, figureCount }) {
+function Hero({ c }) {
+  const featured = useFeaturedToday();
   return (
     <section
       style={{
         position: 'relative',
-        padding: `${SECTION_PADY + 16}px 24px ${SECTION_PADY}px`,
+        padding: 0,
         overflow: 'hidden',
+        background: tokens.bg,
+        borderBottom: `1px solid ${tokens.border}`,
       }}
     >
       <div
         style={{
-          position: 'relative',
           maxWidth: 1280,
           margin: '0 auto',
-          textAlign: 'center',
+          padding: '48px 36px 0',
+          display: 'grid',
+          gridTemplateColumns: '32% 1fr',
+          gap: 36,
+          alignItems: 'stretch',
+          minHeight: 320,
         }}
+        className="hero-grid-app"
       >
+        <div style={{ position: 'relative' }}>
+          {featured ? (
+            <SepiaPortrait
+              figure={featured}
+              aspectRatio="3/4"
+              size="100%"
+              caption="Featured · ★"
+            />
+          ) : null}
+        </div>
         <Reveal>
-          <Chip tone="brand">
-            <Sparkles size={14} /> {c.hero.kicker} · {figureCount} figures
-          </Chip>
-          <h1
-            style={{
-              marginTop: 18,
-              color: tokens.ink,
-              fontWeight: 600,
-              letterSpacing: -0.8,
-              lineHeight: 1.05,
-              fontSize: 'clamp(2.6rem, 6vw, 4.6rem)',
-            }}
-          >
-            {c.hero.title1}{' '}
-            <span
+          <div style={{ paddingTop: 8 }}>
+            <div
+              data-hero="accent-rule"
               style={{
-                color: tokens.brand,
-                fontWeight: 600,
+                width: 48,
+                height: 4,
+                background: tokens.accent,
+                marginBottom: 18,
+              }}
+            />
+            <div
+              style={{
+                fontFamily: FONT_SANS,
+                fontSize: 11,
+                letterSpacing: 3,
+                color: tokens.accent,
+                fontWeight: 700,
+                textTransform: 'uppercase',
               }}
             >
-              {c.hero.title2}
-            </span>
-          </h1>
-          <p
-            style={{
-              marginTop: 18,
-              maxWidth: 620,
-              margin: '18px auto 0',
-              fontSize: 18,
-              lineHeight: 1.6,
-              color: tokens.body,
-            }}
-          >
-            {c.hero.lede}
-          </p>
-          <div
-            style={{
-              marginTop: 28,
-              display: 'flex',
-              gap: 12,
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-            }}
-          >
-            <PrimaryButton to="/ar">
-              <ScanLine size={16} /> {c.hero.cta}
-            </PrimaryButton>
-            <GhostButton to="/figures">{c.hero.ctaAlt}</GhostButton>
+              Codex I · 52 figures · 3 languages
+            </div>
+            <h1
+              style={{
+                marginTop: 14,
+                fontFamily: tokens.serif,
+                fontSize: 'clamp(2.2rem, 4.4vw, 3.6rem)',
+                fontWeight: 500,
+                lineHeight: 0.95,
+                letterSpacing: -1,
+                color: tokens.ink,
+              }}
+            >
+              {c.hero.title1}{' '}
+              <em
+                style={{
+                  fontStyle: 'italic',
+                  fontWeight: 500,
+                  color: tokens.accent,
+                }}
+              >
+                {c.hero.title2}
+              </em>
+            </h1>
+            <p
+              style={{
+                marginTop: 14,
+                fontFamily: FONT_SANS,
+                fontSize: 15,
+                lineHeight: 1.55,
+                color: 'rgba(255,255,255,0.7)',
+                maxWidth: 560,
+              }}
+            >
+              {c.hero.lede}
+            </p>
+            <div style={{ marginTop: 22, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Link
+                to="/ar"
+                style={{
+                  background: tokens.accent,
+                  color: tokens.bg,
+                  padding: '10px 20px',
+                  fontFamily: FONT_SANS,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: 1.5,
+                  textTransform: 'uppercase',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <ScanLine size={14} /> {c.hero.cta}
+              </Link>
+              <Link
+                to="/figures"
+                style={{
+                  color: tokens.ink,
+                  fontFamily: FONT_SANS,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  textDecoration: 'none',
+                  paddingBottom: 4,
+                  borderBottom: '1px solid rgba(255,255,255,0.4)',
+                }}
+              >
+                {c.hero.ctaAlt}
+              </Link>
+            </div>
           </div>
         </Reveal>
       </div>
+      {featured ? (
+        <div
+          data-hero="rotates-caption"
+          style={{
+            maxWidth: 1280,
+            margin: '0 auto',
+            padding: '12px 36px',
+            marginTop: 32,
+            borderTop: '1px solid rgba(255,204,0,0.2)',
+            fontFamily: FONT_SANS,
+            fontSize: 10,
+            letterSpacing: 2,
+            color: 'rgba(255,255,255,0.5)',
+            textTransform: 'uppercase',
+            fontStyle: 'italic',
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: 14,
+            flexWrap: 'wrap',
+          }}
+        >
+          <span>
+            Featured: <span style={{ color: tokens.accent }}>{featured.name}</span> · {featured.years || '—'}
+          </span>
+          <span>★ rotates daily</span>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -1604,7 +1698,7 @@ export default function HomeV2() {
         isAdmin={!!settings?.is_admin}
         onOpenAdmin={() => setShowAdmin(true)}
       />
-      <Hero c={c} figureCount={figures.length} />
+      <Hero c={c} />
       <MyTeamStrip c={c} figures={figures} onFigureClick={openModal} />
       <ExploreFigures
         c={c}
@@ -1661,6 +1755,7 @@ export default function HomeV2() {
         @media (max-width: 880px) {
           .hidden-on-mobile { display: none !important; }
           .map-band { grid-template-columns: 1fr !important; }
+          .hero-grid-app { grid-template-columns: 1fr !important; gap: 24px !important; padding: 32px 24px 0 !important; }
         }
       `}</style>
     </div>
