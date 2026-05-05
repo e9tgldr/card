@@ -35,4 +35,17 @@ describe('LandingV2 — render smoke', () => {
     expect(screen.getByText(/Premium хувилбар/)).toBeInTheDocument();
     expect(screen.getByText(/Collector Edition/)).toBeInTheDocument();
   });
+
+  it('renders the featured-figure portrait with non-empty alt', () => {
+    render(<MemoryRouter><LandingV2 /></MemoryRouter>);
+    const img = document.querySelector('img[data-photo="sepia"]');
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('alt')).toBeTruthy();
+  });
+
+  it('renders the yellow accent rule and Pictured caption', () => {
+    render(<MemoryRouter><LandingV2 /></MemoryRouter>);
+    expect(document.querySelector('[data-hero="accent-rule"]')).not.toBeNull();
+    expect(document.querySelector('[data-hero="pictured-caption"]')).not.toBeNull();
+  });
 });

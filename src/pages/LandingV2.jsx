@@ -16,6 +16,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
+import { SepiaPortrait } from '@/components/photo/SepiaPortrait';
+import { useFeaturedToday } from '@/hooks/useFeaturedToday';
 
 const FONT_SANS =
   '"Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -37,6 +39,8 @@ const tokens = {
   brandOnSoft: '#F2D88A',
   bronze: '#CD7F32',
   bronzeSoft: 'rgba(205,127,50,0.14)',
+  serif: '"Fraunces", "Source Serif 4", "EB Garamond", Georgia, serif',
+  accent: '#FFCC00',
 };
 
 const COPY = {
@@ -485,260 +489,170 @@ function NavBar({ c }) {
   );
 }
 
-function HeroVisual({ c }) {
-  return (
-    <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        aspectRatio: '4 / 4.4',
-        maxWidth: 520,
-        marginLeft: 'auto',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          left: '4%',
-          top: '6%',
-          width: '54%',
-          aspectRatio: '5 / 7',
-          borderRadius: 24,
-          overflow: 'hidden',
-          background: '#2A2218',
-          border: `1px solid ${tokens.border}`,
-          boxShadow: '0 30px 60px -28px rgba(0,0,0,0.6), 0 12px 24px -16px rgba(212,168,67,0.2)',
-          transform: 'rotate(-4deg)',
-          zIndex: 3,
-        }}
-      >
-        <img
-          src={PORTRAITS.genghis}
-          alt="Чингис Хаан"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          loading="eager"
-        />
-        <div
-          style={{
-            position: 'absolute',
-            top: 14,
-            left: 16,
-            color: tokens.brand,
-            fontWeight: 800,
-            fontSize: 26,
-            lineHeight: 1,
-          }}
-        >
-          K
-          <div style={{ fontSize: 18, marginTop: 2 }}>♠</div>
-        </div>
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 14,
-            left: 16,
-            right: 16,
-            background: 'linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0))',
-            color: '#fff',
-            paddingTop: 30,
-          }}
-        >
-          <div style={{ fontWeight: 700, fontSize: 17, lineHeight: 1.2 }}>
-            Чингис Хаан
-          </div>
-          <div style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>1162–1227</div>
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          right: '2%',
-          top: '14%',
-          width: '40%',
-          aspectRatio: '5 / 7',
-          borderRadius: 22,
-          overflow: 'hidden',
-          background: '#2A1C1C',
-          border: `1px solid ${tokens.border}`,
-          boxShadow: '0 24px 48px -28px rgba(0,0,0,0.55)',
-          transform: 'rotate(6deg)',
-          zIndex: 2,
-        }}
-      >
-        <img
-          src={PORTRAITS.borte}
-          alt="Бөртэ Үжин"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          loading="eager"
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 10,
-            left: 12,
-            right: 12,
-            color: '#fff',
-            background: 'linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0))',
-            paddingTop: 24,
-          }}
-        >
-          <div style={{ fontWeight: 700, fontSize: 14 }}>Бөртэ Үжин</div>
-          <div style={{ fontSize: 11, opacity: 0.85 }}>Q ♥</div>
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          right: '14%',
-          bottom: '22%',
-          width: '32%',
-          aspectRatio: '5 / 7',
-          borderRadius: 18,
-          overflow: 'hidden',
-          background: '#2C2615',
-          border: `1px solid ${tokens.border}`,
-          boxShadow: '0 16px 32px -22px rgba(0,0,0,0.5)',
-          transform: 'rotate(-9deg)',
-          zIndex: 1,
-        }}
-      >
-        <img
-          src={PORTRAITS.subedei}
-          alt="Сүбээдэй"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          loading="lazy"
-        />
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          left: '4%',
-          bottom: 0,
-          right: '6%',
-          padding: '14px 16px',
-          borderRadius: 18,
-          background: tokens.surface,
-          border: `1px solid ${tokens.border}`,
-          boxShadow: '0 12px 32px -16px rgba(15,23,42,0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          zIndex: 4,
-        }}
-      >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 10,
-            background: tokens.brand,
-            color: tokens.bg,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <QrCode size={20} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: tokens.ink }}>{c.hero.scanLabel}</div>
-          <div
-            style={{
-              fontSize: 12.5,
-              color: tokens.body,
-              marginTop: 2,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {c.hero.scanBody}
-          </div>
-        </div>
-        <Volume2 size={16} color={tokens.brand} />
-      </div>
-    </div>
-  );
-}
-
 function Hero({ c }) {
+  const featured = useFeaturedToday();
   return (
     <section
       style={{
         position: 'relative',
-        padding: `${SECTION_PADY}px 24px ${SECTION_PADY + 16}px`,
+        padding: 0,
         overflow: 'hidden',
+        minHeight: 'min(82vh, 720px)',
+        background: tokens.bg,
       }}
     >
+      <div style={{ position: 'absolute', inset: 0 }}>
+        {featured ? (
+          <SepiaPortrait figure={featured} aspectRatio="auto" size="100%" />
+        ) : null}
+      </div>
+      <div
+        data-hero="accent-rule"
+        style={{
+          position: 'absolute',
+          left: 36,
+          top: 32,
+          width: 48,
+          height: 5,
+          background: tokens.accent,
+          zIndex: 3,
+        }}
+      />
       <div
         style={{
-          position: 'relative',
-          maxWidth: 1200,
-          margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 1fr)',
-          gap: 56,
-          alignItems: 'center',
+          position: 'absolute',
+          right: 36,
+          top: 32,
+          fontFamily: FONT_SANS,
+          fontSize: 10,
+          letterSpacing: 3,
+          color: 'rgba(255,255,255,0.8)',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          zIndex: 3,
         }}
-        className="hero-grid"
       >
-        <Reveal>
-          <Chip tone="brand">
-            <Sparkles size={14} /> {c.hero.chip}
-          </Chip>
-          <h1
+        {c.hero.chip}
+      </div>
+      <Reveal>
+        <div
+          style={{
+            position: 'absolute',
+            left: 36,
+            right: 36,
+            bottom: 'clamp(36px, 6vw, 72px)',
+            maxWidth: 'min(720px, 78%)',
+            zIndex: 3,
+          }}
+          className="hero-text-stack"
+        >
+          <div
             style={{
-              marginTop: 18,
-              color: tokens.ink,
-              fontWeight: 800,
-              letterSpacing: -0.6,
-              lineHeight: 1.04,
-              fontSize: 'clamp(2.6rem, 5.4vw, 4.4rem)',
+              fontFamily: FONT_SANS,
+              fontSize: 11,
+              letterSpacing: 3,
+              color: tokens.accent,
+              fontWeight: 700,
+              textTransform: 'uppercase',
             }}
           >
-            {c.hero.title1} <br />
-            <span
+            The Mongol Empire · 1206–1368
+          </div>
+          <h1
+            style={{
+              marginTop: 14,
+              fontFamily: tokens.serif,
+              fontSize: 'clamp(2.4rem, 5.4vw, 4.4rem)',
+              fontWeight: 500,
+              lineHeight: 0.95,
+              letterSpacing: -1.2,
+              color: '#fff',
+            }}
+          >
+            {c.hero.title1}
+            <br />
+            <em
               style={{
-                color: tokens.brand,
-                fontWeight: 600,
+                fontStyle: 'italic',
+                fontWeight: 500,
+                color: tokens.accent,
               }}
             >
               {c.hero.title2}
-            </span>
+            </em>
           </h1>
           <p
             style={{
               marginTop: 18,
+              fontFamily: FONT_SANS,
+              fontSize: 16,
+              lineHeight: 1.55,
+              color: 'rgba(255,255,255,0.78)',
               maxWidth: 540,
-              fontSize: 18,
-              lineHeight: 1.6,
-              color: tokens.body,
             }}
           >
             {c.hero.lede}
           </p>
-          <div style={{ marginTop: 28, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <PrimaryButton to="/order?tier=premium">
-              {c.hero.ctaPrimary}
-              <ArrowRight size={16} />
-            </PrimaryButton>
-            <GhostButton to="/app">{c.hero.ctaSecondary}</GhostButton>
+          <div style={{ marginTop: 24, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Link
+              to="/order?tier=premium"
+              style={{
+                background: tokens.accent,
+                color: tokens.bg,
+                padding: '12px 22px',
+                fontFamily: FONT_SANS,
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: 1.5,
+                textTransform: 'uppercase',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              {c.hero.ctaPrimary} <ArrowRight size={16} />
+            </Link>
+            <Link
+              to="/app"
+              style={{
+                color: '#fff',
+                fontFamily: FONT_SANS,
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: 1,
+                textTransform: 'uppercase',
+                textDecoration: 'none',
+                paddingBottom: 4,
+                borderBottom: '1px solid rgba(255,255,255,0.5)',
+              }}
+            >
+              {c.hero.ctaSecondary}
+            </Link>
           </div>
-          <div style={{ marginTop: 28, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Chip>🇲🇳 Монгол</Chip>
-            <Chip>🇺🇸 English</Chip>
-            <Chip>🇨🇳 中文</Chip>
-          </div>
-        </Reveal>
-
-        <Reveal delay={120}>
-          <HeroVisual c={c} />
-        </Reveal>
-      </div>
+        </div>
+      </Reveal>
+      {featured ? (
+        <div
+          data-hero="pictured-caption"
+          style={{
+            position: 'absolute',
+            right: 36,
+            bottom: 36,
+            fontFamily: FONT_SANS,
+            fontSize: 10,
+            letterSpacing: 2,
+            color: 'rgba(255,255,255,0.55)',
+            textTransform: 'uppercase',
+            textAlign: 'right',
+            lineHeight: 1.6,
+            fontStyle: 'italic',
+            zIndex: 3,
+          }}
+        >
+          <span style={{ color: tokens.accent }}>Pictured:</span> {featured.name}, {featured.years || '—'}
+        </div>
+      ) : null}
     </section>
   );
 }
