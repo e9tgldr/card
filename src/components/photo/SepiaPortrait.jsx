@@ -31,8 +31,8 @@ export function SepiaPortrait({
             inset: 0,
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center top',
+            objectFit: fillParent ? 'contain' : 'cover',
+            objectPosition: fillParent ? 'right bottom' : 'center top',
             filter: 'sepia(0.3) contrast(1.05) saturate(0.9)',
           }}
         />
