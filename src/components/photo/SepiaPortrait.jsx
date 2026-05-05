@@ -10,10 +10,12 @@ export function SepiaPortrait({
   size,
 }) {
   const hasPortrait = !!figure?.portrait_url;
+  const fillParent = aspectRatio === 'auto';
   const wrapperStyle = {
     position: 'relative',
     width: size ?? '100%',
-    aspectRatio,
+    height: fillParent ? '100%' : undefined,
+    aspectRatio: fillParent ? undefined : aspectRatio,
     overflow: 'hidden',
     background: 'linear-gradient(135deg, #d4a87a 0%, #5a3a1c 60%, #1a1006 100%)',
   };
