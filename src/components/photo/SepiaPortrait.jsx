@@ -17,7 +17,9 @@ export function SepiaPortrait({
     height: fillParent ? '100%' : undefined,
     aspectRatio: fillParent ? undefined : aspectRatio,
     overflow: 'hidden',
-    background: 'linear-gradient(135deg, #d4a87a 0%, #5a3a1c 60%, #1a1006 100%)',
+    background: fillParent
+      ? 'transparent'
+      : 'linear-gradient(135deg, #d4a87a 0%, #5a3a1c 60%, #1a1006 100%)',
   };
   return (
     <div data-photo="sepia-wrap" style={wrapperStyle}>

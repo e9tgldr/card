@@ -497,78 +497,58 @@ function Hero({ c }) {
         position: 'relative',
         padding: 0,
         overflow: 'hidden',
-        minHeight: 'min(82vh, 720px)',
+        minHeight: 'clamp(560px, 82vh, 760px)',
         background:
-          'radial-gradient(ellipse at 70% 30%, #6a4828 0%, #2a1810 40%, #0a0606 100%)',
+          'radial-gradient(ellipse at 75% 35%, #6a4828 0%, #2a1810 45%, #0a0606 100%)',
       }}
       className="hero-natgeo"
     >
       <div
-        className="hero-portrait-col"
+        className="hero-natgeo-grid"
         style={{
-          position: 'absolute',
-          right: 0,
-          top: 0,
-          bottom: 0,
-          width: '46%',
-          maxWidth: 720,
+          position: 'relative',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+          minHeight: 'inherit',
+          zIndex: 2,
         }}
       >
-        {featured ? (
-          <SepiaPortrait figure={featured} aspectRatio="auto" size="100%" />
-        ) : null}
         <div
-          aria-hidden="true"
+          className="hero-natgeo-photo"
           style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: '40%',
-            background:
-              'linear-gradient(90deg, #2a1810 0%, rgba(42,24,16,0.6) 40%, rgba(42,24,16,0) 100%)',
-            pointerEvents: 'none',
+            position: 'relative',
+            gridColumn: '2 / 3',
+            gridRow: '1 / 2',
+            overflow: 'hidden',
           }}
-        />
-      </div>
-      <div
-        data-hero="accent-rule"
-        style={{
-          position: 'absolute',
-          left: 36,
-          top: 32,
-          width: 48,
-          height: 5,
-          background: tokens.accent,
-          zIndex: 3,
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          right: 36,
-          top: 32,
-          fontFamily: FONT_SANS,
-          fontSize: 10,
-          letterSpacing: 3,
-          color: 'rgba(255,255,255,0.8)',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          zIndex: 3,
-        }}
-      >
-        {c.hero.chip}
-      </div>
-      <div
+        >
+          {featured ? (
+            <SepiaPortrait figure={featured} aspectRatio="auto" size="100%" />
+          ) : null}
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background:
+                'linear-gradient(90deg, #2a1810 0%, rgba(42,24,16,0.55) 22%, rgba(42,24,16,0) 55%)',
+              pointerEvents: 'none',
+            }}
+          />
+        </div>
+        <div
+          className="hero-natgeo-text"
           style={{
-            position: 'absolute',
-            left: 36,
-            right: 36,
-            bottom: 'clamp(36px, 6vw, 72px)',
-            maxWidth: 'min(560px, 50%)',
+            position: 'relative',
+            gridColumn: '1 / 2',
+            gridRow: '1 / 2',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            padding: 'clamp(28px, 4vw, 56px) clamp(24px, 4vw, 56px) clamp(36px, 6vw, 72px)',
+            maxWidth: 720,
             zIndex: 3,
           }}
-          className="hero-text-stack"
         >
           <div
             style={{
@@ -655,13 +635,42 @@ function Hero({ c }) {
             </Link>
           </div>
         </div>
+      </div>
+      <div
+        data-hero="accent-rule"
+        style={{
+          position: 'absolute',
+          left: 'clamp(24px, 4vw, 56px)',
+          top: 'clamp(24px, 3vw, 36px)',
+          width: 48,
+          height: 5,
+          background: tokens.accent,
+          zIndex: 4,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          right: 'clamp(24px, 4vw, 56px)',
+          top: 'clamp(24px, 3vw, 36px)',
+          fontFamily: FONT_SANS,
+          fontSize: 10,
+          letterSpacing: 3,
+          color: 'rgba(255,255,255,0.85)',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          zIndex: 4,
+        }}
+      >
+        {c.hero.chip}
+      </div>
       {featured ? (
         <div
           data-hero="pictured-caption"
           style={{
             position: 'absolute',
-            right: 36,
-            bottom: 36,
+            right: 'clamp(24px, 4vw, 56px)',
+            bottom: 'clamp(24px, 3vw, 36px)',
             fontFamily: FONT_SANS,
             fontSize: 10,
             letterSpacing: 2,
@@ -670,7 +679,7 @@ function Hero({ c }) {
             textAlign: 'right',
             lineHeight: 1.6,
             fontStyle: 'italic',
-            zIndex: 3,
+            zIndex: 4,
           }}
         >
           <span style={{ color: tokens.accent }}>Pictured:</span> {featured.name}, {featured.years || '—'}
@@ -1409,10 +1418,25 @@ export default function LandingV2() {
       <style>{`
         .bento-grid > .bento-hero { grid-column: 1 / 3; grid-row: 1 / 3; }
         .bento-grid > .bento-wide { grid-column: 1 / 5; }
+        @media (max-width: 1024px) {
+          .hero-natgeo-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) !important; }
+        }
         @media (max-width: 880px) {
           .hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
-          .hero-natgeo .hero-portrait-col { width: 100% !important; max-width: none !important; opacity: 0.45; }
-          .hero-natgeo .hero-text-stack { max-width: 90% !important; }
+          .hero-natgeo-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .hero-natgeo-photo {
+            grid-column: 1 / -1 !important;
+            grid-row: 1 / 2 !important;
+            opacity: 0.55;
+          }
+          .hero-natgeo-text {
+            grid-column: 1 / -1 !important;
+            grid-row: 1 / 2 !important;
+            max-width: 100% !important;
+            justify-content: flex-end !important;
+          }
           .hidden-on-mobile { display: none !important; }
           .bento-grid { grid-template-columns: 1fr !important; }
           .bento-grid > .bento-hero,
