@@ -498,13 +498,38 @@ function Hero({ c }) {
         padding: 0,
         overflow: 'hidden',
         minHeight: 'min(82vh, 720px)',
-        background: tokens.bg,
+        background:
+          'radial-gradient(ellipse at 70% 30%, #6a4828 0%, #2a1810 40%, #0a0606 100%)',
       }}
+      className="hero-natgeo"
     >
-      <div style={{ position: 'absolute', inset: 0 }}>
+      <div
+        className="hero-portrait-col"
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: '46%',
+          maxWidth: 720,
+        }}
+      >
         {featured ? (
           <SepiaPortrait figure={featured} aspectRatio="auto" size="100%" />
         ) : null}
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: '40%',
+            background:
+              'linear-gradient(90deg, #2a1810 0%, rgba(42,24,16,0.6) 40%, rgba(42,24,16,0) 100%)',
+            pointerEvents: 'none',
+          }}
+        />
       </div>
       <div
         data-hero="accent-rule"
@@ -540,7 +565,7 @@ function Hero({ c }) {
             left: 36,
             right: 36,
             bottom: 'clamp(36px, 6vw, 72px)',
-            maxWidth: 'min(720px, 78%)',
+            maxWidth: 'min(560px, 50%)',
             zIndex: 3,
           }}
           className="hero-text-stack"
@@ -1386,6 +1411,8 @@ export default function LandingV2() {
         .bento-grid > .bento-wide { grid-column: 1 / 5; }
         @media (max-width: 880px) {
           .hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+          .hero-natgeo .hero-portrait-col { width: 100% !important; max-width: none !important; opacity: 0.45; }
+          .hero-natgeo .hero-text-stack { max-width: 90% !important; }
           .hidden-on-mobile { display: none !important; }
           .bento-grid { grid-template-columns: 1fr !important; }
           .bento-grid > .bento-hero,
