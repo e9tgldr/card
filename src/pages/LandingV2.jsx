@@ -504,38 +504,47 @@ function Hero({ c }) {
       className="hero-natgeo"
     >
       <div
+        className="hero-natgeo-photo"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+        }}
+      >
+        {featured ? (
+          <SepiaPortrait
+            figure={featured}
+            aspectRatio="auto"
+            size="100%"
+            fit="cover"
+            position="50% 22%"
+            tilt
+          />
+        ) : null}
+      </div>
+      <div
+        aria-hidden="true"
+        className="hero-natgeo-readability"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 2,
+          background:
+            'linear-gradient(90deg, rgba(10,6,6,0.85) 0%, rgba(20,12,8,0.55) 35%, rgba(20,12,8,0.15) 60%, rgba(20,12,8,0) 100%), linear-gradient(0deg, rgba(10,6,6,0.55) 0%, rgba(10,6,6,0) 50%)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
         className="hero-natgeo-grid"
         style={{
           position: 'relative',
           display: 'grid',
           gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
           minHeight: 'inherit',
-          zIndex: 2,
+          zIndex: 3,
         }}
       >
-        <div
-          className="hero-natgeo-photo"
-          style={{
-            position: 'relative',
-            gridColumn: '2 / 3',
-            gridRow: '1 / 2',
-            overflow: 'hidden',
-          }}
-        >
-          {featured ? (
-            <SepiaPortrait figure={featured} aspectRatio="auto" size="100%" />
-          ) : null}
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background:
-                'linear-gradient(90deg, #2a1810 0%, rgba(42,24,16,0.55) 22%, rgba(42,24,16,0) 55%)',
-              pointerEvents: 'none',
-            }}
-          />
-        </div>
         <div
           className="hero-natgeo-text"
           style={{
@@ -1418,24 +1427,20 @@ export default function LandingV2() {
       <style>{`
         .bento-grid > .bento-hero { grid-column: 1 / 3; grid-row: 1 / 3; }
         .bento-grid > .bento-wide { grid-column: 1 / 5; }
-        @media (max-width: 1024px) {
-          .hero-natgeo-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) !important; }
-        }
         @media (max-width: 880px) {
           .hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
           .hero-natgeo-grid {
             grid-template-columns: 1fr !important;
-          }
-          .hero-natgeo-photo {
-            grid-column: 1 / -1 !important;
-            grid-row: 1 / 2 !important;
-            opacity: 0.55;
           }
           .hero-natgeo-text {
             grid-column: 1 / -1 !important;
             grid-row: 1 / 2 !important;
             max-width: 100% !important;
             justify-content: flex-end !important;
+          }
+          .hero-natgeo-readability {
+            background:
+              linear-gradient(0deg, rgba(10,6,6,0.92) 0%, rgba(10,6,6,0.55) 45%, rgba(10,6,6,0.1) 100%) !important;
           }
           .hidden-on-mobile { display: none !important; }
           .bento-grid { grid-template-columns: 1fr !important; }
