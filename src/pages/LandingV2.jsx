@@ -534,8 +534,7 @@ function Hero({ c }) {
       >
         {c.hero.chip}
       </div>
-      <Reveal>
-        <div
+      <div
           style={{
             position: 'absolute',
             left: 36,
@@ -631,7 +630,6 @@ function Hero({ c }) {
             </Link>
           </div>
         </div>
-      </Reveal>
       {featured ? (
         <div
           data-hero="pictured-caption"
