@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
-  QrCode,
-  Sparkles,
   Users,
   Trophy,
   Volume2,
@@ -20,6 +18,7 @@ import { useLang } from '@/lib/i18n';
 import { FIGURES, CATEGORIES, ERAS, ERA_KEYS, getEra } from '@/lib/figuresData';
 import { SepiaPortrait } from '@/components/photo/SepiaPortrait';
 import { useFeaturedToday } from '@/hooks/useFeaturedToday';
+import { useQuoteToday } from '@/hooks/useQuoteToday';
 import { useMyTeam } from '@/hooks/useMyTeam';
 import { useCompare } from '@/hooks/useCompare';
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -426,25 +425,28 @@ function NavBar({ c, isAdmin = false, onOpenAdmin }) {
           gap: 16,
         }}
       >
-        <Link to="/v2/app" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+        <Link to="/v2/app" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           <span
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              background: tokens.brand,
-              color: tokens.bg,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: 14,
-              letterSpacing: 0.5,
+              padding: 6,
+              borderRadius: 9999,
+              background: 'rgba(10,12,20,0.78)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(212,168,67,0.35)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
             }}
           >
-            АД
+            <img
+              src="/logo.png"
+              alt="Altan Domog"
+              style={{ height: 56, width: 'auto', display: 'block' }}
+            />
           </span>
-          <span style={{ color: tokens.ink, fontWeight: 700, fontSize: 17, letterSpacing: 0.2 }}>
+          <span style={{ color: tokens.ink, fontWeight: 700, fontSize: 19, letterSpacing: 0.2 }}>
             Altan Domog
           </span>
         </Link>
@@ -517,6 +519,7 @@ function NavBar({ c, isAdmin = false, onOpenAdmin }) {
 
 function Hero({ c }) {
   const featured = useFeaturedToday();
+  const quoteOfDay = useQuoteToday();
   return (
     <section
       style={{
@@ -544,23 +547,47 @@ function Hero({ c }) {
           {featured ? (
             <SepiaPortrait
               figure={featured}
-              aspectRatio="3/4"
+              scene={featured.scene}
+              aspectRatio={featured.scene ? '16/9' : '3/4'}
               size="100%"
               caption="Featured · ★"
+              priority
             />
           ) : null}
         </div>
         <Reveal>
           <div style={{ paddingTop: 8 }}>
             <div
-              data-hero="accent-rule"
+              data-hero="meta-strip"
               style={{
-                width: 48,
-                height: 4,
-                background: tokens.accent,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
                 marginBottom: 18,
               }}
-            />
+            >
+              <div style={{ width: 32, height: 3, background: tokens.accent, flexShrink: 0 }} />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontFamily: FONT_SANS,
+                  fontSize: 10,
+                  letterSpacing: 2.5,
+                  color: 'rgba(255,255,255,0.66)',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span>52 Зүтгэлтэн</span>
+                <span style={{ opacity: 0.35 }}>·</span>
+                <span>5 Цаг үе</span>
+                <span style={{ opacity: 0.35 }}>·</span>
+                <span>1206–1924</span>
+              </div>
+            </div>
             <div
               style={{
                 fontFamily: FONT_SANS,
@@ -578,9 +605,9 @@ function Hero({ c }) {
                 marginTop: 14,
                 fontFamily: tokens.serif,
                 fontSize: 'clamp(2.2rem, 4.4vw, 3.6rem)',
-                fontWeight: 500,
+                fontWeight: 600,
                 lineHeight: 0.95,
-                letterSpacing: -1,
+                letterSpacing: -0.3,
                 color: tokens.ink,
               }}
             >
@@ -607,6 +634,42 @@ function Hero({ c }) {
             >
               {c.hero.lede}
             </p>
+            {quoteOfDay ? (
+              <blockquote
+                data-hero="quote-of-day"
+                style={{
+                  marginTop: 22,
+                  paddingLeft: 18,
+                  borderLeft: `2px solid ${tokens.accent}`,
+                  maxWidth: 560,
+                  fontFamily: tokens.serif,
+                  fontStyle: 'italic',
+                  fontWeight: 500,
+                  fontSize: 'clamp(1.05rem, 1.6vw, 1.35rem)',
+                  lineHeight: 1.35,
+                  color: 'rgba(255,255,255,0.92)',
+                }}
+              >
+                <span style={{ color: tokens.accent, marginRight: 4 }}>“</span>
+                {quoteOfDay.quote}
+                <span style={{ color: tokens.accent, marginLeft: 4 }}>”</span>
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontFamily: FONT_SANS,
+                    fontStyle: 'normal',
+                    fontSize: 10,
+                    letterSpacing: 2.2,
+                    color: tokens.accent,
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                  }}
+                >
+                  — {quoteOfDay.attr}
+                  {quoteOfDay.yrs ? <span style={{ opacity: 0.7 }}> · {quoteOfDay.yrs}</span> : null}
+                </div>
+              </blockquote>
+            ) : null}
             <div style={{ marginTop: 22, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
               <Link
                 to="/ar"
@@ -669,7 +732,15 @@ function Hero({ c }) {
           }}
         >
           <span>
-            Featured: <span style={{ color: tokens.accent }}>{featured.name}</span> · {featured.years || '—'}
+            {featured.scene ? (
+              <>
+                <span style={{ color: tokens.accent }}>{featured.scene.title?.en ?? 'Scene'}</span> · {featured.scene.credit} · featuring {featured.name}, {featured.yrs || '—'}
+              </>
+            ) : (
+              <>
+                Featured: <span style={{ color: tokens.accent }}>{featured.name}</span> · {featured.yrs || '—'}
+              </>
+            )}
           </span>
           <span>★ rotates daily</span>
         </div>

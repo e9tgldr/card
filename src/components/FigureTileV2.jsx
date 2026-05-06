@@ -37,6 +37,7 @@ export default function FigureTileV2({ figure, onClick, owned = false, onToggleC
   const [hover, setHover] = useState(false);
   const t = FIGURE_TILE_TOKENS;
   const fallback = PORTRAIT_FALLBACKS[figure.cat] || t.surfaceMuted;
+  const tileImage = figure.front_img || figure.image_url || figure.portrait_url;
   return (
     <button
       onClick={onClick}
@@ -67,9 +68,9 @@ export default function FigureTileV2({ figure, onClick, owned = false, onToggleC
           background: fallback,
         }}
       >
-        {figure.image_url ? (
+        {tileImage ? (
           <img
-            src={figure.image_url}
+            src={tileImage}
             alt={figure.name}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             loading="lazy"

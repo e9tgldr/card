@@ -18,6 +18,8 @@ import {
 import { useLang } from '@/lib/i18n';
 import { SepiaPortrait } from '@/components/photo/SepiaPortrait';
 import { useFeaturedToday } from '@/hooks/useFeaturedToday';
+import { useQuoteToday } from '@/hooks/useQuoteToday';
+import { FIGURES } from '@/lib/figuresData';
 
 const FONT_SANS =
   '"Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -129,6 +131,21 @@ const COPY = {
     },
     footer: 'Алтан Домог · Codex I',
     cityline: 'Ulaanbaatar · ',
+    heroMeta: ['52 ЗҮТГЭЛТЭН', '5 ЦАГ ҮЕ', '1206–1924', 'MN · EN · 中文'],
+    quoteAttribLabel: 'Өдрийн үг',
+    stats: {
+      band: [
+        { num: '52', label: 'Зүтгэлтэн' },
+        { num: '5', label: 'Цаг үе' },
+        { num: '8', label: 'Зууны түүх' },
+        { num: '3', label: 'Хэл' },
+      ],
+    },
+    featured: {
+      chip: 'Онцолж буй',
+      title: 'Цуглуулгын дөрвөн дүр',
+      view: 'Бүх 52 дүрийг харах',
+    },
   },
   en: {
     nav: {
@@ -202,6 +219,21 @@ const COPY = {
     },
     footer: 'Altan Domog · Codex I',
     cityline: 'Ulaanbaatar · ',
+    heroMeta: ['52 FIGURES', '5 EPOCHS', '1206–1924', 'MN · EN · 中文'],
+    quoteAttribLabel: 'Quote of the day',
+    stats: {
+      band: [
+        { num: '52', label: 'Figures' },
+        { num: '5', label: 'Epochs' },
+        { num: '8', label: 'Centuries' },
+        { num: '3', label: 'Languages' },
+      ],
+    },
+    featured: {
+      chip: 'Featured',
+      title: 'Four faces from the codex',
+      view: 'See all 52 figures',
+    },
   },
 };
 
@@ -431,25 +463,28 @@ function NavBar({ c }) {
           gap: 16,
         }}
       >
-        <Link to="/v2" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+        <Link to="/v2" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           <span
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              background: tokens.brand,
-              color: tokens.bg,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: 14,
-              letterSpacing: 0.5,
+              padding: 6,
+              borderRadius: 9999,
+              background: 'rgba(10,12,20,0.78)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(212,168,67,0.35)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
             }}
           >
-            АД
+            <img
+              src="/logo.png"
+              alt="Altan Domog"
+              style={{ height: 56, width: 'auto', display: 'block' }}
+            />
           </span>
-          <span style={{ color: tokens.ink, fontWeight: 700, fontSize: 17, letterSpacing: 0.2 }}>
+          <span style={{ color: tokens.ink, fontWeight: 700, fontSize: 19, letterSpacing: 0.2 }}>
             Altan Domog
           </span>
         </Link>
@@ -491,6 +526,7 @@ function NavBar({ c }) {
 
 function Hero({ c }) {
   const featured = useFeaturedToday();
+  const quoteOfDay = useQuoteToday();
   return (
     <section
       style={{
@@ -515,11 +551,13 @@ function Hero({ c }) {
         {featured ? (
           <SepiaPortrait
             figure={featured}
+            scene={featured.scene}
             aspectRatio="auto"
             size="100%"
             fit="cover"
             position="50% 22%"
             tilt
+            priority
           />
         ) : null}
       </div>
@@ -576,9 +614,9 @@ function Hero({ c }) {
               marginTop: 14,
               fontFamily: tokens.serif,
               fontSize: 'clamp(2.4rem, 5.4vw, 4.4rem)',
-              fontWeight: 500,
+              fontWeight: 600,
               lineHeight: 0.95,
-              letterSpacing: -1.2,
+              letterSpacing: -0.3,
               color: '#fff',
             }}
           >
@@ -646,17 +684,80 @@ function Hero({ c }) {
         </div>
       </div>
       <div
-        data-hero="accent-rule"
+        data-hero="meta-strip"
         style={{
           position: 'absolute',
           left: 'clamp(24px, 4vw, 56px)',
           top: 'clamp(24px, 3vw, 36px)',
-          width: 48,
-          height: 5,
-          background: tokens.accent,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
           zIndex: 4,
         }}
-      />
+      >
+        <div style={{ width: 36, height: 3, background: tokens.accent, flexShrink: 0 }} />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            fontFamily: FONT_SANS,
+            fontSize: 10.5,
+            letterSpacing: 2.5,
+            color: 'rgba(255,255,255,0.78)',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+          }}
+        >
+          {c.heroMeta.map((item, i) => (
+            <span key={item} style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+              {i > 0 ? <span style={{ opacity: 0.35 }}>·</span> : null}
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+      {quoteOfDay ? (
+        <div
+          data-hero="quote-of-day"
+          style={{
+            position: 'absolute',
+            right: 'clamp(24px, 4vw, 56px)',
+            top: 'clamp(76px, 9vh, 116px)',
+            maxWidth: 'min(440px, 38vw)',
+            fontFamily: tokens.serif,
+            fontStyle: 'italic',
+            fontWeight: 500,
+            fontSize: 'clamp(1.15rem, 1.7vw, 1.6rem)',
+            lineHeight: 1.32,
+            color: 'rgba(255,255,255,0.94)',
+            textAlign: 'right',
+            zIndex: 4,
+            textShadow: '0 2px 18px rgba(0,0,0,0.55)',
+            pointerEvents: 'none',
+          }}
+          className="hidden-on-mobile"
+        >
+          <span style={{ color: tokens.accent, marginRight: 4 }}>“</span>
+          {quoteOfDay.quote}
+          <span style={{ color: tokens.accent, marginLeft: 4 }}>”</span>
+          <div
+            style={{
+              marginTop: 10,
+              fontFamily: FONT_SANS,
+              fontStyle: 'normal',
+              fontSize: 10,
+              letterSpacing: 2.2,
+              color: tokens.accent,
+              textTransform: 'uppercase',
+              fontWeight: 700,
+            }}
+          >
+            — {quoteOfDay.attr}
+            {quoteOfDay.yrs ? <span style={{ opacity: 0.7 }}> · {quoteOfDay.yrs}</span> : null}
+          </div>
+        </div>
+      ) : null}
       <div
         style={{
           position: 'absolute',
@@ -691,9 +792,247 @@ function Hero({ c }) {
             zIndex: 4,
           }}
         >
-          <span style={{ color: tokens.accent }}>Pictured:</span> {featured.name}, {featured.years || '—'}
+          {featured.scene ? (
+            <>
+              <span style={{ color: tokens.accent }}>Pictured:</span> {featured.scene.title?.en ?? 'Historical scene'}
+              <br />
+              <span style={{ opacity: 0.75 }}>{featured.scene.credit}</span>
+              <br />
+              <span style={{ opacity: 0.85 }}>Featuring {featured.name}, {featured.yrs || '—'}</span>
+            </>
+          ) : (
+            <>
+              <span style={{ color: tokens.accent }}>Pictured:</span> {featured.name}, {featured.yrs || '—'}
+            </>
+          )}
         </div>
       ) : null}
+    </section>
+  );
+}
+
+function StatsBand({ c }) {
+  return (
+    <section
+      data-section="stats-band"
+      style={{
+        borderTop: `1px solid ${tokens.border}`,
+        borderBottom: `1px solid ${tokens.border}`,
+        background: 'linear-gradient(180deg, rgba(20,12,8,0.4), rgba(10,6,6,0.6))',
+        padding: 'clamp(48px, 7vw, 80px) clamp(24px, 4vw, 56px)',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 'clamp(20px, 4vw, 56px)',
+        }}
+        className="stats-band-grid"
+      >
+        {c.stats.band.map((s, i) => (
+          <div
+            key={s.label}
+            style={{
+              borderLeft: i > 0 ? `1px solid ${tokens.border}` : 'none',
+              paddingLeft: i > 0 ? 'clamp(16px, 2.5vw, 36px)' : 0,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: tokens.serif,
+                fontWeight: 600,
+                fontSize: 'clamp(2.4rem, 5vw, 4rem)',
+                lineHeight: 1,
+                letterSpacing: -1,
+                color: tokens.accent,
+                fontStyle: 'italic',
+              }}
+            >
+              {s.num}
+            </div>
+            <div
+              style={{
+                marginTop: 12,
+                fontFamily: FONT_SANS,
+                fontSize: 11,
+                letterSpacing: 2.5,
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.66)',
+                fontWeight: 600,
+              }}
+            >
+              {s.label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FeaturedFiguresStrip({ c }) {
+  const portrayed = FIGURES.filter((f) => f.portrait_url);
+  return (
+    <section
+      data-section="featured-figures"
+      style={{
+        padding: 'clamp(56px, 8vw, 96px) clamp(24px, 4vw, 56px)',
+        background: tokens.bg,
+      }}
+    >
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            gap: 24,
+            marginBottom: 'clamp(28px, 4vw, 44px)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontFamily: FONT_SANS,
+                fontSize: 11,
+                letterSpacing: 3,
+                color: tokens.accent,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+              }}
+            >
+              {c.featured.chip}
+            </div>
+            <h2
+              style={{
+                marginTop: 10,
+                fontFamily: tokens.serif,
+                fontWeight: 600,
+                fontSize: 'clamp(1.8rem, 3.4vw, 2.6rem)',
+                lineHeight: 1.05,
+                letterSpacing: -0.3,
+                color: tokens.ink,
+              }}
+            >
+              {c.featured.title}
+            </h2>
+          </div>
+          <Link
+            to="/figures"
+            style={{
+              color: tokens.accent,
+              fontFamily: FONT_SANS,
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 1.4,
+              textTransform: 'uppercase',
+              textDecoration: 'none',
+              paddingBottom: 6,
+              borderBottom: `1px solid ${tokens.accent}`,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            {c.featured.view} <ArrowRight size={14} />
+          </Link>
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: 'clamp(16px, 2.5vw, 28px)',
+          }}
+        >
+          {portrayed.map((f) => (
+            <Link
+              key={f.fig_id}
+              to={`/figures/${f.fig_id}`}
+              style={{ textDecoration: 'none', color: 'inherit' }}
+            >
+              <div
+                style={{
+                  position: 'relative',
+                  aspectRatio: '3/4',
+                  overflow: 'hidden',
+                  borderRadius: 8,
+                  border: `1px solid ${tokens.border}`,
+                  background: tokens.surface,
+                  transition: 'transform 220ms ease, border-color 220ms ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.borderColor = tokens.accent;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = tokens.border;
+                }}
+              >
+                <img
+                  src={f.portrait_url}
+                  alt={f.name}
+                  loading="lazy"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: '50% 22%',
+                    filter: 'sepia(0.18) contrast(1.18) saturate(1.05)',
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background:
+                      'linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 50%)',
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 16,
+                    right: 16,
+                    bottom: 14,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: tokens.serif,
+                      fontWeight: 600,
+                      fontSize: 18,
+                      lineHeight: 1.18,
+                      color: '#fff',
+                    }}
+                  >
+                    {f.name}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: FONT_SANS,
+                      fontSize: 10.5,
+                      letterSpacing: 1.8,
+                      textTransform: 'uppercase',
+                      color: tokens.accent,
+                      marginTop: 6,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {f.yrs}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -1418,6 +1757,8 @@ export default function LandingV2() {
     >
       <NavBar c={c} />
       <Hero c={c} />
+      <StatsBand c={c} />
+      <FeaturedFiguresStrip c={c} />
       <HowItWorks c={c} />
       <CardCollectionV2 c={c} />
       <Features c={c} />
@@ -1447,6 +1788,8 @@ export default function LandingV2() {
           .bento-grid > .bento-hero,
           .bento-grid > .bento-wide,
           .bento-grid > .bento-small { grid-column: auto !important; grid-row: auto !important; }
+          .stats-band-grid { grid-template-columns: repeat(2, 1fr) !important; row-gap: 32px !important; }
+          .stats-band-grid > div:nth-child(3) { border-left: none !important; padding-left: 0 !important; }
         }
       `}</style>
     </div>

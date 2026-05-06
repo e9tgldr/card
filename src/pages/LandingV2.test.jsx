@@ -43,9 +43,9 @@ describe('LandingV2 — render smoke', () => {
     expect(img.getAttribute('alt')).toBeTruthy();
   });
 
-  it('renders the yellow accent rule and Pictured caption', () => {
+  it('renders the hero meta strip and Pictured caption', () => {
     render(<MemoryRouter><LandingV2 /></MemoryRouter>);
-    expect(document.querySelector('[data-hero="accent-rule"]')).not.toBeNull();
+    expect(document.querySelector('[data-hero="meta-strip"]')).not.toBeNull();
     expect(document.querySelector('[data-hero="pictured-caption"]')).not.toBeNull();
   });
 });

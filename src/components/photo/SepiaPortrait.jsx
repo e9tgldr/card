@@ -7,19 +7,28 @@ const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 export function SepiaPortrait({
   figure,
+  scene = null,
   aspectRatio = '3/4',
   caption,
   size,
   fit = 'cover',
   position = 'center top',
   tilt = false,
+  priority = false,
 }) {
-  const hasPortrait = !!figure?.portrait_url;
+  const hasScene = !!scene?.src;
   const fillParent = aspectRatio === 'auto';
   const tiltLayerRef = useRef(null);
+  const tiltActive = tilt && !hasScene;
+  const imgSrc = hasScene ? scene.src : figure?.portrait_url;
+  const imgFit = hasScene ? (scene.fit ?? fit) : fit;
+  const imgPosition = hasScene ? (scene.position ?? position) : position;
+  const imgAlt = hasScene
+    ? `${scene.title?.en ?? 'Historical scene'} — ${scene.credit}`
+    : `Sepia portrait of ${figure?.name ?? ''}`;
 
   useEffect(() => {
-    if (!tilt) return undefined;
+    if (!tiltActive) return undefined;
     const el = tiltLayerRef.current;
     if (!el) return undefined;
     const reduced =
@@ -32,7 +41,7 @@ export function SepiaPortrait({
     const target = { rx: 0, ry: 0, tx: 0, ty: 0 };
     const current = { rx: 0, ry: 0, tx: 0, ty: 0 };
     const MAX_ROT = 3;
-    const MAX_TRANS = 12;
+    const MAX_TRANS = 7;
     const EASE = 0.08;
 
     function onMove(e) {
@@ -83,7 +92,7 @@ export function SepiaPortrait({
       if (raf != null) cancelAnimationFrame(raf);
       el.style.willChange = 'auto';
     };
-  }, [tilt]);
+  }, [tiltActive]);
 
   const wrapperStyle = {
     position: 'relative',
@@ -94,10 +103,10 @@ export function SepiaPortrait({
     background: fillParent
       ? 'transparent'
       : 'linear-gradient(135deg, #d4a87a 0%, #5a3a1c 60%, #1a1006 100%)',
-    perspective: tilt ? '1400px' : undefined,
+    perspective: tiltActive ? '1400px' : undefined,
   };
 
-  const tiltLayerStyle = tilt
+  const tiltLayerStyle = tiltActive
     ? {
         position: 'absolute',
         inset: 0,
@@ -109,20 +118,25 @@ export function SepiaPortrait({
   return (
     <div data-photo="sepia-wrap" style={wrapperStyle}>
       <div ref={tiltLayerRef} style={tiltLayerStyle}>
-        {hasPortrait ? (
+        {imgSrc ? (
           <img
             data-photo="sepia"
-            src={figure.portrait_url}
-            alt={figure.name}
+            data-photo-mode={hasScene ? 'scene' : 'portrait'}
+            src={imgSrc}
+            alt={imgAlt}
+            {...(priority ? { fetchpriority: 'high' } : {})}
+            loading={priority ? 'eager' : 'lazy'}
+            decoding="async"
             style={{
               position: 'absolute',
               inset: 0,
               width: '100%',
               height: '100%',
-              objectFit: fit,
-              objectPosition: position,
-              filter: 'sepia(0.3) contrast(1.05) saturate(0.9)',
-              boxShadow: tilt ? '0 40px 80px rgba(0,0,0,0.55)' : undefined,
+              objectFit: imgFit,
+              objectPosition: imgPosition,
+              filter: 'sepia(0.18) contrast(1.18) saturate(1.05)',
+              animation: hasScene ? 'hero-ken-burns 32s ease-in-out infinite' : undefined,
+              transformOrigin: 'center',
             }}
           />
         ) : (
@@ -153,7 +167,7 @@ export function SepiaPortrait({
           backgroundImage: GRAIN_SVG,
           backgroundSize: '160px 160px',
           mixBlendMode: 'overlay',
-          opacity: 0.35,
+          opacity: 0.22,
           pointerEvents: 'none',
         }}
       />

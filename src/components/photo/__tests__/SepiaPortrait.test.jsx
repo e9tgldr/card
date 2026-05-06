@@ -17,7 +17,7 @@ describe('SepiaPortrait', () => {
     const img = container.querySelector('img[data-photo="sepia"]');
     expect(img).not.toBeNull();
     expect(img).toHaveAttribute('src', 'https://example.com/genghis.png');
-    expect(img).toHaveAttribute('alt', 'Чингис Хаан');
+    expect(img).toHaveAttribute('alt', 'Sepia portrait of Чингис Хаан');
   });
 
   it('applies the sepia CSS filter to the img', () => {
