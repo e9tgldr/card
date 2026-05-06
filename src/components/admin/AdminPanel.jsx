@@ -750,11 +750,14 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
   );
 }
 
+const INVITE_BATCH_MAX = 1500;
+
 function InvitesTab({ onToast, onLog }) {
   const [invites, setInvites] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [copiedId, setCopiedId] = useState(null);
   const [grantsAdmin, setGrantsAdmin] = useState(false);
+  const [count, setCount] = useState(1);
   const [busy, setBusy] = useState(false);
 
   const refresh = async () => {
@@ -771,13 +774,23 @@ function InvitesTab({ onToast, onLog }) {
 
   const accountById = (id) => accounts.find(a => a.id === id);
 
-  const handleCreate = async () => {
+  const handleCreate = async (overrideCount) => {
+    const raw = overrideCount ?? count;
+    const n = Math.max(1, Math.min(INVITE_BATCH_MAX, Math.floor(Number(raw) || 1)));
     setBusy(true);
     try {
-      const record = await createInviteCode({ grants_admin: grantsAdmin });
+      const { codes } = await createInviteCode({ count: n, grants_admin: grantsAdmin });
       await refresh();
-      onToast(`Код үүсгэлээ: ${record.code}`);
-      onLog(`Уригдсан код үүслээ: ${record.code}${grantsAdmin ? ' (админ)' : ''}`, 'ok');
+      const made = codes?.length ?? 0;
+      if (made === 0) {
+        onToast('Код үүсгэж чадсангүй', true);
+      } else if (made === 1) {
+        onToast(`Код үүсгэлээ: ${codes[0]}`);
+        onLog(`Уригдсан код үүслээ: ${codes[0]}${grantsAdmin ? ' (админ)' : ''}`, 'ok');
+      } else {
+        onToast(`${made} код үүсгэлээ`);
+        onLog(`${made} уригдсан код үүслээ${grantsAdmin ? ' (админ)' : ''}`, 'ok');
+      }
     } catch (e) {
       onToast('Алдаа: ' + (e.message ?? e), true);
     } finally {
@@ -838,8 +851,41 @@ function InvitesTab({ onToast, onLog }) {
             <input type="checkbox" checked={grantsAdmin} onChange={e => setGrantsAdmin(e.target.checked)} />
             <span>Админ эрх олгох</span>
           </label>
-          <Button onClick={handleCreate} disabled={busy} className="gap-1.5 font-body text-sm bg-gold text-background hover:bg-gold/90">
-            <Plus className="w-4 h-4" /> {busy ? 'Үүсгэж байна…' : 'Шинэ код үүсгэх'}
+          <Button onClick={() => handleCreate(1)} disabled={busy} className="gap-1.5 font-body text-sm bg-gold text-background hover:bg-gold/90">
+            <Plus className="w-4 h-4" />
+            {busy ? 'Үүсгэж байна…' : 'Шинэ код үүсгэх'}
+          </Button>
+          <div className="flex items-center gap-2 pl-2 border-l border-border">
+            <label className="flex items-center gap-2 text-xs font-body text-foreground">
+              <span className="text-muted-foreground">Тоо</span>
+              <input
+                type="number"
+                min={1}
+                max={INVITE_BATCH_MAX}
+                value={count}
+                onChange={e => setCount(e.target.value)}
+                className="w-24 bg-background border border-border rounded-md px-2 py-1 text-foreground text-sm"
+              />
+            </label>
+            <Button
+              onClick={() => handleCreate()}
+              disabled={busy}
+              variant="outline"
+              className="gap-1.5 font-body text-sm border-gold/50 text-gold hover:bg-gold/10"
+            >
+              <Plus className="w-4 h-4" />
+              {Number(count) > 1
+                ? `${Math.min(INVITE_BATCH_MAX, Math.max(1, Math.floor(Number(count) || 1)))} код үүсгэх`
+                : 'Дурын тоогоор үүсгэх'}
+            </Button>
+          </div>
+          <Button
+            onClick={() => handleCreate(1000)}
+            disabled={busy}
+            variant="outline"
+            className="gap-1.5 font-body text-sm border-gold/50 text-gold hover:bg-gold/10"
+          >
+            <Plus className="w-4 h-4" /> 1000 код үүсгэх
           </Button>
         </div>
       </div>

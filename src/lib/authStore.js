@@ -66,12 +66,13 @@ export const listInviteCodes = async () => {
   return data?.codes ?? [];
 };
 
-export const createInviteCode = async ({ grants_admin = false } = {}) => {
+export const createInviteCode = async ({ count = 1, grants_admin = false } = {}) => {
   const { data, error } = await supabase.functions.invoke('generate-codes', {
-    body: { count: 1, grants_admin },
+    body: { count, grants_admin },
   });
   if (error) throw error;
-  return { code: data?.codes?.[0] };
+  const codes = data?.codes ?? [];
+  return { codes, code: codes[0] };
 };
 
 export const deleteInviteCode = async (code) => {

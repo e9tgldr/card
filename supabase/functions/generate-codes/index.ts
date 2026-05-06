@@ -3,7 +3,7 @@ import { handleOptions, json } from '../_shared/cors.ts';
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LEN = 8;
-const MAX_BATCH = 500;
+const MAX_BATCH = 1500;
 
 function randomCode(): string {
   const buf = new Uint8Array(CODE_LEN);
