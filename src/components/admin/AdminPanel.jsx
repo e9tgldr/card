@@ -19,8 +19,25 @@ import BackVideos from '@/components/admin/BackVideos';
 import ARPackUploader from '@/components/admin/ARPackUploader';
 import { useFigureBackVideos } from '@/hooks/useFigureBackVideos';
 import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { listInviteCodes, createInviteCode, deleteInviteCode, listAccounts } from '@/lib/authStore';
+
+// Upsert a single figure row by its natural key fig_id. Solves the case
+// where `selectedFig.id` is undefined because the figure originates from
+// the in-memory FIGURES constant — a plain `update(id, patch)` would
+// silently match zero rows. Returns the persisted row so callers can
+// pick up the now-existing `id` for subsequent calls.
+async function upsertFigureByFigId(fig, patch) {
+  const seed = { fig_id: fig.fig_id, ...patch };
+  const { data, error } = await supabase
+    .from('figures')
+    .upsert(seed, { onConflict: 'fig_id' })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}
 
 function AdminToast({ message, isError }) {
   return (
@@ -124,12 +141,8 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
     onFiguresChange(newFigs);
 
     const promise = (async () => {
-      if (selectedFig.id) {
-        await base44.entities.Figure.update(selectedFig.id, updated);
-      } else {
-        const created = await base44.entities.Figure.create(updated);
-        updated.id = created.id;
-      }
+      const row = await upsertFigureByFigId(selectedFig, updated);
+      updated.id = row.id;
       addLog(`${updated.name} хадгалагдлаа`, 'ok');
     })();
 
@@ -189,12 +202,9 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const fieldName = side === 'front' ? 'front_img' : 'back_img';
-      const updated = { ...selectedFig, [fieldName]: file_url };
+      const row = await upsertFigureByFigId(selectedFig, { [fieldName]: file_url });
 
-      if (selectedFig.id) {
-        await base44.entities.Figure.update(selectedFig.id, { [fieldName]: file_url });
-      }
-
+      const updated = { ...selectedFig, ...row, [fieldName]: file_url, id: row.id };
       setSelectedFig(updated);
       const newFigs = figures.map(f => f.fig_id === updated.fig_id ? updated : f);
       onFiguresChange(newFigs);
@@ -215,12 +225,9 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const fieldName = locale === 'en' ? 'story_audio_en' : 'story_audio';
-      const updated = { ...selectedFig, [fieldName]: file_url };
+      const row = await upsertFigureByFigId(selectedFig, { [fieldName]: file_url });
 
-      if (selectedFig.id) {
-        await base44.entities.Figure.update(selectedFig.id, { [fieldName]: file_url });
-      }
-
+      const updated = { ...selectedFig, ...row, [fieldName]: file_url, id: row.id };
       setSelectedFig(updated);
       const newFigs = figures.map(f => f.fig_id === updated.fig_id ? updated : f);
       onFiguresChange(newFigs);
@@ -234,10 +241,8 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
   const handleAudioRemove = async (locale) => {
     if (!selectedFig) return;
     const fieldName = locale === 'en' ? 'story_audio_en' : 'story_audio';
-    const updated = { ...selectedFig, [fieldName]: null };
-    if (selectedFig.id) {
-      await base44.entities.Figure.update(selectedFig.id, { [fieldName]: null });
-    }
+    const row = await upsertFigureByFigId(selectedFig, { [fieldName]: null });
+    const updated = { ...selectedFig, ...row, [fieldName]: null, id: row.id };
     setSelectedFig(updated);
     const newFigs = figures.map(f => f.fig_id === updated.fig_id ? updated : f);
     onFiguresChange(newFigs);
@@ -587,14 +592,16 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
                                 variant="destructive"
                                 className="absolute top-2 right-2 h-7 text-xs"
                                 onClick={async () => {
-                                  const updated = { ...selectedFig, [`${side}_img`]: null };
-                                  if (selectedFig.id) {
-                                    await base44.entities.Figure.update(selectedFig.id, { [`${side}_img`]: null });
+                                  try {
+                                    const row = await upsertFigureByFigId(selectedFig, { [`${side}_img`]: null });
+                                    const updated = { ...selectedFig, ...row, [`${side}_img`]: null, id: row.id };
+                                    setSelectedFig(updated);
+                                    const newFigs = figures.map(f => f.fig_id === updated.fig_id ? updated : f);
+                                    onFiguresChange(newFigs);
+                                    showToast('Зураг устгагдлаа');
+                                  } catch {
+                                    showToast('Устгахад алдаа гарлаа', true);
                                   }
-                                  setSelectedFig(updated);
-                                  const newFigs = figures.map(f => f.fig_id === updated.fig_id ? updated : f);
-                                  onFiguresChange(newFigs);
-                                  showToast('Зураг устгагдлаа');
                                 }}
                               >
                                 Устгах

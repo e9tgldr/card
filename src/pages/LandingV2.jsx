@@ -20,7 +20,7 @@ import { useLang } from '@/lib/i18n';
 import { SepiaPortrait } from '@/components/photo/SepiaPortrait';
 import { useFeaturedToday } from '@/hooks/useFeaturedToday';
 import { useQuoteToday } from '@/hooks/useQuoteToday';
-import { FIGURES } from '@/lib/figuresData';
+import { useFiguresWithDb } from '@/hooks/useFiguresWithDb';
 
 const FONT_SANS =
   '"Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -866,7 +866,8 @@ function StatsBand({ c }) {
 }
 
 function FeaturedFiguresStrip({ c }) {
-  const portrayed = FIGURES.filter((f) => f.portrait_url);
+  const allFigures = useFiguresWithDb();
+  const portrayed = allFigures.filter((f) => f.front_img || f.portrait_url);
   return (
     <section
       data-section="featured-figures"
@@ -966,7 +967,7 @@ function FeaturedFiguresStrip({ c }) {
                 }}
               >
                 <img
-                  src={f.portrait_url}
+                  src={f.front_img || f.portrait_url}
                   alt={f.name}
                   loading="lazy"
                   style={{
@@ -976,7 +977,9 @@ function FeaturedFiguresStrip({ c }) {
                     height: '100%',
                     objectFit: 'cover',
                     objectPosition: '50% 22%',
-                    filter: 'sepia(0.18) contrast(1.18) saturate(1.05)',
+                    filter: f.front_img
+                      ? 'none'
+                      : 'sepia(0.18) contrast(1.18) saturate(1.05)',
                   }}
                 />
                 <div

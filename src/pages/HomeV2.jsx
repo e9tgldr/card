@@ -1714,7 +1714,11 @@ export default function HomeV2() {
     if (dbFigures && dbFigures.length > 0) {
       const merged = FIGURES.map((defaultFig) => {
         const dbFig = dbFigures.find((d) => d.fig_id === defaultFig.fig_id);
-        return dbFig ? { ...defaultFig, ...dbFig } : defaultFig;
+        if (!dbFig) return defaultFig;
+        const overrides = Object.fromEntries(
+          Object.entries(dbFig).filter(([, v]) => v != null)
+        );
+        return { ...defaultFig, ...overrides };
       });
       dbFigures.forEach((dbFig) => {
         if (!merged.find((m) => m.fig_id === dbFig.fig_id)) merged.push(dbFig);
