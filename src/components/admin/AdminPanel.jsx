@@ -879,14 +879,17 @@ function InvitesTab({ onToast, onLog }) {
                 : 'Дурын тоогоор үүсгэх'}
             </Button>
           </div>
-          <Button
-            onClick={() => handleCreate(1000)}
-            disabled={busy}
-            variant="outline"
-            className="gap-1.5 font-body text-sm border-gold/50 text-gold hover:bg-gold/10"
-          >
-            <Plus className="w-4 h-4" /> 1000 код үүсгэх
-          </Button>
+          {[100, 500, 1000].map((n) => (
+            <Button
+              key={n}
+              onClick={() => handleCreate(n)}
+              disabled={busy}
+              variant="outline"
+              className="gap-1.5 font-body text-sm border-gold/50 text-gold hover:bg-gold/10"
+            >
+              <Plus className="w-4 h-4" /> {n}
+            </Button>
+          ))}
         </div>
       </div>
 
