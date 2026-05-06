@@ -62,7 +62,7 @@ const SECTION_PADY = 64;
 
 const COPY = {
   mn: {
-    nav: { figures: 'Дүрүүд', team: 'Миний баг', engagements: 'Тоглоом', chapters: 'Бүлгүүд', classic: 'Хуучин', scan: 'QR уншуулах' },
+    nav: { figures: 'Дүрүүд', team: 'Миний баг', engagements: 'Тоглоом', chapters: 'Бүлгүүд', classic: 'Хуучин', scan: 'AR-аар таниулах' },
     hero: {
       kicker: 'Кодекс I',
       title1: 'Алтан Домогийн',
@@ -132,7 +132,7 @@ const COPY = {
     foot: { rights: 'Алтан Домог · Codex I · Ulaanbaatar' },
   },
   en: {
-    nav: { figures: 'Figures', team: 'My team', engagements: 'Play', chapters: 'Chapters', classic: 'Classic', scan: 'Scan a card' },
+    nav: { figures: 'Figures', team: 'My team', engagements: 'Play', chapters: 'Chapters', classic: 'Classic', scan: 'Scan card (AR)' },
     hero: {
       kicker: 'Codex I',
       title1: 'The face of',

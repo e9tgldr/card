@@ -14,6 +14,7 @@ import {
   Award,
   Check,
   Sparkles,
+  ScanLine,
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
 import { SepiaPortrait } from '@/components/photo/SepiaPortrait';
@@ -52,6 +53,7 @@ const COPY = {
       cards: 'Цуглуулга',
       features: 'Онцлогууд',
       pricing: 'Үнэ',
+      scan: 'AR-аар таниулах',
       app: 'Апп руу орох',
     },
     hero: {
@@ -152,6 +154,7 @@ const COPY = {
       cards: 'Collection',
       features: 'Features',
       pricing: 'Pricing',
+      scan: 'Scan card (AR)',
       app: 'Open app',
     },
     hero: {
@@ -473,6 +476,36 @@ function NavBar({ c }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <LangToggle />
+          <Link
+            to="/ar"
+            className="hidden-on-mobile"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '11px 18px',
+              borderRadius: 14,
+              background: 'transparent',
+              color: tokens.ink,
+              fontWeight: 600,
+              fontSize: 14,
+              letterSpacing: 0.1,
+              textDecoration: 'none',
+              border: `1px solid ${tokens.borderStrong}`,
+              transition: 'background 180ms ease, border-color 180ms ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = tokens.brandSoft;
+              e.currentTarget.style.borderColor = tokens.brand;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.borderColor = tokens.borderStrong;
+            }}
+          >
+            <ScanLine size={15} />
+            {c.nav.scan}
+          </Link>
           <PrimaryButton to="/app">
             {c.nav.app}
             <ArrowRight size={16} />
