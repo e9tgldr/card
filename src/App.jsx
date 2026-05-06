@@ -16,6 +16,7 @@ import LandingV2 from '@/pages/LandingV2';
 import HomeV2 from '@/pages/HomeV2';
 import OtpLogin from '@/pages/OtpLogin';
 import OtpGate from '@/components/OtpGate';
+import AdminGate from '@/components/AdminGate';
 import FigureDetail from '@/pages/FigureDetail';
 import Collection from '@/pages/Collection';
 import Figures from '@/pages/Figures';
@@ -64,8 +65,8 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={<LandingV2 />} />
-      <Route path="/v1" element={<Landing />} />
-      <Route path="/v1/app" element={<OtpGate><Home /></OtpGate>} />
+      <Route path="/v1" element={<AdminGate><Landing /></AdminGate>} />
+      <Route path="/v1/app" element={<AdminGate><Home /></AdminGate>} />
       <Route path="/v2" element={<LandingV2 />} />
       <Route path="/v2/app" element={<OtpGate><HomeV2 /></OtpGate>} />
       <Route path="/otp" element={<OtpLogin />} />

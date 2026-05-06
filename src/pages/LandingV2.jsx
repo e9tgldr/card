@@ -52,7 +52,6 @@ const COPY = {
       cards: 'Цуглуулга',
       features: 'Онцлогууд',
       pricing: 'Үнэ',
-      old: 'Хуучин',
       app: 'Апп руу орох',
     },
     hero: {
@@ -153,7 +152,6 @@ const COPY = {
       cards: 'Collection',
       features: 'Features',
       pricing: 'Pricing',
-      old: 'Classic',
       app: 'Open app',
     },
     hero: {
@@ -318,42 +316,6 @@ function PrimaryButton({ to, href, children, ...rest }) {
   );
 }
 
-function GhostButton({ to, href, children, ...rest }) {
-  const Tag = to ? Link : 'a';
-  const linkProps = to ? { to } : { href };
-  return (
-    <Tag
-      {...linkProps}
-      {...rest}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '11px 20px',
-        borderRadius: 14,
-        background: 'transparent',
-        color: tokens.ink,
-        fontWeight: 600,
-        fontSize: 14.5,
-        letterSpacing: 0.1,
-        textDecoration: 'none',
-        border: `1px solid ${tokens.borderStrong}`,
-        transition: 'background 180ms ease, transform 180ms ease, border-color 180ms ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = tokens.brandSoft;
-        e.currentTarget.style.borderColor = tokens.brand;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'transparent';
-        e.currentTarget.style.borderColor = tokens.borderStrong;
-      }}
-    >
-      {children}
-    </Tag>
-  );
-}
-
 function Chip({ children, tone = 'neutral' }) {
   const palettes = {
     neutral: { bg: tokens.surfaceMuted, fg: tokens.inkSoft, bd: tokens.border },
@@ -511,9 +473,6 @@ function NavBar({ c }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <LangToggle />
-          <GhostButton to="/v1" className="hidden-on-mobile">
-            <span style={{ fontSize: 13.5 }}>{c.nav.old}</span>
-          </GhostButton>
           <PrimaryButton to="/app">
             {c.nav.app}
             <ArrowRight size={16} />
