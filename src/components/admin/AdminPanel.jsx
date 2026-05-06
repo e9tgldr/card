@@ -820,6 +820,29 @@ function InvitesTab({ onToast, onLog }) {
     }
   };
 
+  const handleDownloadAvailable = () => {
+    const rows = invites.filter(i => !i.used_by);
+    if (rows.length === 0) {
+      onToast('Татаж авах боломжит код алга', true);
+      return;
+    }
+    const header = 'code,created_at,grants_admin\n';
+    const body = rows
+      .map(r => `${r.code},${r.created_at ?? ''},${r.grants_admin ? 'yes' : 'no'}`)
+      .join('\n');
+    const blob = new Blob([header + body], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invite-codes-available-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    onToast(`${rows.length} код татагдлаа`);
+    onLog(`${rows.length} боломжит код CSV-ээр татагдлаа`, 'ok');
+  };
+
   const available = invites.filter(i => !i.used_by).length;
   const used = invites.length - available;
 
@@ -842,9 +865,21 @@ function InvitesTab({ onToast, onLog }) {
 
       {/* Actions */}
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-cinzel font-bold text-foreground">Кодын жагсаалт</h3>
-          <p className="text-xs text-muted-foreground font-body">Нэг код → нэг данс үүсгэх эрх</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h3 className="font-cinzel font-bold text-foreground">Кодын жагсаалт</h3>
+            <p className="text-xs text-muted-foreground font-body">Нэг код → нэг данс үүсгэх эрх</p>
+          </div>
+          <Button
+            onClick={handleDownloadAvailable}
+            disabled={available === 0}
+            variant="outline"
+            className="gap-1.5 font-body text-sm border-gold/50 text-gold hover:bg-gold/10"
+            title="Боломжит кодуудыг CSV-ээр татах"
+          >
+            <Download className="w-4 h-4" />
+            Боломжит татах ({available})
+          </Button>
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-xs font-body text-foreground">
