@@ -12,6 +12,7 @@ import TimelineSection from '@/components/TimelineSection';
 import FigureModal from '@/components/FigureModal';
 import ChatFAB from '@/components/ChatFAB';
 import AdminPanel from '@/components/admin/AdminPanel';
+import { ErrorBoundary } from '@/lib/feedback';
 import MyTeamSection from '@/components/MyTeamSection';
 import { useMyTeam } from '@/hooks/useMyTeam';
 import CompareBar from '@/components/CompareBar';
@@ -344,11 +345,28 @@ export default function Home() {
 
       {/* Admin */}
       {showAdmin && (
-        <AdminPanel
-          figures={figures}
-          onClose={() => setShowAdmin(false)}
-          onFiguresChange={setFigures}
-        />
+        <ErrorBoundary
+          fallbackKey="toast.admin.crash"
+          fallback={({ retry }) => {
+            if (typeof document !== 'undefined') document.body.style.overflow = '';
+            return (
+              <div className="fixed inset-0 z-[200] bg-background flex items-center justify-center px-6 text-center text-ivory">
+                <div className="max-w-md space-y-3">
+                  <p className="font-prose">Админ панел гэнэт зогслоо.</p>
+                  <button onClick={() => { retry(); setShowAdmin(false); }} className="font-meta text-[10px] tracking-[0.3em] uppercase text-brass hover:text-ivory">
+                    Хаах
+                  </button>
+                </div>
+              </div>
+            );
+          }}
+        >
+          <AdminPanel
+            figures={figures}
+            onClose={() => setShowAdmin(false)}
+            onFiguresChange={setFigures}
+          />
+        </ErrorBoundary>
       )}
     </div>
   );

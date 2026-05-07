@@ -31,8 +31,17 @@ Deno.serve(async (req) => {
   });
   const { data: userData, error: userErr } = await userClient.auth.getUser();
   if (userErr || !userData.user) return json({ ok: false, reason: 'unauthorized' }, 401);
-  const isAdmin = !!userData.user.app_metadata?.is_admin;
-  if (!isAdmin) return json({ ok: false, reason: 'forbidden' }, 403);
+
+  const admin = createClient(url, serviceKey);
+
+  // Re-verify admin against profiles, not just JWT — a demoted admin's JWT
+  // can carry app_metadata.is_admin = true until token refresh.
+  const { data: prof } = await admin
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', userData.user.id)
+    .maybeSingle();
+  if (!prof?.is_admin) return json({ ok: false, reason: 'forbidden' }, 403);
 
   let body: { count?: number; grants_admin?: boolean };
   try { body = await req.json(); }
@@ -41,7 +50,6 @@ Deno.serve(async (req) => {
   const count = Math.max(1, Math.min(MAX_BATCH, Math.floor(body.count ?? 1)));
   const grantsAdmin = !!body.grants_admin;
 
-  const admin = createClient(url, serviceKey);
   const created: string[] = [];
 
   for (let i = 0; i < count; i++) {

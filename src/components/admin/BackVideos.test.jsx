@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 const mockInvoke = vi.fn();
 vi.mock('@/lib/supabase', () => ({
@@ -85,17 +86,25 @@ describe('BackVideos', () => {
     expect(onChange).toHaveBeenCalled();
   });
 
-  it('delete confirms then invokes with action=delete', async () => {
+  it('delete confirms via the confirm dialog then invokes with action=delete', async () => {
     mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });
-    window.confirm = vi.fn(() => true);
+    const user = userEvent.setup();
 
     const onChange = vi.fn();
     render(<BackVideos figures={FIGURES} videosById={{ 1: { url: 'https://x/b.mp4', captionsUrl: null, durationS: 30 } }} onChange={onChange} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /admin\.backVideos\.delete/ }));
+    // Click the row delete button (opens AlertDialog)
+    await user.click(screen.getByRole('button', { name: /admin\.backVideos\.delete/ }));
+
+    // Click the confirm action inside the dialog (rendered into a portal)
+    const confirmBtn = await screen.findByRole('button', { name: /admin\.backVideos\.delete/, hidden: false });
+    // The dialog confirm button has the same accessible name; pick the one inside the dialog.
+    const dialogConfirm = screen
+      .getAllByRole('button', { name: /admin\.backVideos\.delete/ })
+      .find((b) => b.closest('[role="alertdialog"]')) ?? confirmBtn;
+    await user.click(dialogConfirm);
 
     await waitFor(() => {
-      expect(window.confirm).toHaveBeenCalled();
       expect(mockInvoke).toHaveBeenCalledWith('upload-figure-back-video', expect.objectContaining({
         body: expect.objectContaining({ action: 'delete', fig_id: 1 }),
       }));

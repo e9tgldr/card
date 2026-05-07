@@ -36,3 +36,7 @@ supabase/.temp
 
 # MCP server credentials — never commit
 .mcp.json
+
+# three-brain harness output (per-session sub-brain logs, diffs, etc.)
+three-brain-out/
+admin-hardening-diff.patch

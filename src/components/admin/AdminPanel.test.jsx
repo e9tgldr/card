@@ -10,6 +10,7 @@ const { notifyMocks } = vi.hoisted(() => ({
 vi.mock('@/lib/feedback', () => ({
   notify: notifyMocks,
   useDebouncedValue: (v) => v,
+  EmptyState: ({ title, description }) => (<div data-testid='empty-state'>{title}{description ? ' — ' + description : ''}</div>),
 }));
 
 vi.mock('@/api/base44Client', () => ({
@@ -38,15 +39,24 @@ vi.mock('@/hooks/useFigureBackVideos', () => ({
   useFigureBackVideos: () => ({ data: {}, refetch: vi.fn() }),
 }));
 
-vi.mock('@/components/admin/BackVideos', () => ({
-  default: () => null,
-}));
+vi.mock('@/components/admin/Tournaments', () => ({ default: () => null }));
+vi.mock('@/components/admin/Voices', () => ({ default: () => null }));
+vi.mock('@/components/admin/Eras', () => ({ default: () => null }));
+vi.mock('@/components/admin/StoryEditorModal', () => ({ default: () => null }));
+vi.mock('@/components/admin/ARPackUploader', () => ({ default: () => null }));
+vi.mock('@/components/admin/BackVideos', () => ({ default: () => null }));
 
 vi.mock('@/lib/authStore', () => ({
   listInviteCodes: vi.fn().mockResolvedValue([]),
   createInviteCode: vi.fn(),
   deleteInviteCode: vi.fn(),
   listAccounts: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/lib/ordersStore', () => ({
+  listOrders: vi.fn().mockResolvedValue([]),
+  updateOrderStatus: vi.fn(),
+  deleteOrder: vi.fn(),
 }));
 
 import AdminPanel from './AdminPanel';

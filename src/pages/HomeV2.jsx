@@ -33,6 +33,7 @@ import CompareModal from '@/components/CompareModal';
 import HistoricalMap from '@/components/HistoricalMap';
 import TimelineSection from '@/components/TimelineSection';
 import AdminPanel from '@/components/admin/AdminPanel';
+import { ErrorBoundary } from '@/lib/feedback';
 
 const FONT_SANS =
   '"Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -1819,11 +1820,30 @@ export default function HomeV2() {
       <ChatFAB initialQuestion={chatQuestion} onOpenModal={openModal} />
 
       {showAdmin && (
-        <AdminPanel
-          figures={figures}
-          onClose={() => setShowAdmin(false)}
-          onFiguresChange={setFigures}
-        />
+        <ErrorBoundary
+          fallbackKey="toast.admin.crash"
+          fallback={({ retry }) => {
+            // Defensive: an ErrorBoundary catch may pre-empt the panel's own
+            // body-overflow cleanup if React skips the unmount commit.
+            if (typeof document !== 'undefined') document.body.style.overflow = '';
+            return (
+              <div className="fixed inset-0 z-[200] bg-background flex items-center justify-center px-6 text-center text-ivory">
+                <div className="max-w-md space-y-3">
+                  <p className="font-prose">Админ панел гэнэт зогслоо.</p>
+                  <button onClick={() => { retry(); setShowAdmin(false); }} className="font-meta text-[10px] tracking-[0.3em] uppercase text-brass hover:text-ivory">
+                    Хаах
+                  </button>
+                </div>
+              </div>
+            );
+          }}
+        >
+          <AdminPanel
+            figures={figures}
+            onClose={() => setShowAdmin(false)}
+            onFiguresChange={setFigures}
+          />
+        </ErrorBoundary>
       )}
 
       <style>{`

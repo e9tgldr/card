@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { handleOptions, json } from '../_shared/cors.ts';
 
+const ALLOWED_STATUSES = ['pending', 'confirmed', 'shipped', 'cancelled'] as const;
+
 Deno.serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre;
   if (req.method !== 'POST') return json({ ok: false, reason: 'method_not_allowed' }, 405);
@@ -15,7 +17,6 @@ Deno.serve(async (req) => {
 
   const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-  // Re-verify admin against profiles, not just JWT.
   const { data: prof } = await admin
     .from('profiles')
     .select('is_admin')
@@ -23,12 +24,23 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!prof?.is_admin) return json({ ok: false, reason: 'forbidden' }, 403);
 
-  let body: { code?: string };
-  try { body = await req.json(); } catch { return json({ ok: false, reason: 'bad_request' }, 400); }
-  const code = body.code?.trim().toUpperCase();
-  if (!code) return json({ ok: false, reason: 'bad_request' }, 400);
+  let body: { id?: string; status?: string };
+  try { body = await req.json(); } catch { return json({ ok: false, reason: 'bad_body' }, 400); }
+  const id = (body.id ?? '').trim();
+  const status = (body.status ?? '').trim();
+  if (!id) return json({ ok: false, reason: 'missing_id' }, 400);
+  if (!(ALLOWED_STATUSES as readonly string[]).includes(status)) {
+    return json({ ok: false, reason: 'bad_status' }, 400);
+  }
 
-  const { error } = await admin.from('access_codes').delete().eq('code', code).is('redeemed_by', null);
+  const { data, error } = await admin
+    .from('orders')
+    .update({ status })
+    .eq('id', id)
+    .select('id, status')
+    .maybeSingle();
   if (error) return json({ ok: false, reason: error.message }, 500);
-  return json({ ok: true });
+  if (!data) return json({ ok: false, reason: 'not_found' }, 404);
+
+  return json({ ok: true, order: data });
 });

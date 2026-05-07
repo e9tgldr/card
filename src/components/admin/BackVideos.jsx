@@ -6,6 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLang } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { probeVideoDuration } from '@/lib/videoMeta';
+import { useConfirm } from '@/components/ui/use-confirm';
+import { adminErrorText } from '@/lib/adminErrors';
 
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const MAX_CAPTIONS_BYTES = 100 * 1024;
@@ -22,6 +24,7 @@ export default function BackVideos({ figures, videosById = {}, onChange }) {
   const { t } = useLang();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(null);
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const handleVideoUpload = async (figId, file) => {
     setError('');
@@ -54,7 +57,7 @@ export default function BackVideos({ figures, videosById = {}, onChange }) {
     const { data, error: invErr } = await supabase.functions.invoke('upload-figure-back-video', { body: form });
     setBusy(null);
     if (invErr || !data?.ok) {
-      setError(data?.reason || invErr?.message || 'server');
+      setError(adminErrorText(data?.reason || invErr?.message || 'server'));
       return;
     }
     onChange?.();
@@ -79,21 +82,26 @@ export default function BackVideos({ figures, videosById = {}, onChange }) {
     const { data, error: invErr } = await supabase.functions.invoke('upload-figure-back-video', { body: form });
     setBusy(null);
     if (invErr || !data?.ok) {
-      setError(data?.reason || invErr?.message || 'server');
+      setError(adminErrorText(data?.reason || invErr?.message || 'server'));
       return;
     }
     onChange?.();
   };
 
   const handleDelete = async (figId) => {
-    if (!window.confirm(t('admin.backVideos.delete') + '?')) return;
+    const ok = await confirm({
+      title: t('admin.backVideos.delete') + '?',
+      confirmLabel: t('admin.backVideos.delete'),
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(figId);
     const { data, error: invErr } = await supabase.functions.invoke('upload-figure-back-video', {
       body: { action: 'delete', fig_id: figId },
     });
     setBusy(null);
     if (invErr || !data?.ok) {
-      setError(data?.reason || invErr?.message || 'server');
+      setError(adminErrorText(data?.reason || invErr?.message || 'server'));
       return;
     }
     onChange?.();
@@ -101,6 +109,10 @@ export default function BackVideos({ figures, videosById = {}, onChange }) {
 
   return (
     <div className="space-y-4">
+      <p className="text-[11px] text-muted-foreground font-body">
+        Видео: MP4, дээд тал нь {(MAX_VIDEO_BYTES / 1024 / 1024).toFixed(0)} MB · {MAX_DURATION_S} сек.
+        Дэд бичвэр: WEBVTT, дээд тал нь {(MAX_CAPTIONS_BYTES / 1024).toFixed(0)} KB.
+      </p>
       {error && (
         <div role="alert" className="px-3 py-2 rounded bg-red-950/50 border border-red-500 text-sm text-red-200">
           {error}
@@ -125,6 +137,7 @@ export default function BackVideos({ figures, videosById = {}, onChange }) {
           })}
         </div>
       </ScrollArea>
+      {confirmDialog}
     </div>
   );
 }

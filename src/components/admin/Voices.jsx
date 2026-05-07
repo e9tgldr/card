@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { storyText } from '@/lib/i18n';
 import { buildChapterPlaylist } from '@/lib/storyPlaylist';
+import { adminErrorText } from '@/lib/adminErrors';
 
 const LANGS = ['mn', 'en', 'cn'];
 
@@ -24,7 +25,7 @@ export default function AdminVoices({ onToast }) {
       .from('figure_voices')
       .select('fig_id, lang, voice_id');
     setLoading(false);
-    if (error) { onToast('Ачаалахад алдаа: ' + error.message, true); return; }
+    if (error) { onToast('Ачаалахад алдаа: ' + adminErrorText(error), true); return; }
     setRows(data ?? []);
   };
   useEffect(() => { load(); }, []);
@@ -50,7 +51,7 @@ export default function AdminVoices({ onToast }) {
         { fig_id, lang, voice_id: voice_id.trim(), assigned_by: user?.id },
         { onConflict: 'fig_id,lang' },
       );
-    if (error) { onToast('Хадгалахад алдаа: ' + error.message, true); return; }
+    if (error) { onToast('Хадгалахад алдаа: ' + adminErrorText(error), true); return; }
     onToast('Хадгалагдлаа');
     setEditing(null);
     load();
@@ -69,6 +70,22 @@ export default function AdminVoices({ onToast }) {
     if (data?.url) new Audio(data.url).play();
     else onToast('Preview боломжгүй', true);
   };
+
+  // Close the editor on ESC (only when it's open). Skip when focus is in an
+  // input — Voices' single field is a text input the user might want to
+  // clear with ESC; restrict to body-level keys.
+  useEffect(() => {
+    if (!editing) return;
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (e.defaultPrevented) return;
+      const target = e.target;
+      if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      setEditing(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editing]);
 
   const preRenderChapter = async (era) => {
     setPreRenderingEra(era);
@@ -157,12 +174,21 @@ export default function AdminVoices({ onToast }) {
       </table>
 
       {editing && (
-        <div className="fixed inset-0 z-[400] bg-background/80 flex items-center justify-center p-6">
-          <div className="bg-card border border-border rounded-xl p-6 max-w-md w-full space-y-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[400] bg-background/80 flex items-center justify-center p-6"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-xl p-6 max-w-md w-full space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h4 className="font-cinzel text-sm">
               fig {editing.fig_id} · {editing.lang.toUpperCase()}
             </h4>
             <Input
+              autoFocus
               value={editing.voice_id}
               onChange={(e) => setEditing({ ...editing, voice_id: e.target.value })}
               placeholder="ElevenLabs voice_id"

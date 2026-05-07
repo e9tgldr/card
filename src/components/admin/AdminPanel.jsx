@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { X, LayoutDashboard, Pencil, Grid3X3, Settings, Save, Trash2, Plus, Upload, Download, Palette, Ticket, Copy, Check } from 'lucide-react';
-import { notify, useDebouncedValue } from '@/lib/feedback';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { X, LayoutDashboard, Pencil, Grid3X3, Settings, Save, Trash2, Plus, Upload, Download, Palette, Ticket, Copy, Check, ShoppingBag, RefreshCw, Loader2, MoreHorizontal } from 'lucide-react';
+import { notify, useDebouncedValue, EmptyState } from '@/lib/feedback';
 
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024; // 5 MB
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useConfirm } from '@/components/ui/use-confirm';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { CATEGORIES } from '@/lib/figuresData';
 import AdminTournaments from '@/components/admin/Tournaments';
 import AdminVoices from '@/components/admin/Voices';
@@ -22,6 +29,9 @@ import { base44 } from '@/api/base44Client';
 import { supabase } from '@/lib/supabase';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { listInviteCodes, createInviteCode, deleteInviteCode, listAccounts } from '@/lib/authStore';
+import { listOrders, updateOrderStatus, deleteOrder } from '@/lib/ordersStore';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { adminErrorText } from '@/lib/adminErrors';
 
 // Upsert a single figure row by its natural key fig_id. Solves the case
 // where `selectedFig.id` is undefined because the figure originates from
@@ -39,69 +49,150 @@ async function upsertFigureByFigId(fig, patch) {
   return data;
 }
 
-function AdminToast({ message, isError }) {
-  return (
-    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-xl border-2 ${isError ? 'border-red-500 bg-red-950/90' : 'border-green-500 bg-green-950/90'} text-white text-sm font-body shadow-xl`}>
-      {message}
-    </div>
-  );
-}
-
 export default function AdminPanel({ figures, onClose, onFiguresChange }) {
   const [tab, setTab] = useState('dashboard');
   const [selectedFig, setSelectedFig] = useState(null);
   const [storyEditing, setStoryEditing] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [figSearch, setFigSearch] = useState('');
-  const [toast, setToast] = useState(null);
   const [logs, setLogs] = useState([]);
-  const [sessionStart] = useState(Date.now());
   const { settings, saveSetting } = useAppSettings();
   const { data: videosById, refetch: refetchVideos } = useFigureBackVideos();
   const [brandForm, setBrandForm] = useState({ site_name: '', site_logo: '' });
+  const [savingFig, setSavingFig] = useState(false);
+  // Orders state lives in AdminPanel so the dashboard pending-count card and
+  // the OrdersTab share a single fetch + cache. OrdersTab is forceMount-ed
+  // below so its local UI state (filter chip, busy ids, scroll position)
+  // survives tab switches; the data itself never needs a remount-driven
+  // refetch.
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const ordersMountedRef = useRef(true);
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   // Sync brandForm when settings load
   useEffect(() => {
     setBrandForm({ site_name: settings.site_name, site_logo: settings.site_logo });
   }, [settings.site_name, settings.site_logo]);
 
+  // Thin wrapper around the shared `notify.*` toaster so admin actions
+  // surface in the same top-center toast layer as the rest of the app
+  // (no more bottom-center custom AdminToast competing with HotToaster).
+  // Signature unchanged so the 6 sub-tab onToast prop pass-throughs keep
+  // working as-is.
   const showToast = (msg, isError = false) => {
-    setToast({ message: msg, isError });
-    setTimeout(() => setToast(null), 3000);
+    if (isError) notify.error(msg);
+    else notify.success(msg);
   };
 
-  const addLog = (msg, level = 'ok') => {
+  // Stable across renders so the realtime-subscription effect (and any
+  // future effects with `[]` deps) closes over a consistent reference.
+  // Capped at 200 entries so a long admin session can't grow the log
+  // unboundedly.
+  const addLog = useCallback((msg, level = 'ok') => {
     const time = new Date().toLocaleTimeString('mn-MN');
-    setLogs(prev => [...prev, { time, msg, level }]);
-  };
+    setLogs(prev => [...prev, { time, msg, level }].slice(-200));
+  }, []);
+
+  // Body scroll lock isolated from the realtime subscription so a failure in
+  // one path can't strand the page in a locked state. The cleanup also runs
+  // when an ErrorBoundary unmounts the panel after a render-phase throw.
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  // ESC closes the panel. Skip when:
+  //  - a sub-modal (story editor) is open — its own dismiss handles it
+  //  - focus is in an editable element — user wants to clear input / dismiss IME
+  //  - a Radix dialog (e.g. confirm dialog) is open — its dismiss runs first
+  //  - the keydown was already handled (e.g. by an inner listener)
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (e.defaultPrevented) return;
+      if (storyEditing) return;
+      const target = e.target;
+      if (target instanceof Element) {
+        if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        if (target.closest('[role="alertdialog"], [role="dialog"]')) return;
+      }
+      if (typeof document !== 'undefined' && document.querySelector('[role="alertdialog"][data-state="open"], [role="dialog"][data-state="open"]')) return;
+      onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, storyEditing]);
 
   useEffect(() => {
     addLog('Админ панел нээгдлээ', 'ok');
-    document.body.style.overflow = 'hidden';
 
-    // Live sync: refresh figures list when any figure changes in DB
-    const unsub = base44.entities.Figure.subscribe(async (event) => {
+    // Live sync: apply each figure-row event directly instead of refetching
+    // the full list. Match by `fig_id` (natural key) first, falling back to
+    // `id` (PK) so deletes — where Supabase Realtime may only ship the PK in
+    // `old` unless the table is configured with REPLICA IDENTITY FULL — still
+    // resolve. This is O(1) per event vs the previous N×N round-trip + merge,
+    // and harmlessly idempotent against the admin's own optimistic writes.
+    const unsub = base44.entities.Figure.subscribe((event) => {
       try {
-        const latest = await base44.entities.Figure.list('-fig_id', 100);
-        onFiguresChange(prev => {
-          const merged = prev.map(f => {
-            const db = latest.find(d => d.fig_id === f.fig_id);
-            return db ? { ...f, ...db } : f;
+        const row = event.data;
+        if (!row) return;
+
+        if (event.type === 'delete') {
+          onFiguresChange(prev => prev.filter(f =>
+            !(row.id != null && f.id === row.id) &&
+            !(row.fig_id != null && f.fig_id === row.fig_id),
+          ));
+        } else {
+          onFiguresChange(prev => {
+            const idx = prev.findIndex(f =>
+              (row.fig_id != null && f.fig_id === row.fig_id) ||
+              (row.id != null && f.id === row.id),
+            );
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = { ...next[idx], ...row };
+              return next;
+            }
+            return [...prev, row].sort((a, b) => (a.fig_id ?? 0) - (b.fig_id ?? 0));
           });
-          latest.forEach(db => {
-            if (!merged.find(m => m.fig_id === db.fig_id)) merged.push(db);
-          });
-          return merged.sort((a, b) => a.fig_id - b.fig_id);
-        });
-        addLog(`DB өөрчлөлт: ${event.type} #${event.id?.slice(0, 6)}`, 'ok');
+        }
+        addLog(`DB өөрчлөлт: ${event.type} #${event.id?.slice?.(0, 6) ?? ''}`, 'ok');
       } catch (err) {
         notify.error(err, { fallbackKey: 'toast.admin.realtimeFailed' });
         addLog(`Subscription error: ${err.message}`, 'err');
       }
     });
 
-    return () => { document.body.style.overflow = ''; unsub(); };
+    return () => { unsub(); };
   }, []);
+
+  // One canonical orders fetch on AdminPanel mount, shared by the dashboard
+  // count card and the (forceMount-ed) OrdersTab. `refreshOrders` is the
+  // refresh handle exposed to OrdersTab's "Сэргээх" button.
+  const refreshOrders = useCallback(async () => {
+    setOrdersLoading(true);
+    try {
+      const list = await listOrders();
+      if (ordersMountedRef.current) setOrders(list);
+    } catch (e) {
+      // Surface only when the OrdersTab is the active surface — otherwise
+      // the dashboard count just stays as "—".
+      if (ordersMountedRef.current) {
+        addLog(`Захиалгын ачаалт амжилтгүй: ${adminErrorText(e)}`, 'err');
+      }
+    } finally {
+      if (ordersMountedRef.current) setOrdersLoading(false);
+    }
+  }, [addLog]);
+
+  useEffect(() => {
+    ordersMountedRef.current = true;
+    refreshOrders();
+    return () => { ordersMountedRef.current = false; };
+  }, [refreshOrders]);
+
+  const pendingOrdersCount = orders.filter((o) => o.status === 'pending').length;
 
   const selectFig = (fig) => {
     setSelectedFig(fig);
@@ -140,6 +231,7 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
     }
     onFiguresChange(newFigs);
 
+    setSavingFig(true);
     const promise = (async () => {
       const row = await upsertFigureByFigId(selectedFig, updated);
       updated.id = row.id;
@@ -155,11 +247,20 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
     } catch (err) {
       onFiguresChange(snapshot);
       addLog(`Хадгалахад алдаа: ${err.message}`, 'err');
+    } finally {
+      setSavingFig(false);
     }
   };
 
   const deleteFig = async () => {
-    if (!selectedFig || !confirm(`"${selectedFig.name}" устгах уу?`)) return;
+    if (!selectedFig) return;
+    const ok = await confirm({
+      title: `"${selectedFig.name}" устгах уу?`,
+      body: 'Энэ үйлдлийг буцаах боломжгүй.',
+      confirmLabel: 'Устгах',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       if (selectedFig.id) {
         await base44.entities.Figure.delete(selectedFig.id);
@@ -171,6 +272,7 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
       addLog(`${selectedFig.name} устгагдлаа`, 'warn');
     } catch (err) {
       showToast('Устгахад алдаа гарлаа', true);
+      addLog(`Figure delete failed: ${err?.message ?? err}`, 'err');
     }
   };
 
@@ -212,6 +314,7 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
       addLog(`${selectedFig.name} - ${side} зураг байршуулагдлаа`, 'ok');
     } catch (err) {
       showToast('Зураг байршуулахад алдаа гарлаа', true);
+      addLog(`Image upload (${side}) failed: ${err?.message ?? err}`, 'err');
     }
   };
 
@@ -235,6 +338,7 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
       addLog(`${selectedFig.name} - ${locale} story audio uploaded (${(file.size / 1024).toFixed(0)} KB)`, 'ok');
     } catch (err) {
       showToast('Аудио байршуулахад алдаа гарлаа', true);
+      addLog(`Audio upload (${locale}) failed: ${err?.message ?? err}`, 'err');
     }
   };
 
@@ -268,8 +372,6 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
   const catCounts = {};
   figures.forEach(f => { catCounts[f.cat] = (catCounts[f.cat] || 0) + 1; });
 
-  const elapsed = Math.floor((Date.now() - sessionStart) / 60000);
-
   return (
     <div className="fixed inset-0 z-[200] bg-background flex flex-col">
       {/* Header */}
@@ -285,7 +387,8 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="mx-6 mt-4 bg-muted">
+        <div className="mx-6 mt-4 overflow-x-auto">
+        <TabsList className="bg-muted/40 border border-border w-max max-w-none">
           <TabsTrigger value="dashboard" className="gap-1.5 text-xs font-body">
             <LayoutDashboard className="w-3.5 h-3.5" /> Хянах
           </TabsTrigger>
@@ -297,6 +400,9 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
           </TabsTrigger>
           <TabsTrigger value="invites" className="gap-1.5 text-xs font-body">
             <Ticket className="w-3.5 h-3.5" /> Уригдсан код
+          </TabsTrigger>
+          <TabsTrigger value="orders" className="gap-1.5 text-xs font-body">
+            <ShoppingBag className="w-3.5 h-3.5" /> Захиалга
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-1.5 text-xs font-body">
             <Settings className="w-3.5 h-3.5" /> Тохиргоо
@@ -317,6 +423,7 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
             📦 AR Pack
           </TabsTrigger>
         </TabsList>
+        </div>
 
         {/* Dashboard */}
         <TabsContent value="dashboard" className="flex-1 overflow-auto p-6">
@@ -325,14 +432,27 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
               { label: 'Нийт Зүтгэлтэн', value: figures.length, ico: '🎴' },
               { label: 'Ангилал', value: Object.keys(CATEGORIES).length, ico: '📂' },
               { label: 'Зурагтай', value: figures.filter(f => f.front_img).length, ico: '🖼️' },
-              { label: 'Хугацаа', value: `${elapsed} мин`, ico: '⏱️' },
-            ].map((s, i) => (
-              <div key={i} className="bg-card border border-border rounded-xl p-4 space-y-1">
-                <span className="text-2xl">{s.ico}</span>
-                <div className="font-cinzel text-xl font-bold text-foreground">{s.value}</div>
-                <div className="text-xs text-muted-foreground font-body">{s.label}</div>
-              </div>
-            ))}
+              {
+                label: 'Хүлээгдэж буй захиалга',
+                value: ordersLoading && orders.length === 0 ? '—' : pendingOrdersCount,
+                ico: '🟡',
+                onClick: () => setTab('orders'),
+              },
+            ].map((s, i) => {
+              const cardClass = `bg-card border border-border rounded-xl p-4 space-y-1 ${
+                s.onClick ? 'cursor-pointer hover:border-gold transition-colors text-left w-full' : ''
+              }`;
+              const content = (
+                <>
+                  <span className="text-2xl">{s.ico}</span>
+                  <div className="font-cinzel text-xl font-bold text-foreground">{s.value}</div>
+                  <div className="text-xs text-muted-foreground font-body">{s.label}</div>
+                </>
+              );
+              return s.onClick
+                ? <button key={i} type="button" onClick={s.onClick} className={cardClass}>{content}</button>
+                : <div key={i} className={cardClass}>{content}</div>;
+            })}
           </div>
           
           {/* Category breakdown */}
@@ -413,8 +533,9 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
                       <Button size="sm" variant="destructive" onClick={deleteFig} className="gap-1 text-xs font-body">
                         <Trash2 className="w-3.5 h-3.5" /> Устгах
                       </Button>
-                      <Button size="sm" onClick={saveFig} className="gap-1 text-xs font-body bg-crimson hover:bg-crimson/90 text-white">
-                        <Save className="w-3.5 h-3.5" /> Хадгалах
+                      <Button size="sm" onClick={saveFig} disabled={savingFig} className="gap-1 text-xs font-body bg-crimson hover:bg-crimson/90 text-white">
+                        {savingFig ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                        {savingFig ? 'Хадгалж байна…' : 'Хадгалах'}
                       </Button>
                     </div>
                   </div>
@@ -459,7 +580,7 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs text-muted-foreground font-body">Түүх (Phase C)</label>
+                    <label className="text-xs text-muted-foreground font-body">Түүх</label>
                     <Button
                       variant="outline"
                       size="sm"
@@ -472,12 +593,12 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
 
                   <div className="space-y-1.5">
                     <label className="text-xs text-muted-foreground font-body">Гавьяа (мөр бүрт нэг)</label>
-                    <Textarea value={editForm.achs} onChange={e => setEditForm({...editForm, achs: e.target.value})} className="bg-muted border-none text-sm font-body min-h-[80px]" />
+                    <Textarea value={editForm.achs} onChange={e => setEditForm({...editForm, achs: e.target.value})} className="bg-muted border-none text-sm font-body min-h-[100px]" />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs text-muted-foreground font-body">Сонирхолтой баримт</label>
-                    <Textarea value={editForm.fact} onChange={e => setEditForm({...editForm, fact: e.target.value})} className="bg-muted border-none text-sm font-body" />
+                    <Textarea value={editForm.fact} onChange={e => setEditForm({...editForm, fact: e.target.value})} className="bg-muted border-none text-sm font-body min-h-[100px]" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -492,8 +613,12 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs text-muted-foreground font-body">Холбоотой ID-ууд (таслалаар)</label>
-                    <Input value={editForm.rel} onChange={e => setEditForm({...editForm, rel: e.target.value})} className="bg-muted border-none text-sm font-body" />
+                    <label className="text-xs text-muted-foreground font-body">Холбоотой зүтгэлтнүүд</label>
+                    <RelChipInput
+                      value={editForm.rel}
+                      onChange={(rel) => setEditForm({ ...editForm, rel })}
+                      figures={figures}
+                    />
                   </div>
 
                   {/* Storytelling */}
@@ -599,8 +724,9 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
                                     const newFigs = figures.map(f => f.fig_id === updated.fig_id ? updated : f);
                                     onFiguresChange(newFigs);
                                     showToast('Зураг устгагдлаа');
-                                  } catch {
+                                  } catch (err) {
                                     showToast('Устгахад алдаа гарлаа', true);
+                                    addLog(`Image remove (${side}) failed: ${err?.message ?? err}`, 'err');
                                   }
                                 }}
                               >
@@ -611,6 +737,7 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
                             <label className="flex flex-col items-center justify-center h-32 rounded-lg border-2 border-dashed border-border hover:border-gold cursor-pointer transition-colors">
                               <Upload className="w-6 h-6 text-muted-foreground mb-1" />
                               <span className="text-xs text-muted-foreground font-body">Зураг оруулах</span>
+                              <span className="text-[9px] text-muted-foreground/60 font-body mt-0.5">JPG / PNG / WebP</span>
                               <input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, side)} />
                             </label>
                           )}
@@ -620,8 +747,12 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground font-body text-sm">
-                  Зүүн талаас зүтгэлтэн сонгоно уу
+                <div className="flex items-center justify-center h-full">
+                  <EmptyState
+                    icon={<Pencil className="w-8 h-8 text-muted-foreground/60" />}
+                    title="Зүтгэлтэн сонгоно уу"
+                    description="Зүүн талын жагсаалтаас аль нэгийг сонгож засварлаж эхэл."
+                  />
                 </div>
               )}
             </ScrollArea>
@@ -648,9 +779,22 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
           </div>
         </TabsContent>
 
-        {/* Invites */}
-        <TabsContent value="invites" className="flex-1 overflow-auto p-6">
+        {/* Invites — forceMount so the codes/accounts list survives tab switches. */}
+        <TabsContent value="invites" forceMount className="data-[state=inactive]:hidden flex-1 overflow-auto p-6">
           <InvitesTab onToast={showToast} onLog={addLog} />
+        </TabsContent>
+
+        {/* Orders — state lifted into AdminPanel; forceMount preserves UI state
+           (filter chip, busyIds, scroll) across tab switches. */}
+        <TabsContent value="orders" forceMount className="data-[state=inactive]:hidden flex-1 overflow-auto p-6">
+          <OrdersTab
+            orders={orders}
+            setOrders={setOrders}
+            loading={ordersLoading}
+            onRefresh={refreshOrders}
+            onToast={showToast}
+            onLog={addLog}
+          />
         </TabsContent>
 
         {/* Settings */}
@@ -711,18 +855,17 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
             </div>
           </div>
         </TabsContent>
-        {/* Tournaments */}
-        <TabsContent value="tournaments" className="flex-1 overflow-auto p-6">
+        {/* Tournaments / Voices / Eras — forceMount so each tab's mount-time
+           supabase fetch fires once at panel-open instead of every reopen. */}
+        <TabsContent value="tournaments" forceMount className="data-[state=inactive]:hidden flex-1 overflow-auto p-6">
           <AdminTournaments onToast={showToast} />
         </TabsContent>
 
-        {/* Voices */}
-        <TabsContent value="voices" className="flex-1 overflow-auto p-6">
+        <TabsContent value="voices" forceMount className="data-[state=inactive]:hidden flex-1 overflow-auto p-6">
           <AdminVoices onToast={showToast} />
         </TabsContent>
 
-        {/* Eras */}
-        <TabsContent value="eras" className="flex-1 overflow-auto p-6">
+        <TabsContent value="eras" forceMount className="data-[state=inactive]:hidden flex-1 overflow-auto p-6">
           <AdminEras onToast={showToast} />
         </TabsContent>
 
@@ -751,8 +894,8 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
         />
       )}
 
-      {/* Toast */}
-      {toast && <AdminToast message={toast.message} isError={toast.isError} />}
+      {/* Confirm dialog (rendered via portal, position-independent) */}
+      {confirmDialog}
     </div>
   );
 }
@@ -766,6 +909,9 @@ function InvitesTab({ onToast, onLog }) {
   const [grantsAdmin, setGrantsAdmin] = useState(false);
   const [count, setCount] = useState(1);
   const [busy, setBusy] = useState(false);
+  const [deletingCode, setDeletingCode] = useState(null);
+  const deletingRef = useRef(new Set());
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const refresh = async () => {
     try {
@@ -773,7 +919,7 @@ function InvitesTab({ onToast, onLog }) {
       setInvites(invs);
       setAccounts(accs);
     } catch (e) {
-      onToast('Код ачаалахад алдаа: ' + (e.message ?? e), true);
+      onToast('Код ачаалахад алдаа: ' + adminErrorText(e), true);
     }
   };
 
@@ -799,21 +945,32 @@ function InvitesTab({ onToast, onLog }) {
         onLog(`${made} уригдсан код үүслээ${grantsAdmin ? ' (админ)' : ''}`, 'ok');
       }
     } catch (e) {
-      onToast('Алдаа: ' + (e.message ?? e), true);
+      onToast('Алдаа: ' + adminErrorText(e), true);
     } finally {
       setBusy(false);
     }
   };
 
   const handleDelete = async (id, code) => {
-    if (!confirm(`"${code}" кодыг устгах уу?`)) return;
+    if (deletingRef.current.has(code)) return;
+    const ok = await confirm({
+      title: `"${code}" кодыг устгах уу?`,
+      confirmLabel: 'Устгах',
+      danger: true,
+    });
+    if (!ok) return;
+    deletingRef.current.add(code);
+    setDeletingCode(code);
     try {
       await deleteInviteCode(code);
       await refresh();
       onToast('Код устгагдлаа');
       onLog(`Код устгагдлаа: ${code}`, 'warn');
     } catch (e) {
-      onToast('Алдаа: ' + (e.message ?? e), true);
+      onToast('Алдаа: ' + adminErrorText(e), true);
+    } finally {
+      deletingRef.current.delete(code);
+      setDeletingCode((prev) => (prev === code ? null : prev));
     }
   };
 
@@ -837,7 +994,10 @@ function InvitesTab({ onToast, onLog }) {
     const body = rows
       .map(r => `${r.code},${r.created_at ?? ''},${r.grants_admin ? 'yes' : 'no'}`)
       .join('\n');
-    const blob = new Blob([header + body], { type: 'text/csv;charset=utf-8' });
+    // Prepend a UTF-8 BOM so Excel on Windows opens the CSV with the correct
+    // codepage instead of treating it as ANSI (which mangles any future
+    // Mongolian/Cyrillic content).
+    const blob = new Blob(['﻿', header + body], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -938,9 +1098,11 @@ function InvitesTab({ onToast, onLog }) {
       {/* Table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         {invites.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground font-body">
-            Кодын жагсаалт хоосон байна. "Шинэ код үүсгэх" дарна уу.
-          </div>
+          <EmptyState
+            icon={<Ticket className="w-8 h-8 text-muted-foreground/60" />}
+            title="Кодын жагсаалт хоосон"
+            description={'Шинэ урилгын код үүсгэхийн тулд "Шинэ код үүсгэх" товчийг ашиглаарай.'}
+          />
         ) : (
           <table className="w-full text-sm font-body">
             <thead className="bg-muted/50 text-muted-foreground text-xs">
@@ -996,11 +1158,14 @@ function InvitesTab({ onToast, onLog }) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          disabled={deletingCode === inv.code}
                           className="h-7 w-7 p-0 text-red-400 hover:text-red-300"
                           onClick={() => handleDelete(inv.id, inv.code)}
                           title="Устгах"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          {deletingCode === inv.code
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />}
                         </Button>
                       </div>
                     </td>
@@ -1016,6 +1181,442 @@ function InvitesTab({ onToast, onLog }) {
         💡 Боломжит кодыг бусдад өгвөл тэд "Код ашиглах" хэсэгт оруулж, <strong>нэг</strong> данс үүсгэх боломжтой болно.
         Код ашиглагдсаны дараа дахин хэрэглэгдэхгүй.
       </p>
+      {confirmDialog}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Orders tab — list pre-orders submitted from the landing /order page,
+// approve / mark shipped / cancel / delete. Reads via the `list-orders` edge
+// function; mutations go through `update-order-status` and `delete-order`,
+// which re-verify is_admin against the profiles table.
+// ---------------------------------------------------------------------------
+
+const TIER_LABEL = {
+  basic: 'Энгийн',
+  premium: 'Premium',
+  collector: 'Collector',
+};
+
+const STATUS_META = {
+  pending:   { label: 'Хүлээгдэж буй', cls: 'border-yellow-500/60 text-yellow-300' },
+  confirmed: { label: 'Зөвшөөрсөн',    cls: 'border-green-500/60 text-green-300' },
+  shipped:   { label: 'Илгээгдсэн',     cls: 'border-blue-500/60 text-blue-300' },
+  cancelled: { label: 'Цуцалсан',       cls: 'border-red-500/60 text-red-300' },
+};
+
+const STATUS_FILTERS = ['all', 'pending', 'confirmed', 'shipped', 'cancelled'];
+
+// `orders` / `setOrders` / `loading` / `onRefresh` are lifted into AdminPanel
+// so the dashboard pending-count card and this tab share a single fetch.
+function OrdersTab({ orders, setOrders, loading, onRefresh, onToast, onLog }) {
+  const [filter, setFilter] = useState('pending');
+  // Synchronous in-flight set blocks duplicate dispatches before React commits
+  // the disabled state. The render-state Set mirrors it so EVERY in-flight
+  // row renders visually disabled (a scalar busyId only tracked the last one).
+  const inFlightRef = useRef(new Set());
+  const [busyIds, setBusyIds] = useState(() => new Set());
+  const { confirm, dialog: confirmDialog } = useConfirm();
+  const isWide = useMediaQuery('(min-width: 1024px)');
+
+  const beginBusy = (id) => {
+    if (inFlightRef.current.has(id)) return false;
+    inFlightRef.current.add(id);
+    setBusyIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    return true;
+  };
+  const endBusy = (id) => {
+    inFlightRef.current.delete(id);
+    setBusyIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  // `loading` and the canonical fetch are owned by AdminPanel; the refresh
+  // button below routes through `onRefresh` so the same single source of truth
+  // updates both the dashboard count and the table.
+
+  const setStatus = async (id, nextStatus, verbForLog) => {
+    if (!beginBusy(id)) return;
+    // Snapshot just the affected row so a failure here doesn't roll back
+    // any concurrent successful mutations on other rows.
+    const original = orders.find(o => o.id === id);
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: nextStatus } : o));
+    try {
+      await updateOrderStatus(id, nextStatus);
+      onToast(`Төлөв шинэчлэгдлээ: ${STATUS_META[nextStatus].label}`);
+      onLog(`Захиалга ${verbForLog}: #${id.slice(0, 6)}`, nextStatus === 'cancelled' ? 'warn' : 'ok');
+    } catch (e) {
+      setOrders(prev => prev.map(o => (o.id === id && original) ? original : o));
+      onToast('Шинэчлэхэд алдаа: ' + adminErrorText(e), true);
+    } finally {
+      endBusy(id);
+    }
+  };
+
+  const handleDelete = async (order) => {
+    const ok = await confirm({
+      title: `"${order.customer_name}" захиалгыг устгах уу?`,
+      body: `${TIER_LABEL[order.tier] || order.tier} — ${order.customer_phone}`,
+      confirmLabel: 'Устгах',
+      danger: true,
+    });
+    if (!ok) return;
+    if (!beginBusy(order.id)) return;
+    // Capture the original index so reinsertion preserves position on rollback,
+    // even if other rows changed concurrently.
+    const indexBefore = orders.findIndex(o => o.id === order.id);
+    setOrders(prev => prev.filter(o => o.id !== order.id));
+    try {
+      await deleteOrder(order.id);
+      onToast('Захиалга устгагдлаа');
+      onLog(`Захиалга устгагдлаа: ${order.customer_name}`, 'warn');
+    } catch (e) {
+      setOrders(prev => {
+        if (prev.some(o => o.id === order.id)) return prev;
+        const copy = [...prev];
+        const at = indexBefore < 0 ? copy.length : Math.min(indexBefore, copy.length);
+        copy.splice(at, 0, order);
+        return copy;
+      });
+      onToast('Устгахад алдаа: ' + adminErrorText(e), true);
+    } finally {
+      endBusy(order.id);
+    }
+  };
+
+  const counts = orders.reduce((acc, o) => {
+    acc.total += 1;
+    acc[o.status] = (acc[o.status] || 0) + 1;
+    return acc;
+  }, { total: 0, pending: 0, confirmed: 0, shipped: 0, cancelled: 0 });
+
+  const visible = filter === 'all' ? orders : orders.filter(o => o.status === filter);
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {[
+          { label: 'Бүгд',         value: counts.total,     ico: '📦' },
+          { label: 'Хүлээгдэж буй', value: counts.pending,   ico: '🟡' },
+          { label: 'Зөвшөөрсөн',   value: counts.confirmed, ico: '✅' },
+          { label: 'Илгээгдсэн',   value: counts.shipped,   ico: '🚚' },
+          { label: 'Цуцалсан',     value: counts.cancelled, ico: '⛔' },
+        ].map((s, i) => (
+          <div key={i} className="bg-card border border-border rounded-xl p-3 space-y-1">
+            <span className="text-xl">{s.ico}</span>
+            <div className="font-cinzel text-lg font-bold text-foreground">{s.value}</div>
+            <div className="text-[11px] text-muted-foreground font-body">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Header / filter row */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h3 className="font-cinzel font-bold text-foreground">Захиалгын жагсаалт</h3>
+          <p className="text-xs text-muted-foreground font-body">
+            /order хуудаснаас ирсэн захиалгууд. Зөвшөөрвөл "Confirmed" төлөвт шилжинэ.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {STATUS_FILTERS.map(f => {
+            const isActive = filter === f;
+            const labelMap = { all: 'Бүгд', ...Object.fromEntries(Object.entries(STATUS_META).map(([k, v]) => [k, v.label])) };
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 rounded-md text-xs font-body border transition-colors ${
+                  isActive
+                    ? 'bg-gold/20 border-gold text-gold'
+                    : 'border-border text-muted-foreground hover:text-foreground hover:border-gold/40'
+                }`}
+              >
+                {labelMap[f]}
+                {f !== 'all' && counts[f] > 0 && (
+                  <span className="ml-1.5 opacity-70">{counts[f]}</span>
+                )}
+              </button>
+            );
+          })}
+          <Button
+            onClick={onRefresh}
+            disabled={loading}
+            variant="outline"
+            size="sm"
+            className="gap-1.5 font-body text-xs border-gold/50 text-gold hover:bg-gold/10"
+            title="Сэргээх"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Сэргээх
+          </Button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        {loading && orders.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground font-body">Ачаалж байна…</div>
+        ) : visible.length === 0 ? (
+          <EmptyState
+            icon={<ShoppingBag className="w-8 h-8 text-muted-foreground/60" />}
+            title={filter === 'all' ? 'Захиалга байхгүй' : `"${(STATUS_META[filter]?.label) || filter}" төлөвтэй захиалга алга`}
+            description={filter === 'all'
+              ? '/order хуудаснаас захиалга ирэхэд энд харагдана.'
+              : 'Бусад төлөвийг шалгахын тулд дээрх шүүлтүүрийг солино уу.'}
+          />
+        ) : (
+          <table className="w-full text-sm font-body">
+            <thead className="bg-muted/50 text-muted-foreground text-xs">
+              <tr>
+                <th className="text-left px-4 py-2 font-normal">Огноо</th>
+                <th className="text-left px-4 py-2 font-normal">Хэрэглэгч</th>
+                <th className="text-left px-4 py-2 font-normal">Багц</th>
+                <th className="text-left px-4 py-2 font-normal">Хаяг / Тэмдэглэл</th>
+                <th className="text-left px-4 py-2 font-normal">Төлөв</th>
+                <th className="text-right px-4 py-2 font-normal">Үйлдэл</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map(o => {
+                const meta = STATUS_META[o.status] || STATUS_META.pending;
+                const isBusy = busyIds.has(o.id);
+                return (
+                  <tr key={o.id} className="border-t border-border align-top">
+                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                      {o.created_at ? new Date(o.created_at).toLocaleString('mn-MN') : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-foreground">{o.customer_name}</div>
+                      <a href={`tel:${o.customer_phone}`} className="text-xs text-muted-foreground hover:text-gold">
+                        {o.customer_phone}
+                      </a>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-foreground">
+                      {TIER_LABEL[o.tier] || o.tier}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-xs">
+                      <div className="whitespace-pre-wrap break-words">{o.customer_address}</div>
+                      {o.notes && (
+                        <div className="mt-1 italic opacity-80 whitespace-pre-wrap break-words">{o.notes}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className={meta.cls}>{meta.label}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      {isWide ? (
+                      /* lg+: full inline cluster */
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        {o.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            disabled={isBusy}
+                            onClick={() => setStatus(o.id, 'confirmed', 'зөвшөөрөгдлөө')}
+                            className="h-7 text-xs bg-green-700 hover:bg-green-600 text-white gap-1"
+                          >
+                            <Check className="w-3.5 h-3.5" /> Зөвшөөрөх
+                          </Button>
+                        )}
+                        {(o.status === 'pending' || o.status === 'confirmed') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isBusy}
+                            onClick={() => setStatus(o.id, 'shipped', 'илгээгдсэн')}
+                            className="h-7 text-xs border-blue-500/50 text-blue-300 hover:bg-blue-500/10"
+                          >
+                            🚚 Илгээсэн
+                          </Button>
+                        )}
+                        {o.status !== 'cancelled' && o.status !== 'shipped' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isBusy}
+                            onClick={() => setStatus(o.id, 'cancelled', 'цуцлагдлаа')}
+                            className="h-7 text-xs border-red-500/40 text-red-300 hover:bg-red-500/10"
+                          >
+                            Цуцлах
+                          </Button>
+                        )}
+                        {(o.status === 'cancelled' || o.status === 'shipped') && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={isBusy}
+                            onClick={() => setStatus(o.id, 'pending', 'буцаагдсан')}
+                            className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            Буцаах
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={isBusy}
+                          onClick={() => handleDelete(o)}
+                          className="h-7 w-7 p-0 text-red-400 hover:text-red-300"
+                          title="Устгах"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                      ) : (
+                      /* <lg: primary action + overflow menu */
+                      <div className="flex items-center justify-end gap-1.5">
+                        {o.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            disabled={isBusy}
+                            onClick={() => setStatus(o.id, 'confirmed', 'зөвшөөрөгдлөө')}
+                            className="h-7 text-xs bg-green-700 hover:bg-green-600 text-white gap-1"
+                          >
+                            <Check className="w-3.5 h-3.5" /> Зөвшөөрөх
+                          </Button>
+                        )}
+                        {o.status === 'confirmed' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isBusy}
+                            onClick={() => setStatus(o.id, 'shipped', 'илгээгдсэн')}
+                            className="h-7 text-xs border-blue-500/50 text-blue-300 hover:bg-blue-500/10"
+                          >
+                            🚚 Илгээсэн
+                          </Button>
+                        )}
+                        {(o.status === 'shipped' || o.status === 'cancelled') && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={isBusy}
+                            onClick={() => setStatus(o.id, 'pending', 'буцаагдсан')}
+                            className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            Буцаах
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={isBusy}
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                              title="Илүү үйлдэл"
+                            >
+                              <MoreHorizontal className="w-3.5 h-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="font-body text-xs">
+                            {o.status === 'pending' && (
+                              <DropdownMenuItem onSelect={() => setStatus(o.id, 'shipped', 'илгээгдсэн')}>
+                                🚚 Илгээсэн
+                              </DropdownMenuItem>
+                            )}
+                            {(o.status === 'pending' || o.status === 'confirmed') && (
+                              <DropdownMenuItem onSelect={() => setStatus(o.id, 'cancelled', 'цуцлагдлаа')} className="text-red-400 focus:text-red-300">
+                                Цуцлах
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onSelect={() => handleDelete(o)} className="text-red-400 focus:text-red-300">
+                              <Trash2 className="w-3.5 h-3.5 mr-2" /> Устгах
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <p className="text-xs text-muted-foreground font-body">
+        💡 Захиалга /order хуудаснаас ирдэг. "Зөвшөөрөх" товч төлөвийг <strong>confirmed</strong>-д шилжүүлнэ. Илгээгдсэн ба цуцалсан захиалгыг "Буцаах" товчоор хүлээгдэж буй төлөв рүү буцаах боломжтой.
+      </p>
+      {confirmDialog}
+    </div>
+  );
+}
+
+// Chip-input over a comma-separated string of fig_ids. Keeps the same value
+// shape as the underlying form field so saveFig's existing parser still works
+// — it just makes existing relations visible (with figure name lookup) and
+// individually removable, instead of forcing the admin to hand-edit a single
+// long line of comma-separated numbers.
+function RelChipInput({ value, onChange, figures }) {
+  const [draft, setDraft] = useState('');
+  const ids = String(value ?? '')
+    .split(',')
+    .map((s) => parseInt(s.trim()))
+    .filter((n) => Number.isInteger(n) && n > 0);
+
+  const addId = (raw) => {
+    const n = parseInt(String(raw).trim());
+    if (!Number.isInteger(n) || n <= 0) return;
+    if (ids.includes(n)) return;
+    onChange([...ids, n].join(', '));
+    setDraft('');
+  };
+  const removeId = (n) => onChange(ids.filter((x) => x !== n).join(', '));
+
+  return (
+    <div className="space-y-2">
+      {ids.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {ids.map((n) => {
+            const fig = figures.find((f) => f.fig_id === n);
+            return (
+              <span
+                key={n}
+                className="inline-flex items-center gap-1.5 bg-muted border border-border rounded-md px-2 py-0.5 text-xs font-body"
+              >
+                <span className="text-muted-foreground">#{n}</span>
+                <span>{fig ? `${fig.ico ?? ''} ${fig.name}`.trim() : '—'}</span>
+                <button
+                  type="button"
+                  onClick={() => removeId(n)}
+                  className="ml-0.5 text-muted-foreground hover:text-red-400 leading-none text-base"
+                  aria-label={`#${n} устгах`}
+                >
+                  ×
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+      <form
+        onSubmit={(e) => { e.preventDefault(); addId(draft); }}
+        className="flex gap-2"
+      >
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="ID нэмэх (жишээ: 14)"
+          type="number"
+          min={1}
+          className="bg-muted border-none text-sm font-body"
+        />
+        <Button type="submit" size="sm" variant="outline" disabled={!draft.trim()}>
+          Нэмэх
+        </Button>
+      </form>
     </div>
   );
 }

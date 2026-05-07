@@ -5,6 +5,8 @@ import { useLang } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { useFigureARPack } from '@/hooks/useFigureARPack';
 import { FIGURES } from '@/lib/figuresData';
+import { useConfirm } from '@/components/ui/use-confirm';
+import { adminErrorText } from '@/lib/adminErrors';
 
 const MAX_PACK_BYTES = 30 * 1024 * 1024;
 
@@ -17,6 +19,7 @@ export default function ARPackUploader() {
   const [busy, setBusy] = useState(false);
   const [orderText, setOrderText] = useState(JSON.stringify(DEFAULT_ORDER));
   const inputRef = useRef(null);
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   useEffect(() => {
     if (pack.targetOrder?.length) {
@@ -52,6 +55,17 @@ export default function ARPackUploader() {
       return;
     }
 
+    // If a pack is already deployed, ask before overwriting it. Same warning
+    // copy as the explicit Delete action — both are destructive.
+    if (pack.ready) {
+      const ok = await confirm({
+        title: t('admin.arPack.replaceWarn'),
+        confirmLabel: 'Тийм',
+        danger: true,
+      });
+      if (!ok) return;
+    }
+
     setBusy(true);
     const form = new FormData();
     form.append('action', 'upload-pack');
@@ -62,27 +76,35 @@ export default function ARPackUploader() {
     });
     setBusy(false);
     if (invErr || !data?.ok) {
-      setError(data?.reason || invErr?.message || 'server');
+      setError(adminErrorText(data?.reason || invErr?.message || 'server'));
       return;
     }
   };
 
   const handleDelete = async () => {
     if (!pack.ready) return;
-    if (!window.confirm(t('admin.arPack.replaceWarn'))) return;
+    const ok = await confirm({
+      title: t('admin.arPack.replaceWarn'),
+      confirmLabel: 'Тийм',
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     const { data, error: invErr } = await supabase.functions.invoke('upload-figure-ar-pack', {
       body: { action: 'delete-pack' },
     });
     setBusy(false);
     if (invErr || !data?.ok) {
-      setError(data?.reason || invErr?.message || 'server');
+      setError(adminErrorText(data?.reason || invErr?.message || 'server'));
     }
   };
 
   return (
     <div className="space-y-4 max-w-2xl">
       <p className="text-xs text-ivory/70 font-body">{t('admin.arPack.help')}</p>
+      <p className="text-[11px] text-muted-foreground font-body">
+        .mind файл, дээд тал нь {(MAX_PACK_BYTES / 1024 / 1024).toFixed(0)} MB.
+      </p>
       {error && (
         <div role="alert" className="px-3 py-2 rounded bg-red-950/50 border border-red-500 text-sm text-red-200">
           {error}
@@ -146,6 +168,7 @@ export default function ARPackUploader() {
           data-testid="ar-pack-order-input"
         />
       </label>
+      {confirmDialog}
     </div>
   );
 }

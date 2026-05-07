@@ -1,12 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { handleOptions, json } from '../_shared/cors.ts';
 
-// Cap the per-request payload so a 1500-batch admin (the current
-// `generate-codes` MAX_BATCH) doesn't stream the entire access_codes table
-// every time the InvitesTab refreshes. Hard cap leaves headroom but is well
-// below the table's worst-case size as more batches accumulate over time.
-const DEFAULT_LIMIT = 2000;
-const MAX_LIMIT = 5000;
+// Default and hard cap for the page size. Default keeps the admin-panel
+// payload bounded as the orders table grows; hard cap prevents a misbehaving
+// client from requesting the whole table at once.
+const DEFAULT_LIMIT = 200;
+const MAX_LIMIT = 1000;
 
 Deno.serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre;
@@ -39,8 +38,8 @@ Deno.serve(async (req) => {
   const before = typeof body.before === 'string' && body.before ? body.before : null;
 
   let q = admin
-    .from('access_codes')
-    .select('code, grants_admin, created_at, redeemed_by, redeemed_at')
+    .from('orders')
+    .select('id, tier, customer_name, customer_phone, customer_address, notes, status, created_at')
     .order('created_at', { ascending: false })
     .limit(limit);
   if (before) q = q.lt('created_at', before);
@@ -50,14 +49,7 @@ Deno.serve(async (req) => {
 
   return json({
     ok: true,
-    codes: data.map((r: Record<string, unknown>) => ({
-      id: r.code,
-      code: r.code,
-      grants_admin: r.grants_admin,
-      created_at: r.created_at,
-      used_by: r.redeemed_by,
-      used_at: r.redeemed_at,
-    })),
+    orders: data ?? [],
     limit,
     has_more: (data?.length ?? 0) === limit,
   });

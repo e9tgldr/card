@@ -6,6 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { FIGURES } from '@/lib/figuresData';
 import { useLang } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useConfirm } from '@/components/ui/use-confirm';
 
 const QUICK_PROMPTS_MN = [
   'Чингис Хааны тухай ярина уу',
@@ -49,6 +50,7 @@ export default function ChatFAB({ initialQuestion, onOpenModal }) {
   const [showExport, setShowExport] = useState(false);
   const [listening, setListening] = useState(false);
   const { lang } = useLang();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const QUICK_PROMPTS = lang === 'en' ? QUICK_PROMPTS_EN : QUICK_PROMPTS_MN;
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
@@ -113,10 +115,14 @@ export default function ChatFAB({ initialQuestion, onOpenModal }) {
     setLoading(false);
   }, [input, messages]);
 
-  const clearChat = () => {
-    if (messages.length > 0 && confirm('Чатыг цэвэрлэх үү?')) {
-      setMessages([]);
-    }
+  const clearChat = async () => {
+    if (messages.length === 0) return;
+    const ok = await confirm({
+      title: 'Чатыг цэвэрлэх үү?',
+      confirmLabel: 'Цэвэрлэх',
+      danger: true,
+    });
+    if (ok) setMessages([]);
   };
 
   const exportChat = (format) => {
@@ -368,6 +374,7 @@ export default function ChatFAB({ initialQuestion, onOpenModal }) {
           </motion.div>
         )}
       </AnimatePresence>
+      {confirmDialog}
     </>
   );
 }

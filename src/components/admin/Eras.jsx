@@ -4,6 +4,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { ERAS, ERA_KEYS } from '@/lib/figuresData';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { useConfirm } from '@/components/ui/use-confirm';
+import { adminErrorText } from '@/lib/adminErrors';
 
 const LANGS = ['mn', 'en'];
 const KINDS = ['intro', 'outro'];
@@ -13,6 +15,7 @@ export default function AdminEras({ onToast }) {
   const [state, setState] = useState({});
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState(null);
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const load = async () => {
     setLoading(true);
@@ -22,7 +25,7 @@ export default function AdminEras({ onToast }) {
       .select('slug, lang, text, status')
       .in('slug', slugs);
     setLoading(false);
-    if (error) { onToast('Ачаалахад алдаа: ' + error.message, true); return; }
+    if (error) { onToast('Ачаалахад алдаа: ' + adminErrorText(error), true); return; }
     const next = {};
     for (const era of ERA_KEYS) for (const kind of KINDS) for (const lang of LANGS) {
       next[`${era}:${kind}:${lang}`] = { text: '', status: 'draft' };
@@ -39,15 +42,32 @@ export default function AdminEras({ onToast }) {
   const save = async (era, kind, lang, nextStatus) => {
     const key = `${era}:${kind}:${lang}`;
     const row = state[key];
-    setSavingKey(key);
     const status = nextStatus ?? row.status;
+
+    // Confirm any explicit status change so a misclick on "Нийтлэх" or
+    // "Нийтлэлээс авах" doesn't silently flip published state.
+    if (nextStatus && nextStatus !== row?.status) {
+      const ok = await confirm({
+        title: nextStatus === 'published'
+          ? 'Энэ текстийг нийтлэх үү?'
+          : 'Нийтлэлээс авах уу?',
+        body: nextStatus === 'published'
+          ? 'Хэрэглэгчид шууд харагдана.'
+          : 'Хэрэглэгчид харахаа болино.',
+        confirmLabel: nextStatus === 'published' ? 'Нийтлэх' : 'Нийтлэлээс авах',
+        danger: nextStatus !== 'published',
+      });
+      if (!ok) return;
+    }
+
+    setSavingKey(key);
     const slug = `era_${kind}:${era}`;
     const { error } = await supabase.from('story_content').upsert(
       { slug, lang, text: row.text, status, updated_by: user?.id },
       { onConflict: 'slug,lang' },
     );
     setSavingKey(null);
-    if (error) { onToast('Хадгалахад алдаа: ' + error.message, true); return; }
+    if (error) { onToast('Хадгалахад алдаа: ' + adminErrorText(error), true); return; }
     setState((p) => ({ ...p, [key]: { ...p[key], status } }));
     onToast(status === 'published' ? 'Нийтлэгдлээ' : 'Хадгалагдлаа');
   };
@@ -116,6 +136,7 @@ export default function AdminEras({ onToast }) {
           </section>
         );
       })}
+      {confirmDialog}
     </div>
   );
 }

@@ -60,8 +60,14 @@ export const bootstrapCode = async () => {
 // Invite-code management (admin-facing, via edge functions)
 // ---------------------------------------------------------------------------
 
-export const listInviteCodes = async () => {
-  const { data, error } = await supabase.functions.invoke('list-codes', { body: {} });
+// Returns invite codes newest-first. Server caps at 2000 by default (max
+// 5000) so the InvitesTab payload stays bounded as batches accumulate. Pass
+// `before` (an ISO `created_at`) to fetch the next page of older rows.
+export const listInviteCodes = async ({ limit, before } = {}) => {
+  const body = {};
+  if (limit) body.limit = limit;
+  if (before) body.before = before;
+  const { data, error } = await supabase.functions.invoke('list-codes', { body });
   if (error) throw error;
   return data?.codes ?? [];
 };

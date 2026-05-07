@@ -15,7 +15,6 @@ Deno.serve(async (req) => {
 
   const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-  // Re-verify admin against profiles, not just JWT.
   const { data: prof } = await admin
     .from('profiles')
     .select('is_admin')
@@ -23,12 +22,13 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!prof?.is_admin) return json({ ok: false, reason: 'forbidden' }, 403);
 
-  let body: { code?: string };
-  try { body = await req.json(); } catch { return json({ ok: false, reason: 'bad_request' }, 400); }
-  const code = body.code?.trim().toUpperCase();
-  if (!code) return json({ ok: false, reason: 'bad_request' }, 400);
+  let body: { id?: string };
+  try { body = await req.json(); } catch { return json({ ok: false, reason: 'bad_body' }, 400); }
+  const id = (body.id ?? '').trim();
+  if (!id) return json({ ok: false, reason: 'missing_id' }, 400);
 
-  const { error } = await admin.from('access_codes').delete().eq('code', code).is('redeemed_by', null);
+  const { error } = await admin.from('orders').delete().eq('id', id);
   if (error) return json({ ok: false, reason: error.message }, 500);
+
   return json({ ok: true });
 });

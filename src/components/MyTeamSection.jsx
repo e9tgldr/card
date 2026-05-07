@@ -7,11 +7,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SealMark from '@/components/ornaments/SealMark';
 import CornerTicks from '@/components/ornaments/CornerTicks';
 import CategoryGlyph from '@/components/ornaments/CategoryGlyph';
+import { useConfirm } from '@/components/ui/use-confirm';
 
 export default function MyTeamSection({ figures, team, onRemove, onClear }) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const { t, lang } = useLang();
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const teamFigures = team.map(id => figures.find(f => f.fig_id === id)).filter(Boolean);
   if (team.length === 0) return null;
@@ -68,7 +70,14 @@ export default function MyTeamSection({ figures, team, onRemove, onClear }) {
               {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
             </button>
             <button
-              onClick={() => { if (confirm(t('team.clearConfirm'))) onClear(); }}
+              onClick={async () => {
+                const ok = await confirm({
+                  title: t('team.clearConfirm'),
+                  confirmLabel: 'Цэвэрлэх',
+                  danger: true,
+                });
+                if (ok) onClear();
+              }}
               className="p-2 border border-brass/40 hover:border-seal hover:text-seal text-brass transition-colors"
               title={t('team.clearConfirm')}
             >
@@ -160,6 +169,7 @@ export default function MyTeamSection({ figures, team, onRemove, onClear }) {
           )}
         </AnimatePresence>
       </div>
+      {confirmDialog}
     </section>
   );
 }

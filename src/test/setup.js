@@ -28,3 +28,29 @@ if (typeof window !== 'undefined' && !window.IntersectionObserver) {
   window.IntersectionObserver = StubIntersectionObserver;
   globalThis.IntersectionObserver = StubIntersectionObserver;
 }
+
+// jsdom doesn't implement ResizeObserver; Radix UI's overlays
+// (AlertDialog/Dialog/Popover) read it during mount and crash without a stub.
+if (typeof window !== 'undefined' && !window.ResizeObserver) {
+  class StubResizeObserver {
+    constructor() {}
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  window.ResizeObserver = StubResizeObserver;
+  globalThis.ResizeObserver = StubResizeObserver;
+}
+
+// Radix relies on Element.hasPointerCapture which jsdom doesn't implement.
+if (typeof window !== 'undefined') {
+  if (!window.Element.prototype.hasPointerCapture) {
+    window.Element.prototype.hasPointerCapture = () => false;
+  }
+  if (!window.Element.prototype.releasePointerCapture) {
+    window.Element.prototype.releasePointerCapture = () => {};
+  }
+  if (!window.Element.prototype.setPointerCapture) {
+    window.Element.prototype.setPointerCapture = () => {};
+  }
+}
