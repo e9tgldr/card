@@ -38,9 +38,19 @@ export default function MultiTargetARScene({
   const narration = useNarration({ text: voiceText, lang, useSpeak: true });
 
   const handleStart = async () => {
+    // Yield once so any pending A-Frame init microtasks finish before we
+    // probe for the system. Microtask yields preserve iOS Safari's transient
+    // user activation; setTimeout/fetch on the path here would not.
+    await Promise.resolve();
     const scene = sceneRef.current;
     const system = scene?.systems?.['mindar-image-system'];
-    if (!system?.start) return;
+    if (!system?.start) {
+      // Race: button shown but A-Frame still warming up. Surface a soft
+      // signal to the user via the existing onError channel — handleArError
+      // will route it to the permission panel which has its own retry.
+      onError?.(new Error('mindar-image-system not yet available'));
+      return;
+    }
     try {
       await system.start();
       setStarted(true);
@@ -54,6 +64,7 @@ export default function MultiTargetARScene({
     let scene = null;
     let stopCameraTracks = () => {};
     let hintTimer;
+    let readyFallbackTimer;
 
     Promise.all([
       import('aframe'),
@@ -65,11 +76,20 @@ export default function MultiTargetARScene({
       containerRef.current.appendChild(scene);
       sceneRef.current = scene;
 
-      // A-Frame fires `renderstart` once the renderer starts; that's our
-      // signal that `mindar-image-system` is registered and `start()` can be
-      // safely called from the next user gesture.
-      const onRenderStart = () => { if (!cancelled) setReady(true); };
-      scene.addEventListener('renderstart', onRenderStart);
+      // We previously waited for A-Frame's `renderstart` event before showing
+      // the start button — but on some iOS Safari versions, when MindAR's
+      // `autoStart` is off, the renderer never ticks (no camera texture to
+      // render against), so renderstart never fires and the user is stuck on
+      // a spinner forever. Append is enough — A-Frame initialises the scene
+      // synchronously enough that `mindar-image-system` will be registered
+      // by the time a human can read the button and tap it. Belt-and-braces:
+      // also listen for `loaded` and have a 3s outer fallback so the button
+      // can never get permanently stuck behind a missed event.
+      const flipReady = () => { if (!cancelled) setReady(true); };
+      scene.addEventListener('loaded', flipReady);
+      readyFallbackTimer = setTimeout(flipReady, 3000);
+      // Microtask-yield so React can commit before the (also-immediate) flip.
+      Promise.resolve().then(flipReady);
 
       const handlers = (targetOrder ?? []).map((_figId, idx) => {
         const onFound = () => {
@@ -107,7 +127,7 @@ export default function MultiTargetARScene({
           h.entity?.removeEventListener('targetFound', h.onFound);
           h.entity?.removeEventListener('targetLost', h.onLost);
         }
-        scene.removeEventListener('renderstart', onRenderStart);
+        scene.removeEventListener('loaded', flipReady);
       };
     }).catch((err) => {
       if (!cancelled) onError?.(err);
@@ -116,6 +136,7 @@ export default function MultiTargetARScene({
     return () => {
       cancelled = true;
       clearTimeout(hintTimer);
+      clearTimeout(readyFallbackTimer);
       try { stopCameraTracks(); } catch { /* best-effort */ }
       if (scene && scene.parentNode) scene.parentNode.removeChild(scene);
       sceneRef.current = null;
