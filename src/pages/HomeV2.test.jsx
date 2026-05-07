@@ -3,7 +3,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const { teamHook, base44Mock } = vi.hoisted(() => ({
+const { teamHook, base44Mock, authStoreMock } = vi.hoisted(() => ({
   teamHook: { team: [], removeFromTeam: vi.fn(), isInTeam: () => false, toggleTeam: vi.fn() },
   base44Mock: {
     entities: {
@@ -17,6 +17,7 @@ const { teamHook, base44Mock } = vi.hoisted(() => ({
       },
     },
   },
+  authStoreMock: { isGuest: vi.fn(() => false), currentSession: vi.fn(() => null) },
 }));
 
 vi.mock('@/lib/i18n', async () => {
@@ -30,6 +31,7 @@ vi.mock('@/components/ScrollProgress', () => ({ default: () => null }));
 vi.mock('@/components/HistoricalMap', () => ({ default: () => <div data-testid="historical-map" /> }));
 vi.mock('@/components/TimelineSection', () => ({ default: () => <div data-testid="timeline-section" /> }));
 vi.mock('@/components/CompareBar', () => ({ default: () => null }));
+vi.mock('@/lib/authStore', () => authStoreMock);
 
 import HomeV2 from './HomeV2';
 
@@ -86,5 +88,20 @@ describe('HomeV2 — render smoke', () => {
     const cap = document.querySelector('[data-hero="rotates-caption"]');
     expect(cap).not.toBeNull();
     expect(cap.textContent).toMatch(/rotates daily/i);
+  });
+
+  it('shows the Guests header link for parent (non-guest) sessions', () => {
+    authStoreMock.isGuest.mockReturnValue(false);
+    renderPage();
+    const guestLink = screen.getByRole('link', { name: /Зочин|Guests/ });
+    expect(guestLink).toHaveAttribute('href', '/profile/guests');
+  });
+
+  it('hides the Guests header link when the current session is a guest', () => {
+    authStoreMock.isGuest.mockReturnValue(true);
+    renderPage();
+    expect(
+      screen.queryByRole('link', { name: /Зочин|Guests/ }),
+    ).not.toBeInTheDocument();
   });
 });

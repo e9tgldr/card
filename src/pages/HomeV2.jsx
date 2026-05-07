@@ -15,6 +15,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
+import { isGuest } from '@/lib/authStore';
 import { FIGURES, CATEGORIES, ERAS, ERA_KEYS, getEra } from '@/lib/figuresData';
 import { SepiaPortrait } from '@/components/photo/SepiaPortrait';
 import { useFeaturedToday } from '@/hooks/useFeaturedToday';
@@ -63,7 +64,7 @@ const SECTION_PADY = 64;
 
 const COPY = {
   mn: {
-    nav: { figures: 'Дүрүүд', team: 'Миний баг', engagements: 'Тоглоом', chapters: 'Бүлгүүд', classic: 'Хуучин', scan: 'AR-аар таниулах' },
+    nav: { figures: 'Дүрүүд', team: 'Миний баг', engagements: 'Тоглоом', chapters: 'Бүлгүүд', classic: 'Хуучин', scan: 'AR-аар таниулах', guests: 'Зочин' },
     hero: {
       kicker: 'Кодекс I',
       title1: 'Алтан Домогийн',
@@ -133,7 +134,7 @@ const COPY = {
     foot: { rights: 'Алтан Домог · Codex I · Ulaanbaatar' },
   },
   en: {
-    nav: { figures: 'Figures', team: 'My team', engagements: 'Play', chapters: 'Chapters', classic: 'Classic', scan: 'Scan card (AR)' },
+    nav: { figures: 'Figures', team: 'My team', engagements: 'Play', chapters: 'Chapters', classic: 'Classic', scan: 'Scan card (AR)', guests: 'Guests' },
     hero: {
       kicker: 'Codex I',
       title1: 'The face of',
@@ -386,7 +387,7 @@ function LangToggle() {
   );
 }
 
-function NavBar({ c, isAdmin = false, onOpenAdmin }) {
+function NavBar({ c, isAdmin = false, showGuests = false, onOpenAdmin }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -505,6 +506,12 @@ function NavBar({ c, isAdmin = false, onOpenAdmin }) {
             >
               <Wrench size={14} /> {c.nav_admin}
             </button>
+          )}
+          {showGuests && (
+            <GhostButton to="/profile/guests" className="hidden-on-mobile" aria-label={c.nav.guests}>
+              <Users size={14} style={{ marginRight: 6 }} />
+              <span style={{ fontSize: 13.5 }}>{c.nav.guests}</span>
+            </GhostButton>
           )}
           <GhostButton to="/v1/app" className="hidden-on-mobile">
             <span style={{ fontSize: 13.5 }}>{c.nav.classic}</span>
@@ -1772,6 +1779,7 @@ export default function HomeV2() {
       <NavBar
         c={c}
         isAdmin={!!settings?.is_admin}
+        showGuests={!isGuest()}
         onOpenAdmin={() => setShowAdmin(true)}
       />
       <Hero c={c} />
