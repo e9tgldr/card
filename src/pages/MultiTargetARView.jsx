@@ -46,6 +46,34 @@ export default function MultiTargetARView() {
   const videos = useFigureBackVideos();
   const [arError, setArError] = useState(null);
 
+  // User-gesture-bound permission re-request. The previous "Try again" handler
+  // only cleared `arError`, which remounted MindAR — but if the browser had
+  // already cached a denial for this origin, MindAR's getUserMedia call would
+  // throw again without re-prompting, putting us right back on this panel.
+  // Calling getUserMedia from the click handler itself gives the browser a
+  // fresh user gesture, which re-triggers the permission prompt for soft
+  // denials (dismissed by tapping outside / dismissed once). For hard denials
+  // (user picked "Block"), it throws synchronously and we keep the panel up.
+  const requestCameraPermission = async () => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setArError('in_app_browser');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+      });
+      stream.getTracks().forEach((trk) => trk.stop());
+      setArError(null);
+    } catch (err) {
+      const msg = String(err?.message ?? err ?? '').toLowerCase();
+      if (msg.includes('notfound')) setArError('no_camera');
+      // Otherwise still denied — leave the permission panel visible so the
+      // user can either re-tap (some browsers re-prompt after a fresh gesture
+      // even after one rejection) or back out and unblock in browser settings.
+    }
+  };
+
   if (pack.loading || videos.isLoading) {
     return (
       <div
@@ -79,7 +107,7 @@ export default function MultiTargetARView() {
       <ErrorPanel
         titleKey="ar.error.permission"
         onBack={() => navigate(-1)}
-        onRetry={() => setArError(null)}
+        onRetry={requestCameraPermission}
         retryLabelKey="ar.error.permission.retry"
       />
     );

@@ -677,6 +677,7 @@ function Hero({ c }) {
       </div>
       <div
         data-hero="meta-strip"
+        className="hidden-on-mobile"
         style={{
           position: 'absolute',
           left: 'clamp(24px, 4vw, 56px)',
@@ -751,6 +752,7 @@ function Hero({ c }) {
         </div>
       ) : null}
       <div
+        className="hidden-on-mobile"
         style={{
           position: 'absolute',
           right: 'clamp(24px, 4vw, 56px)',
@@ -769,6 +771,7 @@ function Hero({ c }) {
       {featured ? (
         <div
           data-hero="pictured-caption"
+          className="hidden-on-mobile"
           style={{
             position: 'absolute',
             right: 'clamp(24px, 4vw, 56px)',
