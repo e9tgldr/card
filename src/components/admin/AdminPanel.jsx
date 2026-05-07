@@ -28,7 +28,7 @@ import { useFigureBackVideos } from '@/hooks/useFigureBackVideos';
 import { base44 } from '@/api/base44Client';
 import { supabase } from '@/lib/supabase';
 import { useAppSettings } from '@/hooks/useAppSettings';
-import { listInviteCodes, createInviteCode, deleteInviteCode, listAccounts } from '@/lib/authStore';
+import { listInviteCodes, listAllInviteCodes, createInviteCode, deleteInviteCode, listAccounts } from '@/lib/authStore';
 import { listOrders, updateOrderStatus, deleteOrder } from '@/lib/ordersStore';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { adminErrorText } from '@/lib/adminErrors';
@@ -66,6 +66,10 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
   // survives tab switches; the data itself never needs a remount-driven
   // refetch.
   const [orders, setOrders] = useState([]);
+  // Tracks whether the orders list was truncated by the per-request cap so
+  // pending-count badges can render an honest "+" suffix instead of pretending
+  // the first page is the whole dataset.
+  const [ordersHasMore, setOrdersHasMore] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const ordersMountedRef = useRef(true);
   const { confirm, dialog: confirmDialog } = useConfirm();
@@ -173,8 +177,11 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
   const refreshOrders = useCallback(async () => {
     setOrdersLoading(true);
     try {
-      const list = await listOrders();
-      if (ordersMountedRef.current) setOrders(list);
+      const { orders: list, has_more } = await listOrders();
+      if (ordersMountedRef.current) {
+        setOrders(list);
+        setOrdersHasMore(has_more);
+      }
     } catch (e) {
       // Surface only when the OrdersTab is the active surface — otherwise
       // the dashboard count just stays as "—".
@@ -434,7 +441,9 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
               { label: 'Зурагтай', value: figures.filter(f => f.front_img).length, ico: '🖼️' },
               {
                 label: 'Хүлээгдэж буй захиалга',
-                value: ordersLoading && orders.length === 0 ? '—' : pendingOrdersCount,
+                value: ordersLoading && orders.length === 0
+                  ? '—'
+                  : `${pendingOrdersCount}${ordersHasMore ? '+' : ''}`,
                 ico: '🟡',
                 onClick: () => setTab('orders'),
               },
@@ -790,6 +799,7 @@ export default function AdminPanel({ figures, onClose, onFiguresChange }) {
           <OrdersTab
             orders={orders}
             setOrders={setOrders}
+            hasMore={ordersHasMore}
             loading={ordersLoading}
             onRefresh={refreshOrders}
             onToast={showToast}
@@ -904,6 +914,10 @@ const INVITE_BATCH_MAX = 1500;
 
 function InvitesTab({ onToast, onLog }) {
   const [invites, setInvites] = useState([]);
+  // True when the loaded `invites` list was truncated by the per-request cap.
+  // Drives a "+" suffix on stat cards / button labels and switches the CSV
+  // export to a paginated walk so admins don't get a silently-truncated file.
+  const [invitesHasMore, setInvitesHasMore] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [copiedId, setCopiedId] = useState(null);
   const [grantsAdmin, setGrantsAdmin] = useState(false);
@@ -915,8 +929,12 @@ function InvitesTab({ onToast, onLog }) {
 
   const refresh = async () => {
     try {
-      const [invs, accs] = await Promise.all([listInviteCodes(), listAccounts()]);
-      setInvites(invs);
+      const [{ codes, has_more }, accs] = await Promise.all([
+        listInviteCodes(),
+        listAccounts(),
+      ]);
+      setInvites(codes);
+      setInvitesHasMore(has_more);
       setAccounts(accs);
     } catch (e) {
       onToast('Код ачаалахад алдаа: ' + adminErrorText(e), true);
@@ -984,43 +1002,57 @@ function InvitesTab({ onToast, onLog }) {
     }
   };
 
-  const handleDownloadAvailable = () => {
-    const rows = invites.filter(i => !i.used_by);
-    if (rows.length === 0) {
-      onToast('Татаж авах боломжит код алга', true);
-      return;
+  const handleDownloadAvailable = async () => {
+    setBusy(true);
+    try {
+      // When the loaded list was truncated, walk all pages so the export
+      // covers every available code rather than silently dropping anything
+      // past the first page.
+      const all = invitesHasMore ? await listAllInviteCodes() : invites;
+      const rows = all.filter(i => !i.used_by);
+      if (rows.length === 0) {
+        onToast('Татаж авах боломжит код алга', true);
+        return;
+      }
+      const header = 'code,created_at,grants_admin\n';
+      const body = rows
+        .map(r => `${r.code},${r.created_at ?? ''},${r.grants_admin ? 'yes' : 'no'}`)
+        .join('\n');
+      // Prepend a UTF-8 BOM so Excel on Windows opens the CSV with the correct
+      // codepage instead of treating it as ANSI (which mangles any future
+      // Mongolian/Cyrillic content).
+      const blob = new Blob(['﻿', header + body], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invite-codes-available-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      onToast(`${rows.length} код татагдлаа`);
+      onLog(`${rows.length} боломжит код CSV-ээр татагдлаа`, 'ok');
+    } catch (e) {
+      onToast('Татахад алдаа: ' + adminErrorText(e), true);
+    } finally {
+      setBusy(false);
     }
-    const header = 'code,created_at,grants_admin\n';
-    const body = rows
-      .map(r => `${r.code},${r.created_at ?? ''},${r.grants_admin ? 'yes' : 'no'}`)
-      .join('\n');
-    // Prepend a UTF-8 BOM so Excel on Windows opens the CSV with the correct
-    // codepage instead of treating it as ANSI (which mangles any future
-    // Mongolian/Cyrillic content).
-    const blob = new Blob(['﻿', header + body], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `invite-codes-available-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    onToast(`${rows.length} код татагдлаа`);
-    onLog(`${rows.length} боломжит код CSV-ээр татагдлаа`, 'ok');
   };
 
   const available = invites.filter(i => !i.used_by).length;
   const used = invites.length - available;
+  // "+" suffix on counts when the loaded list was truncated. The exact count
+  // is unknown from the first page alone; admins should see "at least N".
+  const moreSuffix = invitesHasMore ? '+' : '';
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Нийт', value: invites.length, ico: '🎟️' },
-          { label: 'Боломжит', value: available, ico: '🟢' },
-          { label: 'Ашиглагдсан', value: used, ico: '✔️' },
+          { label: 'Нийт', value: `${invites.length}${moreSuffix}`, ico: '🎟️' },
+          { label: 'Боломжит', value: `${available}${moreSuffix}`, ico: '🟢' },
+          { label: 'Ашиглагдсан', value: `${used}${moreSuffix}`, ico: '✔️' },
         ].map((s, i) => (
           <div key={i} className="bg-card border border-border rounded-xl p-4 space-y-1">
             <span className="text-2xl">{s.ico}</span>
@@ -1039,13 +1071,13 @@ function InvitesTab({ onToast, onLog }) {
           </div>
           <Button
             onClick={handleDownloadAvailable}
-            disabled={available === 0}
+            disabled={available === 0 || busy}
             variant="outline"
             className="gap-1.5 font-body text-sm border-gold/50 text-gold hover:bg-gold/10"
             title="Боломжит кодуудыг CSV-ээр татах"
           >
             <Download className="w-4 h-4" />
-            Боломжит татах ({available})
+            Боломжит татах ({available}{moreSuffix})
           </Button>
         </div>
         <div className="flex items-center gap-3">
@@ -1210,7 +1242,9 @@ const STATUS_FILTERS = ['all', 'pending', 'confirmed', 'shipped', 'cancelled'];
 
 // `orders` / `setOrders` / `loading` / `onRefresh` are lifted into AdminPanel
 // so the dashboard pending-count card and this tab share a single fetch.
-function OrdersTab({ orders, setOrders, loading, onRefresh, onToast, onLog }) {
+// `hasMore` is forwarded so this tab's stat cards can render a "+" suffix
+// when the loaded list was truncated by the per-request cap.
+function OrdersTab({ orders, setOrders, hasMore, loading, onRefresh, onToast, onLog }) {
   const [filter, setFilter] = useState('pending');
   // Synchronous in-flight set blocks duplicate dispatches before React commits
   // the disabled state. The render-state Set mirrors it so EVERY in-flight
@@ -1298,6 +1332,9 @@ function OrdersTab({ orders, setOrders, loading, onRefresh, onToast, onLog }) {
     acc[o.status] = (acc[o.status] || 0) + 1;
     return acc;
   }, { total: 0, pending: 0, confirmed: 0, shipped: 0, cancelled: 0 });
+  // Append "+" to every count when the loaded list was truncated — admins
+  // need to see "this is at least N", not a confidently-wrong exact number.
+  const moreSuffix = hasMore ? '+' : '';
 
   const visible = filter === 'all' ? orders : orders.filter(o => o.status === filter);
 
@@ -1306,11 +1343,11 @@ function OrdersTab({ orders, setOrders, loading, onRefresh, onToast, onLog }) {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
-          { label: 'Бүгд',         value: counts.total,     ico: '📦' },
-          { label: 'Хүлээгдэж буй', value: counts.pending,   ico: '🟡' },
-          { label: 'Зөвшөөрсөн',   value: counts.confirmed, ico: '✅' },
-          { label: 'Илгээгдсэн',   value: counts.shipped,   ico: '🚚' },
-          { label: 'Цуцалсан',     value: counts.cancelled, ico: '⛔' },
+          { label: 'Бүгд',         value: `${counts.total}${moreSuffix}`,     ico: '📦' },
+          { label: 'Хүлээгдэж буй', value: `${counts.pending}${moreSuffix}`,   ico: '🟡' },
+          { label: 'Зөвшөөрсөн',   value: `${counts.confirmed}${moreSuffix}`, ico: '✅' },
+          { label: 'Илгээгдсэн',   value: `${counts.shipped}${moreSuffix}`,   ico: '🚚' },
+          { label: 'Цуцалсан',     value: `${counts.cancelled}${moreSuffix}`, ico: '⛔' },
         ].map((s, i) => (
           <div key={i} className="bg-card border border-border rounded-xl p-3 space-y-1">
             <span className="text-xl">{s.ico}</span>

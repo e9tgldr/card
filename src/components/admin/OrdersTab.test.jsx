@@ -44,7 +44,8 @@ vi.mock('@/components/admin/ARPackUploader', () => ({ default: () => null }));
 vi.mock('@/components/admin/BackVideos', () => ({ default: () => null }));
 
 vi.mock('@/lib/authStore', () => ({
-  listInviteCodes: vi.fn().mockResolvedValue([]),
+  listInviteCodes: vi.fn().mockResolvedValue({ codes: [], has_more: false, limit: 2000 }),
+  listAllInviteCodes: vi.fn().mockResolvedValue([]),
   createInviteCode: vi.fn(),
   deleteInviteCode: vi.fn(),
   listAccounts: vi.fn().mockResolvedValue([]),
@@ -85,7 +86,7 @@ const SAMPLE_ORDERS = [
 ];
 
 beforeEach(() => {
-  ordersMock.listOrders.mockResolvedValue([...SAMPLE_ORDERS]);
+  ordersMock.listOrders.mockResolvedValue({ orders: [...SAMPLE_ORDERS], has_more: false, limit: 200 });
   ordersMock.updateOrderStatus.mockResolvedValue({ id: SAMPLE_ORDERS[0].id, status: 'confirmed' });
   ordersMock.deleteOrder.mockResolvedValue(undefined);
 });
@@ -156,6 +157,24 @@ describe('AdminPanel — Orders tab', () => {
     );
   });
 
+  it('appends "+" to stat counts when listOrders reports has_more', async () => {
+    ordersMock.listOrders.mockResolvedValue({
+      orders: [...SAMPLE_ORDERS],
+      has_more: true,
+      limit: 200,
+    });
+    const user = userEvent.setup();
+    render(<AdminPanel figures={[]} onClose={() => {}} onFiguresChange={() => {}} />);
+    await user.click(screen.getByRole('tab', { name: /Захиалга/ }));
+    await screen.findByText('Бат-Эрдэнэ');
+
+    // Both pending (1) and total (2) should render with the "+" suffix because
+    // the loaded list is known-truncated. Multiple stat cards may match — at
+    // least one "1+" and one "2+" must be present.
+    expect(screen.getAllByText('2+').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('1+').length).toBeGreaterThan(0);
+  });
+
   it('does not clobber a concurrent successful row when another row rolls back', async () => {
     // Three rows so we can verify cross-row isolation:
     //   pending(A) — admin clicks Approve, succeeds
@@ -164,7 +183,7 @@ describe('AdminPanel — Orders tab', () => {
     const A = { ...SAMPLE_ORDERS[0], id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', customer_name: 'Ариунаа' };
     const B = { ...SAMPLE_ORDERS[0], id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', customer_name: 'Болд' };
     const C = { ...SAMPLE_ORDERS[1], id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', customer_name: 'Цэцэгээ', status: 'confirmed' };
-    ordersMock.listOrders.mockResolvedValue([A, B, C]);
+    ordersMock.listOrders.mockResolvedValue({ orders: [A, B, C], has_more: false, limit: 200 });
 
     // First Approve (row A) succeeds, second Approve (row B) fails.
     ordersMock.updateOrderStatus

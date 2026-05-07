@@ -63,13 +63,49 @@ export const bootstrapCode = async () => {
 // Returns invite codes newest-first. Server caps at 2000 by default (max
 // 5000) so the InvitesTab payload stays bounded as batches accumulate. Pass
 // `before` (an ISO `created_at`) to fetch the next page of older rows.
+//
+// Returns the pagination envelope (`{ codes, limit, has_more }`) so callers
+// can show a "showing first N — more exist" hint instead of silently
+// truncating the list.
 export const listInviteCodes = async ({ limit, before } = {}) => {
   const body = {};
   if (limit) body.limit = limit;
   if (before) body.before = before;
   const { data, error } = await supabase.functions.invoke('list-codes', { body });
   if (error) throw error;
-  return data?.codes ?? [];
+  return {
+    codes: data?.codes ?? [],
+    limit: data?.limit ?? null,
+    has_more: !!data?.has_more,
+  };
+};
+
+// Paginates through all invite codes by walking the `before` cursor until
+// has_more goes false. Used by the CSV export so admins don't get a silently
+// truncated download when more codes exist than fit in one page. Hard outer
+// ceiling guards against a pathological cursor loop.
+//
+// PAGE_SIZE matches the edge fn's hard cap and is deliberately larger than
+// the per-batch INSERT max (1500) — `generate-codes` is the only writer and
+// inserts each batch in a single statement, so all rows in a batch share
+// `created_at`. Keeping the page size above the batch size guarantees no
+// single page ever contains a partial batch boundary, which makes the
+// single-column `.lt('created_at', before)` cursor safe here (across-batch
+// timestamps differ; within-batch timestamps don't matter because the whole
+// batch fits on one page). When the keyset-cursor follow-up lands the
+// edge-fn cursor will be (created_at, code) and PAGE_SIZE can drop.
+export const listAllInviteCodes = async () => {
+  const out = [];
+  let before = null;
+  const PAGE_SIZE = 5000;
+  for (let i = 0; i < 50; i++) {
+    const opts = before ? { limit: PAGE_SIZE, before } : { limit: PAGE_SIZE };
+    const { codes, has_more } = await listInviteCodes(opts);
+    out.push(...codes);
+    if (!has_more || codes.length === 0) break;
+    before = codes[codes.length - 1].created_at;
+  }
+  return out;
 };
 
 export const createInviteCode = async ({ count = 1, grants_admin = false } = {}) => {

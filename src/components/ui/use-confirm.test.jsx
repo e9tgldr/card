@@ -85,4 +85,17 @@ describe('useConfirm', () => {
 
     await waitFor(() => expect(results).toEqual([{ ra: false, rb: true }]));
   });
+
+  it('resolves a pending confirm as cancelled when the host component unmounts', async () => {
+    const results = [];
+    const user = userEvent.setup();
+    const { unmount } = render(<Harness recordResult={(r) => results.push(r)} />);
+
+    await user.click(screen.getByRole('button', { name: 'ask' }));
+    await screen.findByRole('button', { name: 'Yes' });
+
+    unmount();
+
+    await waitFor(() => expect(results).toEqual([false]));
+  });
 });

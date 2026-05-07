@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -63,6 +63,20 @@ export function useConfirm() {
       settledRef.current = false;
       setState({ open: true, opts: { ...DEFAULTS, ...opts } });
     });
+  }, []);
+
+  // If the host component unmounts while a confirm is pending, resolve the
+  // promise as cancelled so awaiting code paths don't hang forever. We bypass
+  // `settle` here to avoid scheduling a setState on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (!settledRef.current) {
+        settledRef.current = true;
+        const r = resolveRef.current;
+        resolveRef.current = null;
+        r?.(false);
+      }
+    };
   }, []);
 
   const dialog = (

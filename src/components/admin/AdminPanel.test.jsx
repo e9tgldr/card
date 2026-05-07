@@ -47,14 +47,15 @@ vi.mock('@/components/admin/ARPackUploader', () => ({ default: () => null }));
 vi.mock('@/components/admin/BackVideos', () => ({ default: () => null }));
 
 vi.mock('@/lib/authStore', () => ({
-  listInviteCodes: vi.fn().mockResolvedValue([]),
+  listInviteCodes: vi.fn().mockResolvedValue({ codes: [], has_more: false, limit: 2000 }),
+  listAllInviteCodes: vi.fn().mockResolvedValue([]),
   createInviteCode: vi.fn(),
   deleteInviteCode: vi.fn(),
   listAccounts: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/lib/ordersStore', () => ({
-  listOrders: vi.fn().mockResolvedValue([]),
+  listOrders: vi.fn().mockResolvedValue({ orders: [], has_more: false, limit: 200 }),
   updateOrderStatus: vi.fn(),
   deleteOrder: vi.fn(),
 }));
