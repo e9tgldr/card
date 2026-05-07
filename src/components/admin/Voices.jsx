@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FIGURES, ERA_KEYS } from '@/lib/figuresData';
@@ -12,6 +13,7 @@ const LANGS = ['mn', 'en', 'cn'];
 
 export default function AdminVoices({ onToast }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterQuoteOnly, setFilterQuoteOnly] = useState(true);
@@ -54,6 +56,10 @@ export default function AdminVoices({ onToast }) {
     if (error) { onToast('Хадгалахад алдаа: ' + adminErrorText(error), true); return; }
     onToast('Хадгалагдлаа');
     setEditing(null);
+    // React-Query caches in useVoices(lang) and useFigureVoices(figId) have a
+    // 5-minute staleTime; without explicit invalidation an admin's update
+    // wouldn't reach narration/chat surfaces until then.
+    queryClient.invalidateQueries({ queryKey: ['figure_voices'] });
     load();
   };
 
@@ -63,7 +69,9 @@ export default function AdminVoices({ onToast }) {
     if (!figure) return;
     const sample = editing.lang === 'en'
       ? `I am ${figure.name}.`
-      : `Би бол ${figure.name}.`;
+      : editing.lang === 'cn'
+        ? `我是${figure.name}。`
+        : `Би бол ${figure.name}.`;
     const { data } = await supabase.functions.invoke('speak', {
       body: { text: sample, lang: editing.lang, voice_id: editing.voice_id.trim() },
     });
@@ -90,7 +98,7 @@ export default function AdminVoices({ onToast }) {
   const preRenderChapter = async (era) => {
     setPreRenderingEra(era);
     const playlist = buildChapterPlaylist(era);
-    const activeLangs = ['mn', 'en'];
+    const activeLangs = LANGS;
     setPreRenderProgress({ done: 0, total: playlist.length * activeLangs.length });
     for (const slide of playlist) {
       for (const lang of activeLangs) {

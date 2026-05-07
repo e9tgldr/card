@@ -15,6 +15,9 @@ vi.mock('@/lib/supabase', () => ({
 }));
 vi.mock('@/hooks/useOwnedFigures', () => ({ useOwnedFigures: (...a) => mockUseOwnedFigures(...a) }));
 vi.mock('@/hooks/useFigureChat', () => ({ useFigureChat: (...a) => mockUseFigureChat(...a) }));
+vi.mock('@/hooks/useVoices', () => ({
+  useFigureVoices: () => ({ isLoading: false, voiceIdForLang: () => null }),
+}));
 vi.mock('@/lib/authStore', () => ({ currentSession: () => mockSession }));
 
 beforeEach(() => {

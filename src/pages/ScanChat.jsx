@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Send, Volume2, X, ArrowLeft } from 'lucide-react';
 import { FIGURES } from '@/lib/figuresData';
 import { useFigureChat } from '@/hooks/useFigureChat';
+import { useFigureVoices } from '@/hooks/useVoices';
 import { useOwnedFigures } from '@/hooks/useOwnedFigures';
 import { currentSession } from '@/lib/authStore';
 import { supabase } from '@/lib/supabase';
@@ -63,6 +64,7 @@ function ScanChatInner({ figure }) {
   const isOwnedForChat = owned || claimed;
 
   const { messages, lang, busy, send, switchLang } = useFigureChat(figure, { userId, owned: isOwnedForChat });
+  const { voiceIdForLang } = useFigureVoices(figure.fig_id);
   const [input, setInput] = useState('');
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const scrollRef = useRef(null);
@@ -118,7 +120,7 @@ function ScanChatInner({ figure }) {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         <ErrorBoundary fallbackKey="toast.scan.aiFailed">
           {messages.map((m, i) => (
-            <MessageBubble key={i} message={m} />
+            <MessageBubble key={i} message={m} voiceIdForLang={voiceIdForLang} />
           ))}
           {busy && (
             <div className="flex items-center gap-3">
@@ -172,7 +174,7 @@ function ScanChatInner({ figure }) {
   );
 }
 
-function MessageBubble({ message }) {
+function MessageBubble({ message, voiceIdForLang }) {
   const isUser = message.role === 'user';
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -186,7 +188,7 @@ function MessageBubble({ message }) {
           <button
             className="ml-2 inline-flex align-middle opacity-70 hover:opacity-100"
             aria-label="Дуугаар сонсох"
-            onClick={() => speakClient(message.text, message.lang)}
+            onClick={() => speakClient(message.text, message.lang, voiceIdForLang?.(message.lang))}
           >
             <Volume2 className="w-4 h-4 text-brass" />
           </button>
@@ -215,10 +217,12 @@ function TypingIndicator() {
   );
 }
 
-async function speakClient(text, lang) {
+async function speakClient(text, lang, voiceId) {
   try {
     const { supabase } = await import('@/lib/supabase');
-    const { data, error } = await supabase.functions.invoke('speak', { body: { text, lang } });
+    const body = { text, lang };
+    if (voiceId) body.voice_id = voiceId;
+    const { data, error } = await supabase.functions.invoke('speak', { body });
     if (!error && data?.ok && data.url) {
       const audio = new Audio(data.url);
       audio.play().catch(() => speakWithWebSpeech(text, lang));

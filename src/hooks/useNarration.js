@@ -84,7 +84,7 @@ export function useNarration({
   const pickVoice = useCallback(() => {
     if (!ttsSupported) return null;
     const voices = window.speechSynthesis.getVoices() || [];
-    const code = lang === 'en' ? 'en' : 'mn';
+    const code = lang === 'en' ? 'en' : lang === 'cn' ? 'zh' : 'mn';
     return voices.find((v) => v.lang?.toLowerCase().startsWith(code))
       ?? voices.find((v) => v.lang?.toLowerCase().includes(code))
       ?? voices[0] ?? null;
@@ -117,7 +117,7 @@ export function useNarration({
     const u = new window.SpeechSynthesisUtterance(text);
     const v = pickVoice();
     if (v) u.voice = v;
-    u.lang = lang === 'en' ? 'en-US' : 'mn-MN';
+    u.lang = lang === 'en' ? 'en-US' : lang === 'cn' ? 'zh-CN' : 'mn-MN';
     u.rate = 0.96;
     u.onstart = () => setStatus('playing');
     u.onend = () => { setStatus('done'); setProgress(1); utterRef.current = null; onDoneRef.current?.(); };

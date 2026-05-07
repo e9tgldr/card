@@ -3,7 +3,8 @@ import { handleOptions, json } from '../_shared/cors.ts';
 import { ipHash, currentHourBucket } from '../_shared/ip.ts';
 import { checkAndIncrement } from '../_shared/rate-limit.ts';
 
-const HOURLY_LIMIT = 20;
+const ANON_HOURLY_LIMIT = 20;
+const AUTHED_HOURLY_LIMIT = 60;
 
 const UPSTREAM_FALLBACK: Record<string, string> = {
   mn: 'Уучлаарай, миний бодол санаа одоо тогтворгүй байна. Дараа дахин асуугаарай.',
@@ -67,12 +68,34 @@ Deno.serve(async (req) => {
   if (!fig?.name || !question) return json({ ok: false, reason: 'bad_request' }, 400);
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const admin = createClient(supabaseUrl, serviceKey);
 
-  const hashVal = await ipHash(req);
+  // Mirror speak/index.ts: authed users get a higher quota under a per-user
+  // bucket; anon users share an IP-hash bucket.
+  let bucketKey: string;
+  let quota: number;
+  const authHeader = req.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const authed = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData } = await authed.auth.getUser();
+    if (userData?.user) {
+      bucketKey = `user:${userData.user.id}`;
+      quota = AUTHED_HOURLY_LIMIT;
+    } else {
+      bucketKey = await ipHash(req);
+      quota = ANON_HOURLY_LIMIT;
+    }
+  } else {
+    bucketKey = await ipHash(req);
+    quota = ANON_HOURLY_LIMIT;
+  }
+
   const bucket = currentHourBucket();
-  const limit = await checkAndIncrement(admin, hashVal, bucket, 'ask-figure', HOURLY_LIMIT);
+  const limit = await checkAndIncrement(admin, bucketKey, bucket, 'ask-figure', quota);
   if (!limit.allowed) {
     return json({ ok: true, reply: RATE_LIMITED_FALLBACK[lang], source: 'rate_limited' });
   }
