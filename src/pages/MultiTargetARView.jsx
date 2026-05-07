@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '@/lib/i18n';
 import { useFigureARPack } from '@/hooks/useFigureARPack';
@@ -45,6 +45,19 @@ export default function MultiTargetARView() {
   const pack = useFigureARPack();
   const videos = useFigureBackVideos();
   const [arError, setArError] = useState(null);
+
+  // Pre-warm browser cache for the .mind file as soon as we know its URL.
+  // MindAR's `start()` fetches this pack before it calls getUserMedia and
+  // before the underlying video.play() — if the fetch takes 1-3s on a
+  // mobile network, the wall-clock from the user's "Start camera" tap to
+  // play() exceeds iOS Safari's transient user-activation window and
+  // autoplay is silently rejected, putting the user back on the permission
+  // panel. Hitting the URL on mount means MindAR's later fetch comes off
+  // browser cache near-instantly, keeping the gesture window healthy.
+  useEffect(() => {
+    if (!pack.packUrl) return;
+    fetch(pack.packUrl, { mode: 'cors' }).catch(() => {});
+  }, [pack.packUrl]);
 
   // User-gesture-bound permission re-request. The previous "Try again" handler
   // only cleared `arError`, which remounted MindAR — but if the browser had
