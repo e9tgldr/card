@@ -27,15 +27,34 @@ Deno.serve(async (req) => {
     throw e;
   }
 
+  // PostgREST cannot embed `active_sessions` here — it has no FK link to
+  // guest_slots. Fetch slots with the profile embed, then look up sessions in
+  // a separate query and merge.
   const { data: slots } = await admin
     .from('guest_slots')
-    .select('slot_idx, auth_user_id, claimed_at, profiles:auth_user_id ( username ), active_sessions:auth_user_id ( session_id, last_seen )')
+    .select('slot_idx, auth_user_id, claimed_at, profiles:auth_user_id ( username )')
     .eq('parent_user_id', userId)
     .order('slot_idx');
 
+  const guestIds = (slots ?? [])
+    .map((s: any) => s.auth_user_id)
+    .filter((id: string | null): id is string => !!id);
+
+  const sessionByUser = new Map<string, { session_id: string; last_seen: string }>();
+  if (guestIds.length > 0) {
+    const { data: sessions } = await admin
+      .from('active_sessions')
+      .select('user_id, session_id, last_seen')
+      .in('user_id', guestIds);
+    for (const row of sessions ?? []) {
+      sessionByUser.set(row.user_id, { session_id: row.session_id, last_seen: row.last_seen });
+    }
+  }
+
   const out = (slots ?? []).map((s: any) => {
-    const lastSeen = s.active_sessions?.last_seen;
-    const online = !!s.active_sessions?.session_id
+    const sess = s.auth_user_id ? sessionByUser.get(s.auth_user_id) : undefined;
+    const lastSeen = sess?.last_seen;
+    const online = !!sess?.session_id
       && lastSeen != null
       && (Date.now() - new Date(lastSeen).getTime() < 120_000);
     return {
