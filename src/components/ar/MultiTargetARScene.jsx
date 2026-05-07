@@ -7,17 +7,6 @@ import { FIGURES } from '@/lib/figuresData';
 
 const FRAMING_HINT_MS = 15000;
 
-// MindAR is loaded via the programmatic three.js API rather than the A-Frame
-// component build because mind-ar's `mindar-image-aframe.prod.js` was authored
-// for `<script src=...>` tag loading and accesses `AFRAME` as a bare global at
-// module-eval time. Under Vite's production bundling that registration can
-// run before A-Frame attaches itself to `window.AFRAME`, leaving the scene
-// without a `mindar-image-system` and trapping the user on an "AR error"
-// panel forever. The three.js path (`mindar-image-three.prod.js`) ships a
-// real ESM named export, depends only on `three` (a peerDep we already have),
-// and gives us direct control of the camera-video lifecycle so we can call
-// `start()` synchronously inside a fresh user gesture — which iOS Safari
-// requires for inline `<video>.play()` from a MediaStream.
 export default function MultiTargetARScene({
   packUrl,
   targetOrder,
@@ -25,12 +14,20 @@ export default function MultiTargetARScene({
   onError,
 }) {
   const containerRef = useRef(null);
-  const mindarRef = useRef(null);
-  const overlayVideosRef = useRef([]);
+  const sceneRef = useRef(null);
+  const lastDetailedErrorAtRef = useRef(0);
   const navigate = useNavigate();
   const { t, lang } = useLang();
   const [activeIndex, setActiveIndex] = useState(null);
   const [showHint, setShowHint] = useState(false);
+  // Lazy-start gating. iOS Safari blocks `<video>.play()` calls that don't
+  // originate inside a fresh user gesture; MindAR's autoStart fires play()
+  // from inside a Promise.all().then() callback, well outside the gesture
+  // window, which leaves the camera stream paused and the canvas rendering
+  // a uniform color instead of the feed. Solution: disable autoStart and
+  // wait for an explicit "Tap to start" click — the click handler invokes
+  // `mindar-image-system.start()` directly, so play() runs synchronously
+  // inside the gesture and Safari permits it.
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
 
@@ -41,169 +38,177 @@ export default function MultiTargetARScene({
   const voiceText = activeFigure ? figureBio(activeFigure, lang) : '';
   const narration = useNarration({ text: voiceText, lang, useSpeak: true });
 
-  const handleStart = async () => {
-    const mindar = mindarRef.current;
-    if (!mindar) {
-      onError?.(new Error('MindARThree not initialised'));
+  const handleStart = () => {
+    const scene = sceneRef.current;
+    const system = scene?.systems?.['mindar-image-system'];
+    if (!system?.start) {
+      onError?.(new Error('mindar-image-system not yet available'));
       return;
     }
-    // Stage tracking so when start() blows up we know exactly which step
-    // failed — getUserMedia, pack download, tracker init, render loop, etc.
-    // Replaces the previous opaque "AR error" panel.
-    let stage = 'mindar.start()';
+
+    let originalGetUserMedia = null;
     try {
-      await mindar.start();
-
-      stage = 'renderer.setAnimationLoop';
-      mindar.renderer.setAnimationLoop(() => {
-        mindar.renderer.render(mindar.scene, mindar.camera);
-      });
-
+      originalGetUserMedia = navigator.mediaDevices?.getUserMedia;
+      if (originalGetUserMedia) {
+        try {
+          navigator.mediaDevices.getUserMedia = function patchedGetUserMedia(...args) {
+            const result = originalGetUserMedia.apply(this, args);
+            return Promise.resolve(result).catch((err) => {
+              lastDetailedErrorAtRef.current = Date.now();
+              scene.emit('arError', {
+                error: err,
+                name: err?.name,
+                message: err?.message || 'getUserMedia failed',
+              });
+              throw err;
+            });
+          };
+        } catch {
+          originalGetUserMedia = null;
+        }
+      }
+      // Keep MindAR's own getUserMedia call as the first async camera action
+      // after the tap. Pre-requesting permission here creates a second camera
+      // acquisition on iOS and can leave MindAR's later call failing with only
+      // its generic VIDEO_FAIL event.
+      system.start();
       setStarted(true);
     } catch (err) {
-      const errName = err?.name || 'Error';
-      const errMsg = err?.message || String(err);
-      const wrapped = new Error(`[${stage}] ${errName}: ${errMsg}`);
-      wrapped.name = errName;
-      wrapped.stack = err?.stack;
-      onError?.(wrapped);
+      onError?.(err);
+    } finally {
+      if (originalGetUserMedia) {
+        try { navigator.mediaDevices.getUserMedia = originalGetUserMedia; } catch { /* best-effort */ }
+      }
     }
   };
 
   useEffect(() => {
-    if (!packUrl || !targetOrder?.length || !containerRef.current) return;
     let cancelled = false;
-    let mindar = null;
+    let scene = null;
+    let stopCameraTracks = () => {};
     let hintTimer;
+    let readyPollTimer = null;
 
+    // Serialize the imports rather than Promise.all-ing them. mind-ar's
+    // pre-built UMD bundle reads `window.AFRAME` at import time and calls
+    // AFRAME.registerSystem('mindar-image-system', ...). If the mind-ar
+    // module evaluates before A-Frame has finished attaching itself to
+    // window.AFRAME (which can happen with Promise.all in a Vite production
+    // build), the registration is a silent no-op and the scene never picks
+    // up the system. Symptom: the user sees a 6-second wait followed by
+    // "mindar-image-system did not register" because the system genuinely
+    // doesn't exist on `scene.systems`. Awaiting in order, plus an explicit
+    // window.AFRAME fallback before mind-ar imports, makes the registration
+    // deterministic.
     (async () => {
-      let stage = 'import-mindar-three';
-      try {
-        const mindarImport = await import('mind-ar/dist/mindar-image-three.prod.js');
-        stage = 'import-three';
-        const threeMod = await import('three');
-        stage = 'check-mindar-named-export';
-        const MindARThreeCtor = mindarImport?.MindARThree
-          ?? mindarImport?.default?.MindARThree
-          ?? mindarImport?.default;
-        if (typeof MindARThreeCtor !== 'function') {
-          throw new Error(
-            `MindARThree export missing — module keys: ${Object.keys(mindarImport).join(',')}`,
-          );
-        }
-        if (cancelled || !containerRef.current) return;
-
-        const THREE = threeMod;
-        stage = 'new-MindARThree';
-        mindar = new MindARThreeCtor({
-          container: containerRef.current,
-          imageTargetSrc: packUrl,
-          // The UI shows one active figure at a time — we never need to
-          // track more than one card simultaneously. The previous setting
-          // of `targetOrder.length` told MindAR to track up to 52 cards
-          // in parallel, which makes the controller's dummy-run pass
-          // significantly heavier (and on weaker iOS devices, can stall
-          // start() outright). All targets remain registered; only the
-          // simultaneous-active count is capped.
-          maxTrack: 1,
-          uiLoading: 'no',
-          uiError: 'no',
-          uiScanning: 'no',
-        });
-        mindarRef.current = mindar;
-
-        const overlayVideos = new Array(targetOrder.length).fill(null);
-
-        stage = 'add-anchors';
-        for (let idx = 0; idx < targetOrder.length; idx++) {
-          const figId = targetOrder[idx];
-          const meta = videosByFigId[figId];
-
-          const anchor = mindar.addAnchor(idx);
-          anchor.onTargetFound = () => {
-            if (cancelled) return;
-            setActiveIndex(idx);
-            setShowHint(false);
-            clearTimeout(hintTimer);
-            const v = overlayVideos[idx];
-            v?.play?.().catch(() => { /* iOS may need a user gesture, ignore */ });
-          };
-          anchor.onTargetLost = () => {
-            if (cancelled) return;
-            setActiveIndex((curr) => (curr === idx ? null : curr));
-            const v = overlayVideos[idx];
-            v?.pause?.();
-          };
-
-          if (meta?.url) {
-            // Per-target video overlay. MindARThree already renders the
-            // camera video as the canvas background, so this video just
-            // becomes a textured plane attached to the tracked card.
-            const video = document.createElement('video');
-            video.src = meta.url;
-            video.preload = 'auto';
-            video.muted = true;
-            video.loop = true;
-            video.playsInline = true;
-            video.crossOrigin = 'anonymous';
-            video.setAttribute('webkit-playsinline', '');
-            video.setAttribute('loop', '');
-            overlayVideos[idx] = video;
-
-            const texture = new THREE.VideoTexture(video);
-            texture.minFilter = THREE.LinearFilter;
-            texture.magFilter = THREE.LinearFilter;
-            const mesh = new THREE.Mesh(
-              new THREE.PlaneGeometry(1, 0.552),
-              new THREE.MeshBasicMaterial({ map: texture, transparent: false }),
-            );
-            anchor.group.add(mesh);
-          }
-          // glTF models (meta.modelUrl) were supported by the old A-Frame
-          // path. Skipping for the three.js migration — none of our 52
-          // figures currently ship a modelUrl per the data audit, and
-          // GLTFLoader pulls in 100kB+ of three/examples. Re-add via a
-          // dynamic import if/when a figure actually uses one.
-        }
-        overlayVideosRef.current = overlayVideos;
-
-        if (!cancelled) {
-          setReady(true);
-          hintTimer = setTimeout(() => setShowHint(true), FRAMING_HINT_MS);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const errName = err?.name || 'Error';
-          const errMsg = err?.message || String(err);
-          const wrapped = new Error(`[setup:${stage}] ${errName}: ${errMsg}`);
-          wrapped.name = errName;
-          wrapped.stack = err?.stack;
-          onError?.(wrapped);
-        }
+      const aframeMod = await import('aframe');
+      if (typeof window !== 'undefined' && !window.AFRAME) {
+        const candidate = aframeMod?.AFRAME ?? aframeMod?.default ?? aframeMod;
+        if (candidate?.registerSystem) window.AFRAME = candidate;
       }
-    })();
+      await import('aframe-extras').then((m) => m.loaders ?? m);
+      await import('mind-ar/dist/mindar-image-aframe.prod.js');
+    })().then(() => {
+      if (cancelled || !containerRef.current) return;
+      scene = buildScene(packUrl, targetOrder, videosByFigId);
+      containerRef.current.appendChild(scene);
+      sceneRef.current = scene;
+
+      // Don't flip `ready` on appendChild — A-Frame scene init is async,
+      // and `mindar-image-system` may take another 50-300ms to register
+      // after appendChild returns. Showing the start button before then
+      // means handleStart finds `scene.systems['mindar-image-system']`
+      // undefined and surfaces "mindar-image-system not yet available"
+      // (the previous bug). Poll for the registered system instead, with
+      // a 6s outer cap that surfaces a clear error if it never registers.
+      // The 'loaded' event provides a fast-path; polling covers iOS Safari
+      // configurations where 'loaded' arrives before system registration
+      // or doesn't fire reliably with autoStart=false.
+      let pollAttempts = 0;
+      const POLL_INTERVAL_MS = 100;
+      const MAX_POLL_MS = 6000;
+      const tryFlipReady = () => {
+        if (cancelled) return;
+        const system = scene.systems?.['mindar-image-system'];
+        if (system?.start) {
+          setReady(true);
+          return;
+        }
+        pollAttempts++;
+        if (pollAttempts * POLL_INTERVAL_MS < MAX_POLL_MS) {
+          readyPollTimer = setTimeout(tryFlipReady, POLL_INTERVAL_MS);
+        } else {
+          onError?.(new Error('mindar-image-system did not register within 6s'));
+        }
+      };
+      tryFlipReady();
+      scene.addEventListener('loaded', tryFlipReady);
+
+      const handlers = (targetOrder ?? []).map((_figId, idx) => {
+        const onFound = () => {
+          setActiveIndex(idx);
+          setShowHint(false);
+          clearTimeout(hintTimer);
+          const v = scene.querySelector(`#fig-video-${idx}`);
+          v?.play?.().catch(() => {});
+        };
+        const onLost = () => {
+          setActiveIndex((curr) => (curr === idx ? null : curr));
+          const v = scene.querySelector(`#fig-video-${idx}`);
+          v?.pause?.();
+        };
+        const entity = scene.querySelector(`#mindar-target-${idx}`);
+        entity?.addEventListener('targetFound', onFound);
+        entity?.addEventListener('targetLost', onLost);
+        return { idx, onFound, onLost, entity };
+      });
+
+      const onArError = (event) => {
+        const detail = event?.detail;
+        const error = detail?.error;
+        if (error === 'VIDEO_FAIL' && Date.now() - lastDetailedErrorAtRef.current < 1500) {
+          return;
+        }
+        if (error instanceof Error) {
+          onError?.(error);
+        } else {
+          onError?.({
+            name: detail?.name || 'MindARError',
+            message: detail?.message || error || 'Unknown MindAR error',
+            code: error,
+          });
+        }
+      };
+      scene.addEventListener('arError', onArError);
+
+      hintTimer = setTimeout(() => setShowHint(true), FRAMING_HINT_MS);
+
+      stopCameraTracks = () => {
+        const allVideos = scene.querySelectorAll('video');
+        allVideos.forEach((v) => {
+          const ms = v.srcObject;
+          if (ms && typeof ms.getTracks === 'function') {
+            ms.getTracks().forEach((trk) => trk.stop());
+          }
+        });
+        for (const h of handlers) {
+          h.entity?.removeEventListener('targetFound', h.onFound);
+          h.entity?.removeEventListener('targetLost', h.onLost);
+        }
+        scene.removeEventListener('loaded', tryFlipReady);
+        scene.removeEventListener('arError', onArError);
+      };
+    }).catch((err) => {
+      if (!cancelled) onError?.(err);
+    });
 
     return () => {
       cancelled = true;
       clearTimeout(hintTimer);
-      const m = mindarRef.current;
-      if (m) {
-        try { m.renderer?.setAnimationLoop?.(null); } catch { /* best-effort */ }
-        try { m.stop?.(); } catch { /* best-effort */ }
-        try {
-          const dom = m.renderer?.domElement;
-          if (dom?.parentNode) dom.parentNode.removeChild(dom);
-        } catch { /* best-effort */ }
-      }
-      mindarRef.current = null;
-      // Tear down overlay video elements so their MediaElementSource etc.
-      // don't keep the codec pipeline pinned.
-      for (const v of overlayVideosRef.current) {
-        if (!v) continue;
-        try { v.pause(); } catch { /* */ }
-        try { v.removeAttribute('src'); v.load(); } catch { /* */ }
-      }
-      overlayVideosRef.current = [];
+      if (readyPollTimer) clearTimeout(readyPollTimer);
+      try { stopCameraTracks(); } catch { /* best-effort */ }
+      if (scene && scene.parentNode) scene.parentNode.removeChild(scene);
+      sceneRef.current = null;
     };
   }, [packUrl, targetOrder, videosByFigId, onError]);
 
@@ -294,4 +299,80 @@ export default function MultiTargetARScene({
       <audio {...narration.audioProps} />
     </div>
   );
+}
+
+function buildScene(packUrl, targetOrder, videosByFigId) {
+  const scene = document.createElement('a-scene');
+  const safePack = encodeURI(packUrl);
+  // autoStart is intentionally false: see the lazy-start comment in
+  // MultiTargetARScene above. start() is invoked from the user-gesture click
+  // handler so iOS Safari permits the underlying video.play().
+  scene.setAttribute(
+    'mindar-image',
+    `imageTargetSrc: ${safePack}; autoStart: false; uiLoading: no; uiError: no; uiScanning: no;`,
+  );
+  scene.setAttribute('color-space', 'sRGB');
+  scene.setAttribute('renderer', 'colorManagement: true; physicallyCorrectLights');
+  scene.setAttribute('vr-mode-ui', 'enabled: false');
+  scene.setAttribute('device-orientation-permission-ui', 'enabled: false');
+  scene.style.position = 'absolute';
+  scene.style.inset = '0';
+
+  const lightAmbient = document.createElement('a-entity');
+  lightAmbient.setAttribute('light', 'type: ambient; intensity: 0.9; color: #fff');
+  scene.appendChild(lightAmbient);
+
+  const assets = document.createElement('a-assets');
+
+  for (let idx = 0; idx < (targetOrder?.length ?? 0); idx++) {
+    const figId = targetOrder[idx];
+    const v = videosByFigId[figId];
+    if (v?.url) {
+      const video = document.createElement('video');
+      video.id = `fig-video-${idx}`;
+      video.src = v.url;
+      video.preload = 'none';
+      video.playsInline = true;
+      video.muted = true;
+      video.crossOrigin = 'anonymous';
+      video.setAttribute('webkit-playsinline', '');
+      video.setAttribute('loop', '');
+      assets.appendChild(video);
+    }
+  }
+  scene.appendChild(assets);
+
+  const camera = document.createElement('a-camera');
+  camera.setAttribute('position', '0 0 0');
+  camera.setAttribute('look-controls', 'enabled: false');
+  scene.appendChild(camera);
+
+  for (let idx = 0; idx < (targetOrder?.length ?? 0); idx++) {
+    const figId = targetOrder[idx];
+    const v = videosByFigId[figId];
+
+    const target = document.createElement('a-entity');
+    target.id = `mindar-target-${idx}`;
+    target.setAttribute('mindar-image-target', `targetIndex: ${idx}`);
+
+    if (v?.modelUrl) {
+      const model = document.createElement('a-gltf-model');
+      model.setAttribute('src', `url(${encodeURI(v.modelUrl)})`);
+      model.setAttribute('position', '0 0 0.1');
+      model.setAttribute('scale', '0.4 0.4 0.4');
+      model.setAttribute('animation-mixer', 'clip: *; loop: repeat');
+      target.appendChild(model);
+    } else if (v?.url) {
+      const plane = document.createElement('a-video');
+      plane.setAttribute('src', `#fig-video-${idx}`);
+      plane.setAttribute('width', '1');
+      plane.setAttribute('height', '0.552');
+      plane.setAttribute('rotation', '0 0 0');
+      target.appendChild(plane);
+    }
+
+    scene.appendChild(target);
+  }
+
+  return scene;
 }
