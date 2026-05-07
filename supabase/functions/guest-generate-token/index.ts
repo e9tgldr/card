@@ -63,7 +63,10 @@ Deno.serve(async (req) => {
     .eq('parent_user_id', userId).eq('slot_idx', slotIdx).maybeSingle();
   if (!slot) return json({ ok: false, reason: 'slot_not_found' }, 404);
 
-  // Activate slot if first time.
+  // Activate slot if first time. Concurrent clicks would otherwise both call
+  // createUser with the same deterministic email and one would 500 with
+  // "User already registered" — re-read the slot on createUser failure so a
+  // racing call that won the create still wires its auth_user_id back.
   let authUserId: string | null = slot.auth_user_id;
   if (!authUserId) {
     const parentPrefix = userId.replace(/-/g, '').slice(0, 12);
@@ -77,9 +80,18 @@ Deno.serve(async (req) => {
       user_metadata: { username: guestUsername },
       app_metadata: { parent_user_id: userId },
     });
-    if (cErr || !created.user) return json({ ok: false, reason: 'create_failed' }, 500);
-    authUserId = created.user.id;
-    await admin.from('guest_slots').update({ auth_user_id: authUserId }).eq('id', slot.id);
+    if (cErr || !created?.user) {
+      const { data: refreshed } = await admin.from('guest_slots')
+        .select('auth_user_id').eq('id', slot.id).maybeSingle();
+      if (refreshed?.auth_user_id) {
+        authUserId = refreshed.auth_user_id;
+      } else {
+        return json({ ok: false, reason: 'create_failed' }, 500);
+      }
+    } else {
+      authUserId = created.user.id;
+      await admin.from('guest_slots').update({ auth_user_id: authUserId }).eq('id', slot.id);
+    }
   }
 
   // Per-parent atomic rate limit.

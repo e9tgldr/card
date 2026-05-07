@@ -28,11 +28,17 @@ Deno.serve(async (req) => {
     throw e;
   }
 
-  const rows = [1, 2, 3, 4, 5].map((slot_idx) => ({ parent_user_id: userId, slot_idx }));
-  const { error } = await admin.from('guest_slots').upsert(rows, {
-    onConflict: 'parent_user_id,slot_idx',
-    ignoreDuplicates: true,
-  });
+  // The guest_slots_cap_trg trigger raises before INSERT when count(*) >= 5,
+  // so a blind upsert with ignoreDuplicates still 500s for already-seeded
+  // parents. Look at what's there and only insert missing indices.
+  const { data: existing } = await admin.from('guest_slots')
+    .select('slot_idx').eq('parent_user_id', userId);
+  const have = new Set((existing ?? []).map((r: { slot_idx: number }) => r.slot_idx));
+  const missing = [1, 2, 3, 4, 5].filter((i) => !have.has(i));
+  if (missing.length === 0) return json({ ok: true });
+
+  const rows = missing.map((slot_idx) => ({ parent_user_id: userId, slot_idx }));
+  const { error } = await admin.from('guest_slots').insert(rows);
   if (error) return json({ ok: false, reason: 'server' }, 500);
 
   return json({ ok: true });
