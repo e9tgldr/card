@@ -52,29 +52,10 @@ export default function MultiTargetARScene({
       // pack download (already pre-warmed in MultiTargetARView), tracker
       // dummy run. Because this call originates synchronously inside the
       // click handler, iOS Safari treats the camera <video>.play() inside
-      // start() as gesture-bound and lets it through.
+      // start() as gesture-bound and lets it through. MindARThree handles
+      // playsinline + muted on the camera video itself, so we don't need
+      // to reach into its internals here.
       await mindar.start();
-
-      // Make sure the camera video element + any per-target overlay videos
-      // are actually playing. MindARThree creates its own camera video with
-      // playsinline+muted, but we set the inline-playback hints again here
-      // for older iOS WebKits and force-call play() inside the same gesture
-      // window for safety.
-      const cameraVideo = mindar.video;
-      if (cameraVideo) {
-        cameraVideo.muted = true;
-        cameraVideo.setAttribute('playsinline', '');
-        cameraVideo.setAttribute('webkit-playsinline', '');
-        try { await cameraVideo.play(); } catch { /* not fatal — already auto-playing */ }
-      }
-      for (const v of overlayVideosRef.current) {
-        if (!v) continue;
-        v.muted = true;
-        v.setAttribute('playsinline', '');
-        v.setAttribute('webkit-playsinline', '');
-        // Per-target overlays are only meant to play when their target is
-        // found, so we don't .play() them here — onTargetFound does that.
-      }
 
       // Begin the render loop. Without setAnimationLoop the WebGL canvas
       // stays blank even though MindARThree is tracking.
@@ -106,7 +87,14 @@ export default function MultiTargetARScene({
         mindar = new MindARThree({
           container: containerRef.current,
           imageTargetSrc: packUrl,
-          maxTrack: targetOrder.length,
+          // The UI shows one active figure at a time — we never need to
+          // track more than one card simultaneously. The previous setting
+          // of `targetOrder.length` told MindAR to track up to 52 cards
+          // in parallel, which makes the controller's dummy-run pass
+          // significantly heavier (and on weaker iOS devices, can stall
+          // start() outright). All targets remain registered; only the
+          // simultaneous-active count is capped.
+          maxTrack: 1,
           uiLoading: 'no',
           uiError: 'no',
           uiScanning: 'no',
