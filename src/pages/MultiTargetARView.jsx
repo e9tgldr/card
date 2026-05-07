@@ -118,7 +118,7 @@ export default function MultiTargetARView() {
       setArErrorDetail(null);
     } catch (err) {
       const rawMsg = formatArError(err);
-      setArErrorDetail(rawMsg.slice(0, 240));
+      setArErrorDetail(rawMsg.slice(0, 800));
       setArError(classifyArError(err, true));
     }
   };
@@ -186,7 +186,7 @@ export default function MultiTargetARView() {
 
   const handleArError = (err) => {
     const rawMsg = formatArError(err);
-    setArErrorDetail(rawMsg.slice(0, 240));
+    setArErrorDetail(rawMsg.slice(0, 800));
     setArError(classifyArError(
       err,
       typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),

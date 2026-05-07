@@ -47,25 +47,26 @@ export default function MultiTargetARScene({
       onError?.(new Error('MindARThree not initialised'));
       return;
     }
+    // Stage tracking so when start() blows up we know exactly which step
+    // failed — getUserMedia, pack download, tracker init, render loop, etc.
+    // Replaces the previous opaque "AR error" panel.
+    let stage = 'mindar.start()';
     try {
-      // start() runs the whole pipeline: getUserMedia, camera-video setup,
-      // pack download (already pre-warmed in MultiTargetARView), tracker
-      // dummy run. Because this call originates synchronously inside the
-      // click handler, iOS Safari treats the camera <video>.play() inside
-      // start() as gesture-bound and lets it through. MindARThree handles
-      // playsinline + muted on the camera video itself, so we don't need
-      // to reach into its internals here.
       await mindar.start();
 
-      // Begin the render loop. Without setAnimationLoop the WebGL canvas
-      // stays blank even though MindARThree is tracking.
+      stage = 'renderer.setAnimationLoop';
       mindar.renderer.setAnimationLoop(() => {
         mindar.renderer.render(mindar.scene, mindar.camera);
       });
 
       setStarted(true);
     } catch (err) {
-      onError?.(err);
+      const errName = err?.name || 'Error';
+      const errMsg = err?.message || String(err);
+      const wrapped = new Error(`[${stage}] ${errName}: ${errMsg}`);
+      wrapped.name = errName;
+      wrapped.stack = err?.stack;
+      onError?.(wrapped);
     }
   };
 
@@ -76,15 +77,25 @@ export default function MultiTargetARScene({
     let hintTimer;
 
     (async () => {
+      let stage = 'import-mindar-three';
       try {
-        const [{ MindARThree }, threeMod] = await Promise.all([
-          import('mind-ar/dist/mindar-image-three.prod.js'),
-          import('three'),
-        ]);
+        const mindarImport = await import('mind-ar/dist/mindar-image-three.prod.js');
+        stage = 'import-three';
+        const threeMod = await import('three');
+        stage = 'check-mindar-named-export';
+        const MindARThreeCtor = mindarImport?.MindARThree
+          ?? mindarImport?.default?.MindARThree
+          ?? mindarImport?.default;
+        if (typeof MindARThreeCtor !== 'function') {
+          throw new Error(
+            `MindARThree export missing — module keys: ${Object.keys(mindarImport).join(',')}`,
+          );
+        }
         if (cancelled || !containerRef.current) return;
 
         const THREE = threeMod;
-        mindar = new MindARThree({
+        stage = 'new-MindARThree';
+        mindar = new MindARThreeCtor({
           container: containerRef.current,
           imageTargetSrc: packUrl,
           // The UI shows one active figure at a time — we never need to
@@ -103,6 +114,7 @@ export default function MultiTargetARScene({
 
         const overlayVideos = new Array(targetOrder.length).fill(null);
 
+        stage = 'add-anchors';
         for (let idx = 0; idx < targetOrder.length; idx++) {
           const figId = targetOrder[idx];
           const meta = videosByFigId[figId];
@@ -160,7 +172,14 @@ export default function MultiTargetARScene({
           hintTimer = setTimeout(() => setShowHint(true), FRAMING_HINT_MS);
         }
       } catch (err) {
-        if (!cancelled) onError?.(err);
+        if (!cancelled) {
+          const errName = err?.name || 'Error';
+          const errMsg = err?.message || String(err);
+          const wrapped = new Error(`[setup:${stage}] ${errName}: ${errMsg}`);
+          wrapped.name = errName;
+          wrapped.stack = err?.stack;
+          onError?.(wrapped);
+        }
       }
     })();
 
