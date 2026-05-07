@@ -89,11 +89,26 @@ export default function MultiTargetARScene({
     let hintTimer;
     let readyPollTimer = null;
 
-    Promise.all([
-      import('aframe'),
-      import('aframe-extras').then((m) => m.loaders ?? m),
-      import('mind-ar/dist/mindar-image-aframe.prod.js'),
-    ]).then(() => {
+    // Serialize the imports rather than Promise.all-ing them. mind-ar's
+    // pre-built UMD bundle reads `window.AFRAME` at import time and calls
+    // AFRAME.registerSystem('mindar-image-system', ...). If the mind-ar
+    // module evaluates before A-Frame has finished attaching itself to
+    // window.AFRAME (which can happen with Promise.all in a Vite production
+    // build), the registration is a silent no-op and the scene never picks
+    // up the system. Symptom: the user sees a 6-second wait followed by
+    // "mindar-image-system did not register" because the system genuinely
+    // doesn't exist on `scene.systems`. Awaiting in order, plus an explicit
+    // window.AFRAME fallback before mind-ar imports, makes the registration
+    // deterministic.
+    (async () => {
+      const aframeMod = await import('aframe');
+      if (typeof window !== 'undefined' && !window.AFRAME) {
+        const candidate = aframeMod?.AFRAME ?? aframeMod?.default ?? aframeMod;
+        if (candidate?.registerSystem) window.AFRAME = candidate;
+      }
+      await import('aframe-extras').then((m) => m.loaders ?? m);
+      await import('mind-ar/dist/mindar-image-aframe.prod.js');
+    })().then(() => {
       if (cancelled || !containerRef.current) return;
       scene = buildScene(packUrl, targetOrder, videosByFigId);
       containerRef.current.appendChild(scene);
