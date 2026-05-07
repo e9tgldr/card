@@ -6,7 +6,7 @@ import { useFigureBackVideos } from '@/hooks/useFigureBackVideos';
 import MultiTargetARScene from '@/components/ar/MultiTargetARScene';
 import BrandHeader from '@/components/ornaments/BrandHeader';
 
-function ErrorPanel({ titleKey, bodyKey, detail, onBack, onRetry, retryLabelKey }) {
+function ErrorPanel({ titleKey, title, bodyKey, detail, onBack, onRetry, retryLabelKey }) {
   const { t } = useLang();
   return (
     <div className="fixed inset-0 bg-ink z-[300] flex items-center justify-center px-6">
@@ -14,7 +14,7 @@ function ErrorPanel({ titleKey, bodyKey, detail, onBack, onRetry, retryLabelKey 
         <BrandHeader />
       </div>
       <div className="max-w-sm w-full text-center space-y-5 border border-brass/40 p-6 rounded">
-        <h2 className="font-cinzel text-lg text-ivory">{t(titleKey)}</h2>
+        <h2 className="font-cinzel text-lg text-ivory">{title || t(titleKey)}</h2>
         {bodyKey && <p className="text-sm text-ivory/75 font-body">{t(bodyKey)}</p>}
         {detail && (
           <p className="text-[11px] text-ivory/45 font-body break-all px-2 leading-tight">
@@ -42,6 +42,32 @@ function ErrorPanel({ titleKey, bodyKey, detail, onBack, onRetry, retryLabelKey 
       </div>
     </div>
   );
+}
+
+function formatArError(err) {
+  if (!err) return 'Unknown AR error';
+  if (typeof err === 'string') return err;
+  const name = err.name || err.code || err.error || 'Error';
+  const message = err.message || err.reason || '';
+  return message ? `${name}: ${message}` : String(name);
+}
+
+function classifyArError(err, hasGetUserMedia) {
+  const detail = formatArError(err);
+  const msg = detail.toLowerCase();
+  if (!hasGetUserMedia) return 'in_app_browser';
+  if (msg.includes('notfound') || msg.includes('not found') || msg.includes('overconstrained')) {
+    return 'no_camera';
+  }
+  if (
+    msg.includes('notallowed') ||
+    msg.includes('permission') ||
+    msg.includes('securityerror') ||
+    msg.includes('denied')
+  ) {
+    return 'permission';
+  }
+  return 'runtime';
 }
 
 export default function MultiTargetARView() {
@@ -91,13 +117,9 @@ export default function MultiTargetARView() {
       setArError(null);
       setArErrorDetail(null);
     } catch (err) {
-      const rawMsg = String(err?.name ? `${err.name}: ${err?.message ?? ''}` : err?.message ?? err ?? '');
+      const rawMsg = formatArError(err);
       setArErrorDetail(rawMsg.slice(0, 240));
-      const msg = rawMsg.toLowerCase();
-      if (msg.includes('notfound')) setArError('no_camera');
-      // Otherwise still denied — leave the permission panel visible so the
-      // user can either re-tap (some browsers re-prompt after a fresh gesture
-      // even after one rejection) or back out and unblock in browser settings.
+      setArError(classifyArError(err, true));
     }
   };
 
@@ -146,18 +168,29 @@ export default function MultiTargetARView() {
   if (arError === 'in_app_browser') {
     return <ErrorPanel titleKey="ar.error.inAppBrowser" detail={arErrorDetail} onBack={() => navigate(-1)} />;
   }
+  if (arError === 'runtime') {
+    return (
+      <ErrorPanel
+        title="AR error"
+        bodyKey={null}
+        detail={arErrorDetail}
+        onBack={() => navigate(-1)}
+        onRetry={() => {
+          setArError(null);
+          setArErrorDetail(null);
+        }}
+        retryLabelKey="ar.error.permission.retry"
+      />
+    );
+  }
 
   const handleArError = (err) => {
-    const rawMsg = String(err?.name ? `${err.name}: ${err?.message ?? ''}` : err?.message ?? err ?? '');
+    const rawMsg = formatArError(err);
     setArErrorDetail(rawMsg.slice(0, 240));
-    const msg = rawMsg.toLowerCase();
-    if (typeof navigator !== 'undefined' && !navigator.mediaDevices?.getUserMedia) {
-      setArError('in_app_browser');
-    } else if (msg.includes('notfound')) {
-      setArError('no_camera');
-    } else {
-      setArError('permission');
-    }
+    setArError(classifyArError(
+      err,
+      typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
+    ));
   };
 
   return (

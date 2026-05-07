@@ -15,6 +15,7 @@ export default function MultiTargetARScene({
 }) {
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
+  const lastDetailedErrorAtRef = useRef(0);
   const navigate = useNavigate();
   const { t, lang } = useLang();
   const [activeIndex, setActiveIndex] = useState(null);
@@ -29,6 +30,7 @@ export default function MultiTargetARScene({
   // inside the gesture and Safari permits it.
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
+  const [preloaded, setPreloaded] = useState(false);
 
   const activeFigId = activeIndex == null ? null : (targetOrder?.[activeIndex] ?? null);
   const activeFigure = activeFigId
@@ -37,28 +39,7 @@ export default function MultiTargetARScene({
   const voiceText = activeFigure ? figureBio(activeFigure, lang) : '';
   const narration = useNarration({ text: voiceText, lang, useSpeak: true });
 
-  const handleStart = async () => {
-    // Step 1 — pre-acquire the camera within this fresh user gesture. iOS
-    // Safari now has the permission cached, so MindAR's later
-    // getUserMedia call is an instant hit instead of a network/UI prompt.
-    // We stop the tracks immediately; the OS keeps the grant alive for
-    // subsequent calls in the same page session.
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-      try {
-        const preStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
-        });
-        preStream.getTracks().forEach((trk) => trk.stop());
-      } catch (err) {
-        onError?.(err);
-        return;
-      }
-    }
-
-    // Step 2 — yield once so A-Frame can finish any pending init microtasks
-    // before we probe for the system. Microtask yields preserve iOS
-    // Safari's transient user activation; setTimeout would not.
-    await Promise.resolve();
+  const handleStart = () => {
     const scene = sceneRef.current;
     const system = scene?.systems?.['mindar-image-system'];
     if (!system?.start) {
@@ -66,31 +47,39 @@ export default function MultiTargetARScene({
       return;
     }
 
+    let originalGetUserMedia = null;
     try {
-      // Step 3 — start MindAR. Internally fetches the (now-cached) .mind
-      // pack, calls getUserMedia (cache hit), creates a video element,
-      // sets srcObject, and tries to play.
-      await system.start();
-
-      // Step 4 — defence-in-depth against iOS autoplay rejection. Even if
-      // MindAR's internal play() was rejected because the activation
-      // window had elapsed, calling play() here is still inside our
-      // original click handler's user gesture, so iOS lets it through.
-      // We also re-assert the inline-playback attributes that some MindAR
-      // versions don't set, in case that was the rejection cause.
-      const videos = scene.querySelectorAll('video');
-      for (const v of videos) {
-        v.muted = true;
-        v.setAttribute('playsinline', '');
-        v.setAttribute('webkit-playsinline', '');
-        if (v.srcObject) {
-          try { await v.play(); } catch { /* not fatal — let MindAR carry on */ }
+      originalGetUserMedia = navigator.mediaDevices?.getUserMedia;
+      if (originalGetUserMedia) {
+        try {
+          navigator.mediaDevices.getUserMedia = function patchedGetUserMedia(...args) {
+            const result = originalGetUserMedia.apply(this, args);
+            return Promise.resolve(result).catch((err) => {
+              lastDetailedErrorAtRef.current = Date.now();
+              scene.emit('arError', {
+                error: err,
+                name: err?.name,
+                message: err?.message || 'getUserMedia failed',
+              });
+              throw err;
+            });
+          };
+        } catch {
+          originalGetUserMedia = null;
         }
       }
-
+      // Keep MindAR's own getUserMedia call as the first async camera action
+      // after the tap. Pre-requesting permission here creates a second camera
+      // acquisition on iOS and can leave MindAR's later call failing with only
+      // its generic VIDEO_FAIL event.
+      system.start();
       setStarted(true);
     } catch (err) {
       onError?.(err);
+    } finally {
+      if (originalGetUserMedia) {
+        try { navigator.mediaDevices.getUserMedia = originalGetUserMedia; } catch { /* best-effort */ }
+      }
     }
   };
 
@@ -126,6 +115,15 @@ export default function MultiTargetARScene({
       // Microtask-yield so React can commit before the (also-immediate) flip.
       Promise.resolve().then(flipReady);
 
+      const preloadSystem = () => {
+        // mind-ar 1.2.5's A-Frame system has init/start but no public async
+        // preload hook. Calling init() here is not equivalent: it resets the
+        // registered anchors after A-Frame component setup.
+        if (!cancelled) setPreloaded(true);
+      };
+      scene.addEventListener('loaded', preloadSystem, { once: true });
+      Promise.resolve().then(preloadSystem);
+
       const handlers = (targetOrder ?? []).map((_figId, idx) => {
         const onFound = () => {
           setActiveIndex(idx);
@@ -145,7 +143,22 @@ export default function MultiTargetARScene({
         return { idx, onFound, onLost, entity };
       });
 
-      const onArError = (event) => onError?.(event?.detail || event);
+      const onArError = (event) => {
+        const detail = event?.detail;
+        const error = detail?.error;
+        if (error === 'VIDEO_FAIL' && Date.now() - lastDetailedErrorAtRef.current < 1500) {
+          return;
+        }
+        if (error instanceof Error) {
+          onError?.(error);
+        } else {
+          onError?.({
+            name: detail?.name || 'MindARError',
+            message: detail?.message || error || 'Unknown MindAR error',
+            code: error,
+          });
+        }
+      };
       scene.addEventListener('arError', onArError);
 
       hintTimer = setTimeout(() => setShowHint(true), FRAMING_HINT_MS);
@@ -163,6 +176,8 @@ export default function MultiTargetARScene({
           h.entity?.removeEventListener('targetLost', h.onLost);
         }
         scene.removeEventListener('loaded', flipReady);
+        scene.removeEventListener('loaded', preloadSystem);
+        scene.removeEventListener('arError', onArError);
       };
     }).catch((err) => {
       if (!cancelled) onError?.(err);
@@ -184,7 +199,7 @@ export default function MultiTargetARScene({
 
       {!started && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/85" data-testid="ar-start-overlay">
-          {ready ? (
+          {ready && preloaded ? (
             <button
               type="button"
               onClick={handleStart}
