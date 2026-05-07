@@ -38,21 +38,56 @@ export default function MultiTargetARScene({
   const narration = useNarration({ text: voiceText, lang, useSpeak: true });
 
   const handleStart = async () => {
-    // Yield once so any pending A-Frame init microtasks finish before we
-    // probe for the system. Microtask yields preserve iOS Safari's transient
-    // user activation; setTimeout/fetch on the path here would not.
+    // Step 1 — pre-acquire the camera within this fresh user gesture. iOS
+    // Safari now has the permission cached, so MindAR's later
+    // getUserMedia call is an instant hit instead of a network/UI prompt.
+    // We stop the tracks immediately; the OS keeps the grant alive for
+    // subsequent calls in the same page session.
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const preStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+        });
+        preStream.getTracks().forEach((trk) => trk.stop());
+      } catch (err) {
+        onError?.(err);
+        return;
+      }
+    }
+
+    // Step 2 — yield once so A-Frame can finish any pending init microtasks
+    // before we probe for the system. Microtask yields preserve iOS
+    // Safari's transient user activation; setTimeout would not.
     await Promise.resolve();
     const scene = sceneRef.current;
     const system = scene?.systems?.['mindar-image-system'];
     if (!system?.start) {
-      // Race: button shown but A-Frame still warming up. Surface a soft
-      // signal to the user via the existing onError channel — handleArError
-      // will route it to the permission panel which has its own retry.
       onError?.(new Error('mindar-image-system not yet available'));
       return;
     }
+
     try {
+      // Step 3 — start MindAR. Internally fetches the (now-cached) .mind
+      // pack, calls getUserMedia (cache hit), creates a video element,
+      // sets srcObject, and tries to play.
       await system.start();
+
+      // Step 4 — defence-in-depth against iOS autoplay rejection. Even if
+      // MindAR's internal play() was rejected because the activation
+      // window had elapsed, calling play() here is still inside our
+      // original click handler's user gesture, so iOS lets it through.
+      // We also re-assert the inline-playback attributes that some MindAR
+      // versions don't set, in case that was the rejection cause.
+      const videos = scene.querySelectorAll('video');
+      for (const v of videos) {
+        v.muted = true;
+        v.setAttribute('playsinline', '');
+        v.setAttribute('webkit-playsinline', '');
+        if (v.srcObject) {
+          try { await v.play(); } catch { /* not fatal — let MindAR carry on */ }
+        }
+      }
+
       setStarted(true);
     } catch (err) {
       onError?.(err);

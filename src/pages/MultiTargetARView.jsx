@@ -6,7 +6,7 @@ import { useFigureBackVideos } from '@/hooks/useFigureBackVideos';
 import MultiTargetARScene from '@/components/ar/MultiTargetARScene';
 import BrandHeader from '@/components/ornaments/BrandHeader';
 
-function ErrorPanel({ titleKey, bodyKey, onBack, onRetry, retryLabelKey }) {
+function ErrorPanel({ titleKey, bodyKey, detail, onBack, onRetry, retryLabelKey }) {
   const { t } = useLang();
   return (
     <div className="fixed inset-0 bg-ink z-[300] flex items-center justify-center px-6">
@@ -16,6 +16,11 @@ function ErrorPanel({ titleKey, bodyKey, onBack, onRetry, retryLabelKey }) {
       <div className="max-w-sm w-full text-center space-y-5 border border-brass/40 p-6 rounded">
         <h2 className="font-cinzel text-lg text-ivory">{t(titleKey)}</h2>
         {bodyKey && <p className="text-sm text-ivory/75 font-body">{t(bodyKey)}</p>}
+        {detail && (
+          <p className="text-[11px] text-ivory/45 font-body break-all px-2 leading-tight">
+            {detail}
+          </p>
+        )}
         <div className="flex justify-center gap-3">
           {onRetry && (
             <button
@@ -45,6 +50,12 @@ export default function MultiTargetARView() {
   const pack = useFigureARPack();
   const videos = useFigureBackVideos();
   const [arError, setArError] = useState(null);
+  // Raw error.message captured alongside the categorised arError so the
+  // permission panel can show what actually failed underneath. Without this,
+  // every iOS autoplay rejection / pack fetch failure / camera-busy / etc.
+  // looks identical to a permission denial because they all bubble to
+  // 'permission'. Truncated to keep the UI tidy.
+  const [arErrorDetail, setArErrorDetail] = useState(null);
 
   // Pre-warm browser cache for the .mind file as soon as we know its URL.
   // MindAR's `start()` fetches this pack before it calls getUserMedia and
@@ -78,8 +89,11 @@ export default function MultiTargetARView() {
       });
       stream.getTracks().forEach((trk) => trk.stop());
       setArError(null);
+      setArErrorDetail(null);
     } catch (err) {
-      const msg = String(err?.message ?? err ?? '').toLowerCase();
+      const rawMsg = String(err?.name ? `${err.name}: ${err?.message ?? ''}` : err?.message ?? err ?? '');
+      setArErrorDetail(rawMsg.slice(0, 240));
+      const msg = rawMsg.toLowerCase();
       if (msg.includes('notfound')) setArError('no_camera');
       // Otherwise still denied — leave the permission panel visible so the
       // user can either re-tap (some browsers re-prompt after a fresh gesture
@@ -119,6 +133,7 @@ export default function MultiTargetARView() {
     return (
       <ErrorPanel
         titleKey="ar.error.permission"
+        detail={arErrorDetail}
         onBack={() => navigate(-1)}
         onRetry={requestCameraPermission}
         retryLabelKey="ar.error.permission.retry"
@@ -126,14 +141,16 @@ export default function MultiTargetARView() {
     );
   }
   if (arError === 'no_camera') {
-    return <ErrorPanel titleKey="ar.error.noCamera" onBack={() => navigate(-1)} />;
+    return <ErrorPanel titleKey="ar.error.noCamera" detail={arErrorDetail} onBack={() => navigate(-1)} />;
   }
   if (arError === 'in_app_browser') {
-    return <ErrorPanel titleKey="ar.error.inAppBrowser" onBack={() => navigate(-1)} />;
+    return <ErrorPanel titleKey="ar.error.inAppBrowser" detail={arErrorDetail} onBack={() => navigate(-1)} />;
   }
 
   const handleArError = (err) => {
-    const msg = String(err?.message ?? err ?? '').toLowerCase();
+    const rawMsg = String(err?.name ? `${err.name}: ${err?.message ?? ''}` : err?.message ?? err ?? '');
+    setArErrorDetail(rawMsg.slice(0, 240));
+    const msg = rawMsg.toLowerCase();
     if (typeof navigator !== 'undefined' && !navigator.mediaDevices?.getUserMedia) {
       setArError('in_app_browser');
     } else if (msg.includes('notfound')) {
