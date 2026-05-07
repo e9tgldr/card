@@ -14,10 +14,21 @@ export default function MultiTargetARScene({
   onError,
 }) {
   const containerRef = useRef(null);
+  const sceneRef = useRef(null);
   const navigate = useNavigate();
   const { t, lang } = useLang();
   const [activeIndex, setActiveIndex] = useState(null);
   const [showHint, setShowHint] = useState(false);
+  // Lazy-start gating. iOS Safari blocks `<video>.play()` calls that don't
+  // originate inside a fresh user gesture; MindAR's autoStart fires play()
+  // from inside a Promise.all().then() callback, well outside the gesture
+  // window, which leaves the camera stream paused and the canvas rendering
+  // a uniform color instead of the feed. Solution: disable autoStart and
+  // wait for an explicit "Tap to start" click — the click handler invokes
+  // `mindar-image-system.start()` directly, so play() runs synchronously
+  // inside the gesture and Safari permits it.
+  const [ready, setReady] = useState(false);
+  const [started, setStarted] = useState(false);
 
   const activeFigId = activeIndex == null ? null : (targetOrder?.[activeIndex] ?? null);
   const activeFigure = activeFigId
@@ -25,6 +36,18 @@ export default function MultiTargetARScene({
     : null;
   const voiceText = activeFigure ? figureBio(activeFigure, lang) : '';
   const narration = useNarration({ text: voiceText, lang, useSpeak: true });
+
+  const handleStart = async () => {
+    const scene = sceneRef.current;
+    const system = scene?.systems?.['mindar-image-system'];
+    if (!system?.start) return;
+    try {
+      await system.start();
+      setStarted(true);
+    } catch (err) {
+      onError?.(err);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +63,13 @@ export default function MultiTargetARScene({
       if (cancelled || !containerRef.current) return;
       scene = buildScene(packUrl, targetOrder, videosByFigId);
       containerRef.current.appendChild(scene);
+      sceneRef.current = scene;
+
+      // A-Frame fires `renderstart` once the renderer starts; that's our
+      // signal that `mindar-image-system` is registered and `start()` can be
+      // safely called from the next user gesture.
+      const onRenderStart = () => { if (!cancelled) setReady(true); };
+      scene.addEventListener('renderstart', onRenderStart);
 
       const handlers = (targetOrder ?? []).map((_figId, idx) => {
         const onFound = () => {
@@ -77,6 +107,7 @@ export default function MultiTargetARScene({
           h.entity?.removeEventListener('targetFound', h.onFound);
           h.entity?.removeEventListener('targetLost', h.onLost);
         }
+        scene.removeEventListener('renderstart', onRenderStart);
       };
     }).catch((err) => {
       if (!cancelled) onError?.(err);
@@ -87,12 +118,32 @@ export default function MultiTargetARScene({
       clearTimeout(hintTimer);
       try { stopCameraTracks(); } catch { /* best-effort */ }
       if (scene && scene.parentNode) scene.parentNode.removeChild(scene);
+      sceneRef.current = null;
     };
   }, [packUrl, targetOrder, videosByFigId, onError]);
 
   return (
     <div className="fixed inset-0 bg-black z-[300]">
       <div ref={containerRef} className="absolute inset-0" />
+
+      {!started && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/85" data-testid="ar-start-overlay">
+          {ready ? (
+            <button
+              type="button"
+              onClick={handleStart}
+              className="px-7 py-3.5 border border-gold rounded text-gold font-meta tracking-[0.24em] uppercase text-sm hover:bg-gold/10"
+            >
+              {t('ar.start')}
+            </button>
+          ) : (
+            <div className="text-center space-y-4">
+              <div className="w-8 h-8 border-2 border-muted-foreground/20 border-t-crimson rounded-full animate-spin mx-auto" />
+              <p className="text-sm text-ivory/70 font-body">{t('ar.start.preparing')}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent">
         <button
@@ -163,9 +214,12 @@ export default function MultiTargetARScene({
 function buildScene(packUrl, targetOrder, videosByFigId) {
   const scene = document.createElement('a-scene');
   const safePack = encodeURI(packUrl);
+  // autoStart is intentionally false: see the lazy-start comment in
+  // MultiTargetARScene above. start() is invoked from the user-gesture click
+  // handler so iOS Safari permits the underlying video.play().
   scene.setAttribute(
     'mindar-image',
-    `imageTargetSrc: ${safePack}; autoStart: true; uiLoading: no; uiError: no; uiScanning: no;`,
+    `imageTargetSrc: ${safePack}; autoStart: false; uiLoading: no; uiError: no; uiScanning: no;`,
   );
   scene.setAttribute('color-space', 'sRGB');
   scene.setAttribute('renderer', 'colorManagement: true; physicallyCorrectLights');

@@ -402,6 +402,8 @@ export const STRINGS = {
   'ar.hint.framing':          { mn: 'Картыг камерын дунд аваачиж, гэрэлтэй газар барина уу', en: 'Hold the card centered in the camera in good light' },
   'ar.error.permission':      { mn: 'Камер-р хандах эрх олгоно уу',          en: 'Please allow camera access' },
   'ar.error.permission.retry':{ mn: 'Дахин оролдох',                         en: 'Try again' },
+  'ar.start':                 { mn: 'Камер эхлүүлэх',                        en: 'Start camera' },
+  'ar.start.preparing':       { mn: 'Бэлдэж байна…',                          en: 'Preparing…' },
   'ar.error.noCamera':        { mn: 'Энэ төхөөрөмжид камер олдсонгүй',        en: 'No camera found on this device' },
   'ar.error.inAppBrowser':    { mn: 'Аппын дотор камер ашиглах боломжгүй. Safari/Chrome-оор нээнэ үү', en: 'Camera is not available inside in-app browsers. Open in Safari or Chrome.' },
 
