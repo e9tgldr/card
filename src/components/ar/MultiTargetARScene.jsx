@@ -30,7 +30,6 @@ export default function MultiTargetARScene({
   // inside the gesture and Safari permits it.
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
-  const [preloaded, setPreloaded] = useState(false);
 
   const activeFigId = activeIndex == null ? null : (targetOrder?.[activeIndex] ?? null);
   const activeFigure = activeFigId
@@ -88,7 +87,7 @@ export default function MultiTargetARScene({
     let scene = null;
     let stopCameraTracks = () => {};
     let hintTimer;
-    let readyFallbackTimer;
+    let readyPollTimer = null;
 
     Promise.all([
       import('aframe'),
@@ -100,29 +99,35 @@ export default function MultiTargetARScene({
       containerRef.current.appendChild(scene);
       sceneRef.current = scene;
 
-      // We previously waited for A-Frame's `renderstart` event before showing
-      // the start button — but on some iOS Safari versions, when MindAR's
-      // `autoStart` is off, the renderer never ticks (no camera texture to
-      // render against), so renderstart never fires and the user is stuck on
-      // a spinner forever. Append is enough — A-Frame initialises the scene
-      // synchronously enough that `mindar-image-system` will be registered
-      // by the time a human can read the button and tap it. Belt-and-braces:
-      // also listen for `loaded` and have a 3s outer fallback so the button
-      // can never get permanently stuck behind a missed event.
-      const flipReady = () => { if (!cancelled) setReady(true); };
-      scene.addEventListener('loaded', flipReady);
-      readyFallbackTimer = setTimeout(flipReady, 3000);
-      // Microtask-yield so React can commit before the (also-immediate) flip.
-      Promise.resolve().then(flipReady);
-
-      const preloadSystem = () => {
-        // mind-ar 1.2.5's A-Frame system has init/start but no public async
-        // preload hook. Calling init() here is not equivalent: it resets the
-        // registered anchors after A-Frame component setup.
-        if (!cancelled) setPreloaded(true);
+      // Don't flip `ready` on appendChild — A-Frame scene init is async,
+      // and `mindar-image-system` may take another 50-300ms to register
+      // after appendChild returns. Showing the start button before then
+      // means handleStart finds `scene.systems['mindar-image-system']`
+      // undefined and surfaces "mindar-image-system not yet available"
+      // (the previous bug). Poll for the registered system instead, with
+      // a 6s outer cap that surfaces a clear error if it never registers.
+      // The 'loaded' event provides a fast-path; polling covers iOS Safari
+      // configurations where 'loaded' arrives before system registration
+      // or doesn't fire reliably with autoStart=false.
+      let pollAttempts = 0;
+      const POLL_INTERVAL_MS = 100;
+      const MAX_POLL_MS = 6000;
+      const tryFlipReady = () => {
+        if (cancelled) return;
+        const system = scene.systems?.['mindar-image-system'];
+        if (system?.start) {
+          setReady(true);
+          return;
+        }
+        pollAttempts++;
+        if (pollAttempts * POLL_INTERVAL_MS < MAX_POLL_MS) {
+          readyPollTimer = setTimeout(tryFlipReady, POLL_INTERVAL_MS);
+        } else {
+          onError?.(new Error('mindar-image-system did not register within 6s'));
+        }
       };
-      scene.addEventListener('loaded', preloadSystem, { once: true });
-      Promise.resolve().then(preloadSystem);
+      tryFlipReady();
+      scene.addEventListener('loaded', tryFlipReady);
 
       const handlers = (targetOrder ?? []).map((_figId, idx) => {
         const onFound = () => {
@@ -175,8 +180,7 @@ export default function MultiTargetARScene({
           h.entity?.removeEventListener('targetFound', h.onFound);
           h.entity?.removeEventListener('targetLost', h.onLost);
         }
-        scene.removeEventListener('loaded', flipReady);
-        scene.removeEventListener('loaded', preloadSystem);
+        scene.removeEventListener('loaded', tryFlipReady);
         scene.removeEventListener('arError', onArError);
       };
     }).catch((err) => {
@@ -186,7 +190,7 @@ export default function MultiTargetARScene({
     return () => {
       cancelled = true;
       clearTimeout(hintTimer);
-      clearTimeout(readyFallbackTimer);
+      if (readyPollTimer) clearTimeout(readyPollTimer);
       try { stopCameraTracks(); } catch { /* best-effort */ }
       if (scene && scene.parentNode) scene.parentNode.removeChild(scene);
       sceneRef.current = null;
@@ -199,7 +203,7 @@ export default function MultiTargetARScene({
 
       {!started && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/85" data-testid="ar-start-overlay">
-          {ready && preloaded ? (
+          {ready ? (
             <button
               type="button"
               onClick={handleStart}
