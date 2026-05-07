@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "gen:figures": "node scripts/gen-shared-figures.mjs",
     "check:figures": "node scripts/gen-shared-figures.mjs --check",
-    "prebuild": "node scripts/gen-shared-figures.mjs --check"
+    "prebuild": "node scripts/gen-shared-figures.mjs --check",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
@@ -106,6 +107,7 @@
     "eslint-plugin-unused-imports": "^4.3.0",
     "globals": "^15.14.0",
     "jsdom": "^25.0.1",
+    "patch-package": "^8.0.1",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.2",
