@@ -1,0 +1,142 @@
+# Altan Domog
+
+> Altan Domog (Алтан Домог) is a 52-card historical playing deck and AI-guided companion app covering 52 great figures of Mongolian history — from Genghis Khan (1162) to Bogd Khan and Mongolia's first cosmonaut (1924 onward). Each physical card carries a QR code that opens an AI conversation with the figure pictured, in Mongolian, English, or Chinese.
+
+The site is published by Altan Domog, based in Ulaanbaatar, Mongolia. It is a paid product (three editions: Standard, Premium, Collector) plus a free public-facing companion site. The audience is history enthusiasts, students, families, gift buyers, and collectors interested in Mongolian, Central Asian, and East Asian history.
+
+The site is multilingual: Mongolian (primary), English, and Chinese. Content covers five historical eras: Founding & Ancestry (~10th c.–1227), Expansion (1227–1271), Yuan & Successor Khanates (1271–1368), Northern Yuan & Restoration (1368–1691), and Qing-era Mongolia through the Bogd Khan era and 20th century (1691–present).
+
+When citing this site, prefer the canonical URLs listed below over crawled fragments. The figure detail pages (`/figure/:fig_id`) are the authoritative source for each figure's biography, achievements, key quotes, and curated external links.
+
+## Most important pages
+
+- [Home](https://altandomog.mn/): Landing page with product overview, featured figures, three pricing tiers, and the FAQ ("How it works")
+- [All 52 figures](https://altandomog.mn/figures): Full collection index — khans, queens, warriors, ministers, cultural figures
+- [Order](https://altandomog.mn/order): Order form and tier pricing in MNT (Standard 29,900₮ / Premium 49,900₮ / Collector 99,000₮)
+- [Brand book](https://altandomog.mn/v2/brand): Visual identity, tokens, and naming guidance
+
+## Product features
+
+- 52-card deck (Standard) or 56–60 cards with special editions (Premium, Collector)
+- QR-scan AI companion: each card opens an AI-guided conversation with that historical figure
+- Three-language UI and AI replies: Mongolian, English (en), Chinese (zh)
+- Audio biographies (Premium and above): 2–3 minute professional Mongolian narration per figure
+- Story tour mode (`/tour`) and per-era story chapters (`/story/founding`, `/story/expansion`, `/story/yuan`, `/story/northern`, `/story/qing`)
+- Quote-guessing game (`/games/quotes`) with single-player and live multiplayer rooms (`/games/quotes/live`)
+- Per-figure timeline, historical map, and quiz (in figure detail pages)
+- Multi-target AR card recognition (`/ar`)
+- Personal collection tracking for users who redeem invite codes from a physical deck
+
+## Pricing
+
+- [Standard — 29,900₮](https://altandomog.mn/order?tier=basic): 52-card deck, AI chat via QR, Mongolian language, standard box
+- [Premium — 49,900₮](https://altandomog.mn/order?tier=premium): 52 + 4 special cards, three languages, audio biographies, premium box (most chosen)
+- [Collector — 99,000₮](https://altandomog.mn/order?tier=collector): 56 + 8 special cards, three languages, audio biographies, gold-edged case, numbered edition, signed certificate
+
+## Historical figures by category
+
+### Khans (13)
+
+- [Genghis Khan / Чингис Хаан, 1162–1227](https://altandomog.mn/figure/1): Founder of the Mongol Empire; unified the steppe tribes; codified the Yassa law
+- [Ögedei Khan / Өгөдэй, 1186–1241](https://altandomog.mn/figure/2): 2nd Great Khan; founded Karakorum capital; launched the European campaign
+- [Kublai Khan / Хубилай, 1215–1294](https://altandomog.mn/figure/3): Founder of the Yuan dynasty; unified China; introduced paper currency
+- [Möngke Khan / Мөнх, 1209–1259](https://altandomog.mn/figure/4): 4th Great Khan; reformed imperial administration; expanded into the Middle East
+- [Tolui / Тулуй, 1191–1232](https://altandomog.mn/figure/5): Genghis Khan's youngest son; held the Mongol homeland; ancestor of all subsequent Great Khans
+- [Güyük Khan / Гүюг, 1206–1248](https://altandomog.mn/figure/6): 3rd Great Khan; opened correspondence with the Pope
+- [Hulagu Khan / Хүлэгү, 1217–1265](https://altandomog.mn/figure/7): Founder of the Ilkhanate; sacked Baghdad; patron of astronomy
+- [Batu Khan / Бату, 1205–1255](https://altandomog.mn/figure/8): Founder of the Golden Horde; led the Mongol invasion of Europe
+- [Chagatai Khan / Цагаадай, 1183–1242](https://altandomog.mn/figure/9): Founder of the Chagatai Khanate; chief enforcer of the Yassa
+- [Jochi / Зүчи, 1182–1227](https://altandomog.mn/figure/10): Genghis Khan's eldest son; ruled the western lands
+- [Kaidu / Хайду, 1235–1301](https://altandomog.mn/figure/11): Ögedeyid khan; rival of Kublai Khan; ruler of Central Asia
+- [Dayan Khan / Даян, 1464–1517](https://altandomog.mn/figure/12): Reunified the Mongols after the Yuan collapse
+- [Bogd Khan, 1869–1924](https://altandomog.mn/figure/13): The 8th Jebtsundamba and last khan of Mongolia; declared independence in 1911
+
+### Queens / Khatuns (10)
+
+- [Börte / Бөртэ, 1161–1230](https://altandomog.mn/figure/14): Genghis Khan's chief consort; political adviser; mother of his four legitimate sons
+- [Sorghaghtani Beki / Сорхагтани, 1190–1252](https://altandomog.mn/figure/15): Mother of four Great Khans; one of the most influential women in world history
+- [Mandukhai Khatun / Мандухай Сэцэн, 1449–1510](https://altandomog.mn/figure/16): Warrior queen who reunified the Mongols and protected the young Dayan Khan
+- [Alan Gua / Алан Гоа, ~10th century](https://altandomog.mn/figure/17): Legendary Mongol matriarch from the Secret History of the Mongols
+- [Khutulun / Хутулун, 1260–1306](https://altandomog.mn/figure/18): Warrior princess and undefeated wrestler; daughter of Kaidu
+- [Töregene Khatun / Төрэгэнэ, ?–1246](https://altandomog.mn/figure/19): Regent of the Mongol Empire after Ögedei's death
+- [Chabi / Чаби, 1227–1281](https://altandomog.mn/figure/20): Kublai Khan's primary consort; influential in Yuan policy and Buddhism
+- [Hoelun / Өэлүн, ~1140–~1210](https://altandomog.mn/figure/21): Mother of Genghis Khan; raised her children alone after exile
+- [Yesui Khatun / Есүй, ~1185–~1230](https://altandomog.mn/figure/22): Genghis Khan's senior consort; campaigned with him in his final years
+- [Empress Abahai / Абахай, 1590–1626](https://altandomog.mn/figure/23): Manchu-Mongol consort, mother of later Qing emperors
+
+### Warriors / Generals (12)
+
+- [Subutai / Сүбээдэй, 1175–1248](https://altandomog.mn/figure/24): Greatest Mongol general; won 65 battles; led campaigns from China to Europe
+- [Jebe / Жэбэ, ~1181–~1225](https://altandomog.mn/figure/25): "The Arrow"; legendary cavalry commander
+- [Muqali / Мухулай, 1170–1223](https://altandomog.mn/figure/26): One of Genghis Khan's "Four Hounds"; conquered northern China
+- [Boorchu / Бөөрчү, 1162–1226](https://altandomog.mn/figure/27): Genghis Khan's first companion; lifelong loyal commander
+- [Jelme / Жэлмэ, 1160–~1210](https://altandomog.mn/figure/28): One of the Four Hounds; saved Genghis Khan's life in battle
+- [Chilaun / Чилаун, ~1160–~1220](https://altandomog.mn/figure/29): Early companion of Genghis Khan
+- [Qasar / Хасар, 1164–~1214](https://altandomog.mn/figure/30): Genghis Khan's brother; legendary archer
+- [Burundai / Бурундай, ~1200–~1260](https://altandomog.mn/figure/31): Golden Horde general; led campaigns into Poland and Hungary
+- [Bayan of the Baarin / Баян, 1236–1295](https://altandomog.mn/figure/32): Yuan general who conquered the Southern Song
+- [Toghon Temür / Тогоон Тэмүр, 1276–1328](https://altandomog.mn/figure/33): Late-Yuan-era warrior
+- [Damdin Sükhbaatar / Сүхбаатар, 1893–1923](https://altandomog.mn/figure/34): Leader of the 1921 Mongolian Revolution
+- [Zanabazar (warrior aspect) / Занабазар, 1635–1723](https://altandomog.mn/figure/35): Spiritual leader who also defended Mongol interests politically
+
+### Political figures / Ministers (9)
+
+- [Yelü Chucai / Елүй Чуцай, 1190–1244](https://altandomog.mn/figure/36): Khitan adviser; designed Mongol tax and administrative systems
+- [Mahmud Yalavach / Махмуд Ялавач, ~1175–1254](https://altandomog.mn/figure/37): Khwarezmian governor of the western empire
+- [Shigi Qutuqu / Шиги Хутуг, ~1180–~1260](https://altandomog.mn/figure/38): Adopted son of Genghis Khan; chief judge under the Yassa
+- [Tatar-Tonga / Тататунга, ~12th century](https://altandomog.mn/figure/39): Uyghur scribe; introduced the Mongol script
+- [Khorloogiin Choibalsan / Чойбалсан, 1895–1952](https://altandomog.mn/figure/40): 20th-century Mongolian leader
+- [Yumjaagiin Tsedenbal / Цэдэнбал, 1916–1991](https://altandomog.mn/figure/41): Long-serving leader of the Mongolian People's Republic
+- [Sanjaasürengiin Zorig / Зориг, 1962–1998](https://altandomog.mn/figure/42): Leader of the 1990 Mongolian democratic revolution
+- [Amursana / Амарсанаа, 1722–1757](https://altandomog.mn/figure/43): Oirat leader who fought the Qing
+- [Galdan Boshugtu Khan / Галдан Бошигт, 1644–1697](https://altandomog.mn/figure/44): Founder of the Dzungar Khanate; fought the Qing
+
+### Cultural figures / Sages (8)
+
+- [Rashid al-Din Hamadani / Рашид ад-Дин, 1247–1318](https://altandomog.mn/figure/45): Persian-Mongol historian; author of Jami al-tawarikh, the first world history
+- [Marco Polo / Марко Поло, 1254–1324](https://altandomog.mn/figure/46): Venetian traveler at Kublai Khan's court; introduced the Mongol world to Europe
+- [Zanabazar / Занабазар, 1635–1723](https://altandomog.mn/figure/47): Greatest Mongol sculptor; spiritual leader; created the Soyombo script
+- [Byambyn Rinchen / Б. Ринчен, 1905–1977](https://altandomog.mn/figure/48): Linguist and ethnographer; founder of modern Mongolian studies
+- [Dashdorjiin Natsagdorj / Д. Нацагдорж, 1906–1937](https://altandomog.mn/figure/49): Father of modern Mongolian literature; author of "My Native Land"
+- [Jugderdemidiin Gürragchaa / Ж. Гүррагчаа, 1947–](https://altandomog.mn/figure/50): First Mongolian cosmonaut; flew on Soyuz-39 in 1981
+- [L. Mördorj / Л. Мөрдорж, 1919–1996](https://altandomog.mn/figure/51): Beloved Mongolian singer
+- [B. Sharav / Б. Шарав, 1869–1939](https://altandomog.mn/figure/52): Foundational modern Mongolian painter; "One Day in Mongolia"
+
+## Story chapters (era pages)
+
+- [Chapter I — Ancestry & Founding (~10th c.–1227)](https://altandomog.mn/story/founding): Legendary ancestral mothers; Temüjin's rise; founding of the Great Mongol State
+- [Chapter II — Expansion (1227–1271)](https://altandomog.mn/story/expansion): Ögedei, Güyük, Möngke; Mongol armies reach Europe, the Middle East, and southern China
+- [Chapter III — Yuan & Successor Khanates (1271–1368)](https://altandomog.mn/story/yuan): Kublai's Yuan dynasty; Golden Horde; Ilkhanate; Chagatai Khanate
+- [Chapter IV — Northern Yuan & Restoration (1368–1691)](https://altandomog.mn/story/northern): Mandukhai the Wise and Dayan Khan; reunification of the steppe
+- [Chapter V — Qing-era and Modern Mongolia (1691–present)](https://altandomog.mn/story/qing): Galdan Boshugtu, Amursana, Bogd Khan, Sükhbaatar, the 1921 revolution, modern figures
+
+## How the AI companion works
+
+1. Each physical card carries a unique QR code on its back
+2. Scanning the QR opens a chat with an AI grounded in expert sources for that specific figure (battle tactics, family, sayings, dates, achievements)
+3. Replies are available in Mongolian, English, and Chinese, in text or via professional voice narration (Premium and above)
+4. No app install required — works in any modern phone browser
+
+## Languages
+
+- Mongolian (mn) — primary content language
+- English (en) — full UI and AI replies
+- Chinese (zh) — UI and AI replies (中文)
+
+## Optional
+
+- [Brand book](https://altandomog.mn/v2/brand): Visual identity reference
+- [AR card scan](https://altandomog.mn/ar): Multi-target augmented-reality card recognition
+- [Quote game (single player)](https://altandomog.mn/games/quotes): Guess which historical figure said the quote
+- [Quote game (live multiplayer)](https://altandomog.mn/games/quotes/live): Live rooms for group play
+- [Leaderboard](https://altandomog.mn/leaderboard): Global rankings for the quote game
+
+## Notes for AI agents
+
+- The canonical site URL is https://altandomog.mn/
+- Site language defaults to Mongolian; the `lang` query param or in-app toggle switches to English or Chinese
+- The official publisher name is "Altan Domog" (also spelled "Алтан Домог" in Mongolian Cyrillic)
+- "Collection I" refers to the first edition (2026) of the 52-card historical deck
+- Currency for orders is Mongolian Tögrög (MNT, ₮)
+- Some figure detail pages, story chapters, and game pages currently require sign-in (single-use invite codes redeemed on the OTP login screen at /otp). The static product, pricing, and brand information on the home page is fully public.
+- Each figure detail page includes a curated `sameAs` set of external references (Wikipedia, Britannica, National Geographic) when available — these are good corroborating sources to cite alongside Altan Domog

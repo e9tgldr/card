@@ -23,6 +23,7 @@ import ShareCard from '@/components/ShareCard';
 import ARLaunchButton from '@/components/ARLaunchButton';
 import { relType, REL_TYPE_META } from '@/lib/relationships';
 import { useLang, figureName, figureRole, figureBio, figureAchievements, figureFact, figureQuote } from '@/lib/i18n';
+import JsonLd, { siteUrl } from '@/components/JsonLd';
 
 const TABS = [
   { key: 'bio',      roman: 'I',   labelKey: 'fd.tab.bio',      icon: BookOpen },
@@ -132,14 +133,82 @@ export default function FigureDetail() {
   const inTeam = isInTeam(figure.fig_id);
   const pad = String(figure.fig_id).padStart(2, '0');
 
+  const figName = figureName(figure, lang);
+  const figRole = figureRole(figure, lang);
+  const figBioText = figureBio(figure, lang);
+  const figQuoteText = figureQuote(figure, lang);
+  const yearMatch = (figure.yrs || '').match(/(\d{3,4})\s*[–-]\s*(\d{3,4})/);
+  const figureLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Person',
+        '@id': siteUrl(`/figure/${figure.fig_id}#person`),
+        name: figName,
+        alternateName: [figure.name, figureName(figure, 'en')].filter((v, i, a) => v && a.indexOf(v) === i),
+        description: figRole,
+        disambiguatingDescription: figBioText,
+        ...(yearMatch ? { birthDate: yearMatch[1], deathDate: yearMatch[2] } : {}),
+        nationality: 'Mongolian',
+        jobTitle: figRole,
+        knowsAbout: figureAchievements(figure, lang) || figure.achs || [],
+        ...(figure.portrait_url || figure.front_img
+          ? { image: figure.portrait_url || figure.front_img }
+          : {}),
+        ...(links.length ? { sameAs: links.map((l) => l.url) } : {}),
+        mainEntityOfPage: siteUrl(`/figure/${figure.fig_id}`),
+        ...(figQuoteText
+          ? {
+              subjectOf: {
+                '@type': 'Quotation',
+                text: figQuoteText,
+                spokenByCharacter: { '@type': 'Person', name: figName },
+              },
+            }
+          : {}),
+      },
+      {
+        '@type': 'ProfilePage',
+        '@id': siteUrl(`/figure/${figure.fig_id}#profile`),
+        url: siteUrl(`/figure/${figure.fig_id}`),
+        name: `${figName} — ${figRole}`,
+        about: { '@id': siteUrl(`/figure/${figure.fig_id}#person`) },
+        mainEntity: { '@id': siteUrl(`/figure/${figure.fig_id}#person`) },
+        inLanguage: lang === 'en' ? 'en' : 'mn',
+        isPartOf: { '@id': siteUrl('/#website') },
+        breadcrumb: { '@id': siteUrl(`/figure/${figure.fig_id}#breadcrumb`) },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': siteUrl(`/figure/${figure.fig_id}#breadcrumb`),
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Altan Domog', item: siteUrl('/') },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: lang === 'en' ? 'Figures' : 'Бүх дүрсүүд',
+            item: siteUrl('/figures'),
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: figName,
+            item: siteUrl(`/figure/${figure.fig_id}`),
+          },
+        ],
+      },
+    ],
+  };
+
   return (
-    <div className="min-h-screen bg-ink">
+    <main className="min-h-screen bg-ink">
+      <JsonLd id={`figure-${figure.fig_id}`} data={figureLd} />
       {/* HERO — asymmetric manuscript spread */}
-      <div className="relative contour-bg pb-10">
+      <header className="relative contour-bg pb-10">
         <ContourBackground density="med" opacity={0.10} />
 
         {/* top bar with back + team toggle */}
-        <div className="relative z-20 max-w-[92rem] mx-auto px-4 md:px-10 pt-6 flex items-center justify-between">
+        <nav aria-label={lang === 'en' ? 'Figure actions' : 'Үйлдэл'} className="relative z-20 max-w-[92rem] mx-auto px-4 md:px-10 pt-6 flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
             className="group flex items-center gap-2 font-meta text-[10px] tracking-[0.3em] uppercase text-brass/75 hover:text-ivory transition-colors"
@@ -180,7 +249,7 @@ export default function FigureDetail() {
               </span>
             </button>
           </div>
-        </div>
+        </nav>
 
         {/* main hero grid */}
         <div className="relative max-w-[92rem] mx-auto px-4 md:px-10 pt-8 md:pt-12 pb-8 grid lg:grid-cols-[0.55fr_0.45fr] gap-10 lg:gap-16 items-start">
@@ -225,7 +294,7 @@ export default function FigureDetail() {
           </div>
 
           {/* RIGHT — portrait plate */}
-          <div className="relative">
+          <figure className="relative m-0">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
               animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
@@ -238,7 +307,7 @@ export default function FigureDetail() {
                 <>
                   <img
                     src={figure.front_img}
-                    alt={figure.name}
+                    alt={`Portrait of ${figureName(figure, lang)}`}
                     crossOrigin="anonymous"
                     className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-95"
                   />
@@ -249,12 +318,12 @@ export default function FigureDetail() {
                   />
                 </>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
                   <CategoryGlyph cat={figure.cat} size={110} className="text-ivory/30" />
                 </div>
               )}
               {/* Catalog caption overlaid */}
-              <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between z-10">
+              <figcaption className="absolute bottom-4 left-4 right-4 flex items-end justify-between z-10">
                 <div>
                   <div className="font-meta text-[10px] tracking-[0.3em] uppercase text-ivory/80">Portrait · {figure.card}</div>
                   <div className="font-display text-xl text-ivory mt-1" style={{ fontVariationSettings: '"opsz" 36, "SOFT" 50' }}>
@@ -264,20 +333,20 @@ export default function FigureDetail() {
                 <span className="font-meta text-[10px] tracking-[0.22em] text-brass bg-ink/60 px-1.5 py-0.5 border border-brass/50">
                   N° {pad}
                 </span>
-              </div>
+              </figcaption>
             </motion.div>
             {/* Vertical bichig column to the right of the portrait */}
-            <div className="hidden md:flex absolute -right-6 top-6 bottom-6 items-center">
+            <div aria-hidden="true" className="hidden md:flex absolute -right-6 top-6 bottom-6 items-center">
               <span className="bichig text-lg text-brass/50">{figure.name.slice(0, 8)}</span>
             </div>
-          </div>
+          </figure>
         </div>
-      </div>
+      </header>
 
       {/* Tabs — roman-numeral editorial nav */}
-      <div className="sticky top-0 z-20 bg-ink/92 backdrop-blur-md border-y border-brass/30">
+      <nav aria-label={lang === 'en' ? 'Figure sections' : 'Хэсгүүд'} className="sticky top-0 z-20 bg-ink/92 backdrop-blur-md border-y border-brass/30">
         <div className="max-w-[72rem] mx-auto px-2 sm:px-6 overflow-x-auto scrollbar-hide">
-          <div className="flex min-w-max">
+          <div role="tablist" className="flex min-w-max">
             {TABS.map((tab_) => {
               const Icon = tab_.icon;
               const active = tab === tab_.key;
@@ -307,10 +376,10 @@ export default function FigureDetail() {
             })}
           </div>
         </div>
-      </div>
+      </nav>
 
       {/* Content body */}
-      <div className="max-w-[56rem] mx-auto px-5 sm:px-8 py-14 space-y-12">
+      <article className="max-w-[56rem] mx-auto px-5 sm:px-8 py-14 space-y-12">
 
         {/* BIO */}
         {tab === 'bio' && (
@@ -632,7 +701,7 @@ export default function FigureDetail() {
         )}
 
         {/* Bottom navigation */}
-        <div className="pt-8 border-t border-brass/25">
+        <nav aria-label={lang === 'en' ? 'Adjacent figures' : 'Хөрш дүрсүүд'} className="pt-8 border-t border-brass/25">
           <div className="flex items-center justify-between">
             {figure.fig_id > 1 ? (
               <button
@@ -675,12 +744,12 @@ export default function FigureDetail() {
               </button>
             ) : <div />}
           </div>
-        </div>
-      </div>
+        </nav>
+      </article>
 
       {showShare && (
         <ShareCard figure={figure} onClose={() => setShowShare(false)} />
       )}
-    </div>
+    </main>
   );
 }

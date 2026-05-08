@@ -7,6 +7,7 @@ import { currentSession } from '@/lib/authStore';
 import { supabase } from '@/lib/supabase';
 import { useLang } from '@/lib/i18n';
 import FigureTileV2, { FIGURE_TILE_TOKENS as t } from '@/components/FigureTileV2';
+import JsonLd, { siteUrl } from '@/components/JsonLd';
 
 const FONT_SANS =
   '"Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
@@ -82,6 +83,56 @@ export default function Figures() {
     }
   };
 
+  const figuresLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': siteUrl('/figures#collectionpage'),
+        url: siteUrl('/figures'),
+        name: lang === 'en' ? 'All 52 figures of Mongolian history' : 'Бүх 52 түүхэн зүтгэлтэн',
+        description: lang === 'en'
+          ? 'The full set of 52 historical figures featured in the Altan Domog deck — khans, queens, generals, ministers, and cultural figures from the 10th century through 1924.'
+          : 'Altan Domog хөзрийн багцад багтсан 52 түүхэн зүтгэлтэн — хаад, хатад, жанжид, төрийн зүтгэлтэн, соёлын зүтгэлтнүүд (10-р зуунаас 1924 он хүртэл).',
+        inLanguage: lang === 'en' ? 'en' : 'mn',
+        isPartOf: { '@id': siteUrl('/#website') },
+        mainEntity: { '@id': siteUrl('/figures#itemlist') },
+        breadcrumb: { '@id': siteUrl('/figures#breadcrumb') },
+      },
+      {
+        '@type': 'ItemList',
+        '@id': siteUrl('/figures#itemlist'),
+        name: lang === 'en' ? 'All figures' : 'Бүх дүрсүүд',
+        numberOfItems: FIGURES.length,
+        itemListElement: FIGURES.map((f, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          url: siteUrl(`/figure/${f.fig_id}`),
+          name: f.name,
+          item: {
+            '@type': 'Person',
+            name: f.name,
+            description: f.role,
+            url: siteUrl(`/figure/${f.fig_id}`),
+          },
+        })),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': siteUrl('/figures#breadcrumb'),
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Altan Domog', item: siteUrl('/') },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: lang === 'en' ? 'Figures' : 'Бүх дүрсүүд',
+            item: siteUrl('/figures'),
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <div
       style={{
@@ -92,6 +143,7 @@ export default function Figures() {
         WebkitFontSmoothing: 'antialiased',
       }}
     >
+      <JsonLd id="figures-list" data={figuresLd} />
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 24px 56px' }}>
         <div
           style={{

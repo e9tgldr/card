@@ -21,6 +21,7 @@ import { SepiaPortrait } from '@/components/photo/SepiaPortrait';
 import { useFeaturedToday } from '@/hooks/useFeaturedToday';
 import { useQuoteToday } from '@/hooks/useQuoteToday';
 import { useFiguresWithDb } from '@/hooks/useFiguresWithDb';
+import JsonLd, { siteUrl } from '@/components/JsonLd';
 
 const FONT_SANS =
   '"Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -575,7 +576,7 @@ function Hero({ c }) {
           zIndex: 3,
         }}
       >
-        <div
+        <header
           className="hero-natgeo-text"
           style={{
             position: 'relative',
@@ -589,7 +590,7 @@ function Hero({ c }) {
             zIndex: 3,
           }}
         >
-          <div
+          <p
             style={{
               fontFamily: FONT_SANS,
               fontSize: 11,
@@ -597,10 +598,11 @@ function Hero({ c }) {
               color: tokens.accent,
               fontWeight: 700,
               textTransform: 'uppercase',
+              margin: 0,
             }}
           >
             The Mongol Empire · 1206–1368
-          </div>
+          </p>
           <h1
             style={{
               marginTop: 14,
@@ -673,7 +675,7 @@ function Hero({ c }) {
               {c.hero.ctaSecondary}
             </Link>
           </div>
-        </div>
+        </header>
       </div>
       <div
         data-hero="meta-strip"
@@ -711,7 +713,7 @@ function Hero({ c }) {
         </div>
       </div>
       {quoteOfDay ? (
-        <div
+        <blockquote
           data-hero="quote-of-day"
           style={{
             position: 'absolute',
@@ -728,14 +730,16 @@ function Hero({ c }) {
             zIndex: 4,
             textShadow: '0 2px 18px rgba(0,0,0,0.55)',
             pointerEvents: 'none',
+            margin: 0,
           }}
           className="hidden-on-mobile"
         >
           <span style={{ color: tokens.accent, marginRight: 4 }}>“</span>
           {quoteOfDay.quote}
           <span style={{ color: tokens.accent, marginLeft: 4 }}>”</span>
-          <div
+          <cite
             style={{
+              display: 'block',
               marginTop: 10,
               fontFamily: FONT_SANS,
               fontStyle: 'normal',
@@ -748,8 +752,8 @@ function Hero({ c }) {
           >
             — {quoteOfDay.attr}
             {quoteOfDay.yrs ? <span style={{ opacity: 0.7 }}> · {quoteOfDay.yrs}</span> : null}
-          </div>
-        </div>
+          </cite>
+        </blockquote>
       ) : null}
       <div
         className="hidden-on-mobile"
@@ -945,89 +949,95 @@ function FeaturedFiguresStrip({ c }) {
           }}
         >
           {portrayed.map((f) => (
-            <Link
-              key={f.fig_id}
-              to={`/figures/${f.fig_id}`}
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
-              <div
-                style={{
-                  position: 'relative',
-                  aspectRatio: '3/4',
-                  overflow: 'hidden',
-                  borderRadius: 8,
-                  border: `1px solid ${tokens.border}`,
-                  background: tokens.surface,
-                  transition: 'transform 220ms ease, border-color 220ms ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.borderColor = tokens.accent;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.borderColor = tokens.border;
-                }}
+            <article key={f.fig_id}>
+              <Link
+                to={`/figures/${f.fig_id}`}
+                style={{ textDecoration: 'none', color: 'inherit' }}
+                aria-label={`${f.name} (${f.yrs})`}
               >
-                <img
-                  src={f.front_img || f.portrait_url}
-                  alt={f.name}
-                  loading="lazy"
+                <figure
                   style={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    objectPosition: '50% 22%',
-                    filter: f.front_img
-                      ? 'none'
-                      : 'sepia(0.18) contrast(1.18) saturate(1.05)',
+                    position: 'relative',
+                    aspectRatio: '3/4',
+                    overflow: 'hidden',
+                    borderRadius: 8,
+                    border: `1px solid ${tokens.border}`,
+                    background: tokens.surface,
+                    transition: 'transform 220ms ease, border-color 220ms ease',
+                    margin: 0,
                   }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background:
-                      'linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 50%)',
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.borderColor = tokens.accent;
                   }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: 16,
-                    right: 16,
-                    bottom: 14,
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = tokens.border;
                   }}
                 >
-                  <div
+                  <img
+                    src={f.front_img || f.portrait_url}
+                    alt={`Portrait of ${f.name}`}
+                    loading="lazy"
                     style={{
-                      fontFamily: tokens.serif,
-                      fontWeight: 600,
-                      fontSize: 18,
-                      lineHeight: 1.18,
-                      color: '#fff',
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: '50% 22%',
+                      filter: f.front_img
+                        ? 'none'
+                        : 'sepia(0.18) contrast(1.18) saturate(1.05)',
+                    }}
+                  />
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background:
+                        'linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 50%)',
+                    }}
+                  />
+                  <figcaption
+                    style={{
+                      position: 'absolute',
+                      left: 16,
+                      right: 16,
+                      bottom: 14,
                     }}
                   >
-                    {f.name}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: FONT_SANS,
-                      fontSize: 10.5,
-                      letterSpacing: 1.8,
-                      textTransform: 'uppercase',
-                      color: tokens.accent,
-                      marginTop: 6,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {f.yrs}
-                  </div>
-                </div>
-              </div>
-            </Link>
+                    <h3
+                      style={{
+                        fontFamily: tokens.serif,
+                        fontWeight: 600,
+                        fontSize: 18,
+                        lineHeight: 1.18,
+                        color: '#fff',
+                        margin: 0,
+                      }}
+                    >
+                      {f.name}
+                    </h3>
+                    <p
+                      style={{
+                        fontFamily: FONT_SANS,
+                        fontSize: 10.5,
+                        letterSpacing: 1.8,
+                        textTransform: 'uppercase',
+                        color: tokens.accent,
+                        marginTop: 6,
+                        marginBottom: 0,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <time>{f.yrs}</time>
+                    </p>
+                  </figcaption>
+                </figure>
+              </Link>
+            </article>
           ))}
         </div>
       </div>
@@ -1085,7 +1095,7 @@ function HowItWorks({ c }) {
             const Icon = HOW_ICONS[i] || QrCode;
             return (
               <Reveal key={s.title} delay={i * 80}>
-                <div
+                <article
                   style={{
                     background: tokens.bg,
                     border: `1px solid ${tokens.border}`,
@@ -1105,7 +1115,8 @@ function HowItWorks({ c }) {
                     e.currentTarget.style.borderColor = tokens.border;
                   }}
                 >
-                  <div
+                  <span
+                    aria-hidden="true"
                     style={{
                       width: 44,
                       height: 44,
@@ -1119,18 +1130,19 @@ function HowItWorks({ c }) {
                     }}
                   >
                     <Icon size={20} />
-                  </div>
-                  <div
+                  </span>
+                  <p
                     style={{
                       fontSize: 12,
                       letterSpacing: 1.4,
                       color: tokens.hint,
                       fontWeight: 600,
                       textTransform: 'uppercase',
+                      margin: 0,
                     }}
                   >
                     {c.how.step} {i + 1}
-                  </div>
+                  </p>
                   <h3
                     style={{
                       marginTop: 6,
@@ -1151,7 +1163,7 @@ function HowItWorks({ c }) {
                   >
                     {s.desc}
                   </p>
-                </div>
+                </article>
               </Reveal>
             );
           })}
@@ -1224,7 +1236,7 @@ function CardCollectionV2({ c }) {
         >
           {collection.map((card, i) => (
             <Reveal key={card.name} delay={i * 60}>
-              <div
+              <article
                 style={{
                   background: tokens.surface,
                   border: `1px solid ${tokens.border}`,
@@ -1242,21 +1254,23 @@ function CardCollectionV2({ c }) {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                <div
+                <figure
                   style={{
                     aspectRatio: '4/5',
                     position: 'relative',
                     overflow: 'hidden',
                     background: '#1F1B14',
+                    margin: 0,
                   }}
                 >
                   <img
                     src={card.img}
-                    alt={card.name}
+                    alt={`Portrait of ${card.name}`}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     loading="lazy"
                   />
-                  <div
+                  <span
+                    aria-hidden="true"
                     style={{
                       position: 'absolute',
                       top: 14,
@@ -1269,17 +1283,18 @@ function CardCollectionV2({ c }) {
                     }}
                   >
                     {card.rank}
-                    <div
+                    <span
                       style={{
+                        display: 'block',
                         fontSize: 16,
                         color: card.suit === '♥' || card.suit === '♦' ? tokens.bronze : tokens.brand,
                         marginTop: 2,
                       }}
                     >
                       {card.suit}
-                    </div>
-                  </div>
-                  <div
+                    </span>
+                  </span>
+                  <figcaption
                     style={{
                       position: 'absolute',
                       left: 16,
@@ -1290,15 +1305,15 @@ function CardCollectionV2({ c }) {
                       paddingTop: 30,
                     }}
                   >
-                    <div style={{ fontWeight: 700, fontSize: 17.5, lineHeight: 1.15 }}>
+                    <h3 style={{ fontWeight: 700, fontSize: 17.5, lineHeight: 1.15, margin: 0 }}>
                       {card.name}
-                    </div>
-                    <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5, marginTop: 4 }}>
-                      {card.role} · {card.years}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                    </h3>
+                    <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5, marginTop: 4, marginBottom: 0 }}>
+                      {card.role} · <time>{card.years}</time>
+                    </p>
+                  </figcaption>
+                </figure>
+              </article>
             </Reveal>
           ))}
         </div>
@@ -1372,7 +1387,7 @@ function Features({ c }) {
             const isWide = layout.variant === 'wide';
             return (
               <Reveal key={f.title} delay={i * 60} className={`bento-tile bento-${layout.variant}`}>
-                <div
+                <article
                   style={{
                     background: isHero ? tokens.brandSoft : tokens.surfaceMuted,
                     border: `1px solid ${tokens.border}`,
@@ -1385,7 +1400,8 @@ function Features({ c }) {
                     gap: isWide ? 24 : 0,
                   }}
                 >
-                  <div
+                  <span
+                    aria-hidden="true"
                     style={{
                       width: isHero ? 56 : 44,
                       height: isHero ? 56 : 44,
@@ -1401,7 +1417,7 @@ function Features({ c }) {
                     }}
                   >
                     <Icon size={isHero ? 26 : 20} />
-                  </div>
+                  </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <h3
                       style={{
@@ -1425,7 +1441,7 @@ function Features({ c }) {
                       {f.desc}
                     </p>
                   </div>
-                </div>
+                </article>
               </Reveal>
             );
           })}
@@ -1484,7 +1500,7 @@ function Pricing({ c }) {
         >
           {tiers.map((t, i) => (
             <Reveal key={t.key} delay={i * 80}>
-              <div
+              <article
                 style={{
                   position: 'relative',
                   background: t.highlighted ? tokens.brandSoft : tokens.surface,
@@ -1519,18 +1535,19 @@ function Pricing({ c }) {
                     {c.pricing.pickBadge}
                   </span>
                 )}
-                <div>
-                  <div
+                <header>
+                  <p
                     style={{
                       fontSize: 12,
                       fontWeight: 600,
                       letterSpacing: 1.4,
                       textTransform: 'uppercase',
                       color: t.highlighted ? tokens.brandOnSoft : tokens.hint,
+                      margin: 0,
                     }}
                   >
                     {t.blurb}
-                  </div>
+                  </p>
                   <h3
                     style={{
                       marginTop: 6,
@@ -1541,18 +1558,19 @@ function Pricing({ c }) {
                   >
                     {t.name}
                   </h3>
-                  <div
+                  <p
                     style={{
                       marginTop: 12,
                       fontSize: 38,
                       fontWeight: 700,
                       letterSpacing: -0.6,
                       color: t.highlighted ? tokens.brandStrong : tokens.ink,
+                      marginBottom: 0,
                     }}
                   >
-                    {t.price}
-                  </div>
-                </div>
+                    <data value={t.price}>{t.price}</data>
+                  </p>
+                </header>
                 <ul style={{ marginTop: 22, padding: 0, listStyle: 'none', flex: 1 }}>
                   {t.features.map((f) => (
                     <li
@@ -1602,7 +1620,7 @@ function Pricing({ c }) {
                 >
                   {c.pricing.cta} <ArrowRight size={16} />
                 </Link>
-              </div>
+              </article>
             </Reveal>
           ))}
         </div>
@@ -1742,6 +1760,97 @@ function Footer({ c }) {
 export default function LandingV2() {
   const { lang } = useLang();
   const c = COPY[lang] || COPY.mn;
+  const allFigures = useFiguresWithDb();
+
+  const ldData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': siteUrl('/#webpage'),
+        url: siteUrl('/'),
+        name: lang === 'en'
+          ? 'Altan Domog — 52 figures of Mongolian history'
+          : 'Altan Domog — 52 түүхэн зүтгэлтэн',
+        description: lang === 'en'
+          ? '52 figures of Mongolian history — from Genghis Khan to Zanabazar — gathered into a gold-edged playing card deck. Scan the QR on any card and an AI guide answers in the figure’s voice.'
+          : '52 түүхэн зүтгэлтний намтар, гавьяа, домог — Чингис Хаанаас Занабазар хүртэл, нэг алтан хөзрийн багцад. Хөзрийн QR-ыг уншуулмагц AI хөтөч уг дүрийн дуугаар хариулна.',
+        inLanguage: lang === 'en' ? 'en' : 'mn',
+        isPartOf: { '@id': siteUrl('/#website') },
+        about: { '@id': siteUrl('/#product') },
+        primaryImageOfPage: {
+          '@type': 'ImageObject',
+          url: siteUrl('/logo.png'),
+        },
+        breadcrumb: { '@id': siteUrl('/#breadcrumb-home') },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': siteUrl('/#breadcrumb-home'),
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Altan Domog', item: siteUrl('/') },
+        ],
+      },
+      {
+        '@type': 'ItemList',
+        '@id': siteUrl('/#featured-figures'),
+        name: lang === 'en' ? 'Featured figures from Altan Domog' : 'Онцолж буй дүрүүд',
+        numberOfItems: Math.min(allFigures.length, 12),
+        itemListElement: allFigures.slice(0, 12).map((f, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          url: siteUrl(`/figure/${f.fig_id}`),
+          name: f.name,
+        })),
+      },
+      {
+        '@type': 'FAQPage',
+        '@id': siteUrl('/#faq'),
+        mainEntity: c.how.steps.map((s) => ({
+          '@type': 'Question',
+          name: s.title,
+          acceptedAnswer: { '@type': 'Answer', text: s.desc },
+        })),
+      },
+      {
+        '@type': 'Product',
+        '@id': siteUrl('/#product-offers'),
+        name: 'Altan Domog — Collection I',
+        brand: { '@id': siteUrl('/#organization') },
+        description: lang === 'en'
+          ? 'A 52-card historical playing deck. Each card carries a QR that opens an AI-guided conversation with the figure pictured.'
+          : '52 түүхэн дүртэй хөзрийн багц. Хөзөр бүрийн QR-ыг уншуулахад AI хөтөч уг дүрийн дуугаар ярина.',
+        image: siteUrl('/logo.png'),
+        offers: [
+          {
+            '@type': 'Offer',
+            name: 'Standard',
+            price: '29900',
+            priceCurrency: 'MNT',
+            availability: 'https://schema.org/PreOrder',
+            url: siteUrl('/order?tier=basic'),
+          },
+          {
+            '@type': 'Offer',
+            name: 'Premium',
+            price: '49900',
+            priceCurrency: 'MNT',
+            availability: 'https://schema.org/PreOrder',
+            url: siteUrl('/order?tier=premium'),
+          },
+          {
+            '@type': 'Offer',
+            name: 'Collector',
+            price: '99000',
+            priceCurrency: 'MNT',
+            availability: 'https://schema.org/PreOrder',
+            url: siteUrl('/order?tier=collector'),
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <div
       style={{
@@ -1753,15 +1862,18 @@ export default function LandingV2() {
         MozOsxFontSmoothing: 'grayscale',
       }}
     >
+      <JsonLd id="landing" data={ldData} />
       <NavBar c={c} />
-      <Hero c={c} />
-      <StatsBand c={c} />
-      <FeaturedFiguresStrip c={c} />
-      <HowItWorks c={c} />
-      <CardCollectionV2 c={c} />
-      <Features c={c} />
-      <Pricing c={c} />
-      <CTABand c={c} />
+      <main>
+        <Hero c={c} />
+        <StatsBand c={c} />
+        <FeaturedFiguresStrip c={c} />
+        <HowItWorks c={c} />
+        <CardCollectionV2 c={c} />
+        <Features c={c} />
+        <Pricing c={c} />
+        <CTABand c={c} />
+      </main>
       <Footer c={c} />
       <style>{`
         .bento-grid > .bento-hero { grid-column: 1 / 3; grid-row: 1 / 3; }

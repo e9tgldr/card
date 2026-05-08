@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import JsonLd, { siteUrl } from '@/components/JsonLd';
 
 const TIER_INFO = {
   basic: {
     name: 'Энгийн хувилбар',
     price: '29,900₮',
+    priceNumber: '29900',
     summary: '52 хөзөр бүхий стандарт багц',
   },
   premium: {
     name: 'Premium хувилбар',
     price: '49,900₮',
+    priceNumber: '49900',
     summary: '52 + 4 тусгай хөзөр, 3 хэлний дэмжлэг, дуут тайлбар',
   },
   collector: {
     name: 'Collector Edition',
     price: '99,000₮',
+    priceNumber: '99000',
     summary: '56 + 8 тусгай хөзөр, дугаарлагдсан, гарын үсэгтэй',
   },
 };
@@ -82,8 +86,42 @@ export default function Order() {
     );
   }
 
+  const orderLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Product',
+        '@id': siteUrl(`/order#product-${tierKey}`),
+        name: `Altan Domog — ${tier.name}`,
+        description: tier.summary,
+        brand: { '@id': siteUrl('/#organization') },
+        image: siteUrl('/logo.png'),
+        category: 'Educational playing cards / Collectibles',
+        offers: {
+          '@type': 'Offer',
+          price: tier.priceNumber,
+          priceCurrency: 'MNT',
+          availability: 'https://schema.org/PreOrder',
+          url: siteUrl(`/order?tier=${tierKey}`),
+          seller: { '@id': siteUrl('/#organization') },
+          areaServed: 'MN',
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': siteUrl('/order#breadcrumb'),
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Altan Domog', item: siteUrl('/') },
+          { '@type': 'ListItem', position: 2, name: 'Захиалга / Order', item: siteUrl('/order') },
+          { '@type': 'ListItem', position: 3, name: tier.name, item: siteUrl(`/order?tier=${tierKey}`) },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen px-4 py-8" style={{ background: '#0a0c14', color: '#e8d5a3' }}>
+      <JsonLd id={`order-${tierKey}`} data={orderLd} />
       <div className="max-w-lg mx-auto">
         <button
           onClick={() => navigate(-1)}

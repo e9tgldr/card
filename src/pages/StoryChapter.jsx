@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import StoryStage from '@/components/story/StoryStage';
 import StoryControls from '@/components/story/StoryControls';
 import StoryEnding from '@/components/story/StoryEnding';
+import JsonLd, { siteUrl } from '@/components/JsonLd';
 
 const RESUME_KEY = 'story:resume';
 
@@ -193,11 +194,62 @@ export default function StoryChapter() {
 
   const currentAct = slide?.kind === 'figure' ? slide.act : null;
 
+  const chapterLabel = lang === 'en' ? (eraDef.label_en || eraDef.label) : eraDef.label;
+  const chapterIntro = lang === 'en' ? (eraDef.intro_en || eraDef.intro) : eraDef.intro;
+  const chapterYears = lang === 'en' ? (eraDef.years_en || eraDef.years) : eraDef.years;
+  const chapterStoryLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Article',
+        '@id': siteUrl(`/story/${chapter}#article`),
+        headline: `${chapterLabel} (${chapterYears})`,
+        description: chapterIntro,
+        inLanguage: lang === 'en' ? 'en' : 'mn',
+        articleSection: chapterLabel,
+        author: { '@id': siteUrl('/#organization') },
+        publisher: { '@id': siteUrl('/#organization') },
+        isPartOf: { '@id': siteUrl('/#website') },
+        mainEntityOfPage: siteUrl(`/story/${chapter}`),
+        about: {
+          '@type': 'Thing',
+          name: chapterLabel,
+          description: chapterIntro,
+        },
+        ...(eraDef.start && eraDef.end
+          ? {
+              temporalCoverage: `${eraDef.start}/${eraDef.end}`,
+            }
+          : {}),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': siteUrl(`/story/${chapter}#breadcrumb`),
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Altan Domog', item: siteUrl('/') },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: lang === 'en' ? 'Story' : 'Түүх',
+            item: siteUrl('/#chapters'),
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: chapterLabel,
+            item: siteUrl(`/story/${chapter}`),
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <div
       id="story-root"
       className={`bg-ink ${isFullscreen ? 'fixed inset-0 z-[999] overflow-auto' : 'min-h-screen'}`}
     >
+      <JsonLd id={`story-${chapter}`} data={chapterStoryLd} />
       <div className={`${isFullscreen ? 'h-full flex flex-col' : ''}`}>
         <div className={`flex-1 ${isFullscreen ? 'overflow-auto' : ''} px-4 md:px-8 py-6`}>
           <ErrorBoundary
