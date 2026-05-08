@@ -19,6 +19,8 @@ const REASON_MAP = {
   server:              'Серверийн алдаа',
   duplicate:           'Аль хэдийн бүртгэлтэй',
   rate_limited:        'Хэтэрхий олон хүсэлт. Хэсэг хүлээгээд дахин оролдоно уу.',
+  bad_target_order:    'Картуудын дараалал буруу байна',
+  no_pack:             'AR багц хуулагдаагүй байна. Эхлээд .mind файлаа хуулна уу.',
 };
 
 export function adminErrorText(input) {

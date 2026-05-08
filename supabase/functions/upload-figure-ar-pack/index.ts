@@ -103,17 +103,49 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason: 'bad_action' }, 400);
   }
 
-  const body: { action?: string } = await req.json().catch(() => ({}));
-  if (body.action !== 'delete-pack') return json({ ok: false, reason: 'bad_request' }, 400);
+  const body: { action?: string; target_order?: unknown } = await req.json().catch(() => ({}));
 
-  const { data: existing } = await admin
-    .from('figure_ar_pack')
-    .select('pack_path')
-    .eq('id', 1)
-    .maybeSingle();
-  if (existing?.pack_path) {
-    await admin.storage.from(BUCKET).remove([existing.pack_path]);
-    await admin.from('figure_ar_pack').delete().eq('id', 1);
+  if (body.action === 'update-target-order') {
+    if (!Array.isArray(body.target_order) || body.target_order.length === 0) {
+      return json({ ok: false, reason: 'bad_target_order' }, 400);
+    }
+    const targetOrder = body.target_order.map((v) => Number(v));
+    if (targetOrder.some((v) => !Number.isInteger(v) || v <= 0)) {
+      return json({ ok: false, reason: 'bad_target_order' }, 400);
+    }
+
+    const { data: existing } = await admin
+      .from('figure_ar_pack')
+      .select('pack_path')
+      .eq('id', 1)
+      .maybeSingle();
+    if (!existing?.pack_path) return json({ ok: false, reason: 'no_pack' }, 400);
+
+    const { error: rowErr } = await admin
+      .from('figure_ar_pack')
+      .update({
+        target_order: targetOrder,
+        uploaded_by: adminUserId,
+        uploaded_at: new Date().toISOString(),
+      })
+      .eq('id', 1);
+    if (rowErr) return json({ ok: false, reason: 'server', detail: rowErr.message }, 500);
+
+    return json({ ok: true, target_count: targetOrder.length });
   }
-  return json({ ok: true });
+
+  if (body.action === 'delete-pack') {
+    const { data: existing } = await admin
+      .from('figure_ar_pack')
+      .select('pack_path')
+      .eq('id', 1)
+      .maybeSingle();
+    if (existing?.pack_path) {
+      await admin.storage.from(BUCKET).remove([existing.pack_path]);
+      await admin.from('figure_ar_pack').delete().eq('id', 1);
+    }
+    return json({ ok: true });
+  }
+
+  return json({ ok: false, reason: 'bad_request' }, 400);
 });

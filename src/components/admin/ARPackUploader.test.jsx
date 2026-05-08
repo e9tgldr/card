@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 import { LangProvider } from '@/lib/i18n';
 
 const mockInvoke = vi.fn();
@@ -12,7 +14,24 @@ vi.mock('@/hooks/useFigureARPack', () => ({
   useFigureARPack: (...a) => mockPack(...a),
 }));
 
+// useConfirm fires a real dialog modal — for tests we just auto-confirm.
+vi.mock('@/components/ui/use-confirm', () => ({
+  useConfirm: () => ({
+    confirm: vi.fn().mockResolvedValue(true),
+    dialog: null,
+  }),
+}));
+
 import ARPackUploader from '@/components/admin/ARPackUploader';
+
+function wrap(ui) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return (
+    <QueryClientProvider client={qc}>
+      <LangProvider>{ui}</LangProvider>
+    </QueryClientProvider>
+  );
+}
 
 beforeEach(() => {
   mockInvoke.mockReset();
@@ -20,23 +39,25 @@ beforeEach(() => {
 });
 
 describe('ARPackUploader', () => {
-  it('shows "no pack" status when ready=false and only Upload button', () => {
+  it('shows "no pack" status and only the Upload button when no pack exists', () => {
     mockPack.mockReturnValue({ ready: false, targetOrder: null });
-    render(<LangProvider><ARPackUploader /></LangProvider>);
+    render(wrap(<ARPackUploader />));
     expect(screen.getByText(/Багц хуулагдаагүй|No pack uploaded/i)).toBeInTheDocument();
     expect(screen.queryByTestId('ar-pack-delete-button')).toBeNull();
   });
 
-  it('shows target count + Replace + Delete when pack present', () => {
-    mockPack.mockReturnValue({ ready: true, targetOrder: [1, 2, 3, 4, 5] });
-    render(<LangProvider><ARPackUploader /></LangProvider>);
-    expect(screen.getByText(/5 targets/)).toBeInTheDocument();
+  it('shows target count, Replace + Delete, and a populated order list when a pack exists', () => {
+    mockPack.mockReturnValue({ ready: true, targetOrder: [1, 14, 24] });
+    render(wrap(<ARPackUploader />));
+    expect(screen.getByText(/3 targets/)).toBeInTheDocument();
     expect(screen.getByTestId('ar-pack-delete-button')).toBeInTheDocument();
+    const list = screen.getByTestId('ar-pack-order-list');
+    expect(within(list).getAllByTestId(/^ar-pack-order-row-/)).toHaveLength(3);
   });
 
   it('rejects non-.mind file client-side', async () => {
     mockPack.mockReturnValue({ ready: false, targetOrder: null });
-    render(<LangProvider><ARPackUploader /></LangProvider>);
+    render(wrap(<ARPackUploader />));
     const input = screen.getByTestId('ar-pack-file-input');
     const bad = new File(['x'], 'pack.zip', { type: 'application/zip' });
     fireEvent.change(input, { target: { files: [bad] } });
@@ -46,10 +67,10 @@ describe('ARPackUploader', () => {
     });
   });
 
-  it('invokes upload-figure-ar-pack with action + file + target_order on .mind upload', async () => {
+  it('invokes upload-figure-ar-pack with action + file + serialised order on .mind upload', async () => {
     mockPack.mockReturnValue({ ready: false, targetOrder: null });
     mockInvoke.mockResolvedValue({ data: { ok: true, target_count: 52 }, error: null });
-    render(<LangProvider><ARPackUploader /></LangProvider>);
+    render(wrap(<ARPackUploader />));
     const input = screen.getByTestId('ar-pack-file-input');
     const file = new File([new Uint8Array([1, 2, 3])], 'all-cards.mind', { type: 'application/octet-stream' });
     fireEvent.change(input, { target: { files: [file] } });
@@ -57,19 +78,53 @@ describe('ARPackUploader', () => {
       'upload-figure-ar-pack',
       expect.objectContaining({ body: expect.any(FormData) }),
     ));
+    const body = mockInvoke.mock.calls[0][1].body;
+    expect(body.get('action')).toBe('upload-pack');
+    const orderJson = JSON.parse(String(body.get('target_order')));
+    expect(Array.isArray(orderJson)).toBe(true);
+    expect(orderJson.length).toBeGreaterThan(0);
   });
 
-  it('rejects malformed JSON in target_order textarea', async () => {
+  it('removes a target via the row × button and marks the editor dirty', () => {
+    mockPack.mockReturnValue({ ready: true, targetOrder: [1, 14, 24] });
+    render(wrap(<ARPackUploader />));
+    expect(screen.queryByTestId('ar-pack-order-dirty')).toBeNull();
+    fireEvent.click(screen.getByTestId('ar-pack-order-remove-1'));
+    const list = screen.getByTestId('ar-pack-order-list');
+    expect(within(list).getAllByTestId(/^ar-pack-order-row-/)).toHaveLength(2);
+    expect(screen.getByTestId('ar-pack-order-dirty')).toBeInTheDocument();
+  });
+
+  it('adds a target from the picker and saves the new order via update-target-order', async () => {
+    mockPack.mockReturnValue({ ready: true, targetOrder: [1, 14] });
+    mockInvoke.mockResolvedValue({ data: { ok: true, target_count: 3 }, error: null });
+    render(wrap(<ARPackUploader />));
+
+    fireEvent.click(screen.getByTestId('ar-pack-order-add-toggle'));
+    fireEvent.click(screen.getByTestId('ar-pack-order-adder-pick-24'));
+
+    const list = screen.getByTestId('ar-pack-order-list');
+    expect(within(list).getAllByTestId(/^ar-pack-order-row-/)).toHaveLength(3);
+    expect(screen.getByTestId('ar-pack-order-dirty')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('ar-pack-order-save'));
+    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith(
+      'upload-figure-ar-pack',
+      { body: { action: 'update-target-order', target_order: [1, 14, 24] } },
+    ));
+  });
+
+  it('disables Save when there are no unsaved changes', () => {
+    mockPack.mockReturnValue({ ready: true, targetOrder: [1, 2, 3] });
+    render(wrap(<ARPackUploader />));
+    expect(screen.getByTestId('ar-pack-order-save')).toBeDisabled();
+  });
+
+  it('disables Save when no pack has been uploaded yet', () => {
     mockPack.mockReturnValue({ ready: false, targetOrder: null });
-    render(<LangProvider><ARPackUploader /></LangProvider>);
-    const textarea = screen.getByTestId('ar-pack-order-input');
-    fireEvent.change(textarea, { target: { value: 'not json' } });
-    const input = screen.getByTestId('ar-pack-file-input');
-    const file = new File([new Uint8Array([1])], 'pack.mind');
-    fireEvent.change(input, { target: { files: [file] } });
-    expect(mockInvoke).not.toHaveBeenCalled();
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toBeInTheDocument();
-    });
+    render(wrap(<ARPackUploader />));
+    // Make a local edit so dirty=true; save should still be blocked because there is no pack.
+    fireEvent.click(screen.getByTestId('ar-pack-order-add-toggle'));
+    expect(screen.getByTestId('ar-pack-order-save')).toBeDisabled();
   });
 });
