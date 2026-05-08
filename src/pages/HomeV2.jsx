@@ -68,10 +68,10 @@ const COPY = {
   mn: {
     nav: { figures: 'Дүрүүд', team: 'Миний баг', engagements: 'Тоглоом', chapters: 'Бүлгүүд', classic: 'Хуучин', scan: 'AR-аар таниулах', guests: 'Зочин', logout: 'Гарах' },
     hero: {
-      kicker: 'Кодекс I',
+      kicker: 'Цуглуулга I',
       title1: 'Алтан Домогийн',
       title2: 'нүүр',
-      lede: '52 түүхэн дүрийн намтар, эш үг, дуу хоолой — нэг код. Хөзрөө уншуулж эхэл, эсвэл доорх кодексийг сэрүүн.',
+      lede: '52 түүхэн дүрийн намтар, эш үг, дуу хоолой — нэг код. Хөзрөө уншуулж эхэл, эсвэл доорх цуглуулгыг сэрүүн.',
       cta: 'Хөзөр уншуулах',
       ctaAlt: 'Бүх 52 дүр',
     },
@@ -82,7 +82,7 @@ const COPY = {
       addMore: 'Нэмэх',
     },
     explore: {
-      chip: 'Кодекс',
+      chip: 'Цуглуулга',
       title: 'Өнөөдөр хэнтэй уулзах вэ?',
       lede: 'Хаад, хатад, жанжид, зөвлөх, соёлын зүтгэлтэн — эхлэхдээ тохирох хэдийг сонгож үзээрэй.',
       all: 'Бүх 52',
@@ -99,17 +99,17 @@ const COPY = {
     },
     engagements: {
       chip: 'Оролц',
-      title: 'Кодекстэй наадах',
+      title: 'Цуглуулгатай наадах',
       cards: [
         { kicker: 'Ганц', title: 'Хэний үг вэ?', sub: 'Ишлэлийг уншиж, хэн хэлснийг сонго. Тэргүүлэгчдийн жагсаалтад нэрээ үлдээ.' },
         { kicker: 'Багаараа', title: 'Живэ өрөө', sub: '2–8 тоглогч, нийтлэг хугацаа, нэг ишлэл. Код оруулан нэгд эсвэл өрөө үүсгэ.' },
         { kicker: 'Байр', title: 'Тэргүүлэгчид', sub: '7 хоногийн болон бүх цагийн жагсаалт.' },
-        { kicker: 'Сонсох', title: 'Түүхэн аялал', sub: 'Кодексийн эхнээс сүүл хүртэл дуу автоматаар тоглоно.' },
+        { kicker: 'Сонсох', title: 'Түүхэн аялал', sub: 'Цуглуулгын эхнээс сүүл хүртэл дуу автоматаар тоглоно.' },
       ],
     },
     chapters: {
       chip: 'Түүхэн бүлгүүд',
-      title: 'Кодексийн бүтэц',
+      title: 'Цуглуулгын бүтэц',
       lede: 'Зургаан бүлэгт хуваагдсан түүхэн дүрүүд — домогт өвгөдөөс орчин цагийн баатрууд хүртэл.',
       list: [
         { num: 'I', title: 'Хаад', count: '13 дүр', desc: 'Чингисээс Богд хүртэл — Их Монголын ширээний өв.' },
@@ -129,19 +129,19 @@ const COPY = {
     },
     timeline: {
       chip: 'Цаг хугацаа',
-      title: 'Кодекс цагийн шугаман дээр',
+      title: 'Цуглуулга цагийн шугаман дээр',
       lede: '52 түүхэн дүрийг үе хоорондын хамаарал, ноёрхлын тэлэлтээр цогцолсон харах.',
     },
     nav_admin: 'Удирдлага',
-    foot: { rights: 'Алтан Домог · Codex I · Ulaanbaatar' },
+    foot: { rights: 'Алтан Домог · Цуглуулга I · Ulaanbaatar' },
   },
   en: {
     nav: { figures: 'Figures', team: 'My team', engagements: 'Play', chapters: 'Chapters', classic: 'Classic', scan: 'Scan card (AR)', guests: 'Guests', logout: 'Logout' },
     hero: {
-      kicker: 'Codex I',
+      kicker: 'Collection I',
       title1: 'The face of',
       title2: 'Altan Domog',
-      lede: '52 lives, 52 voices — one code. Scan a card and meet a figure, or wake the codex below.',
+      lede: '52 lives, 52 voices — one code. Scan a card and meet a figure, or wake the collection below.',
       cta: 'Scan a card',
       ctaAlt: 'All 52 figures',
     },
@@ -152,7 +152,7 @@ const COPY = {
       addMore: 'Add more',
     },
     explore: {
-      chip: 'The codex',
+      chip: 'The collection',
       title: 'Who are you meeting today?',
       lede: 'Khans, queens, generals, advisors, cultural figures — pick a few to start with.',
       all: 'See all 52',
@@ -169,17 +169,17 @@ const COPY = {
     },
     engagements: {
       chip: 'Play',
-      title: 'Engage with the codex',
+      title: 'Engage with the collection',
       cards: [
         { kicker: 'Solo', title: 'Whose words?', sub: 'Read the quote, pick the figure. Your score lands on the leaderboard.' },
         { kicker: 'Party', title: 'Live rooms', sub: '2–8 players, shared timer, one quote at a time. Host or join with a code.' },
         { kicker: 'Rankings', title: 'Leaderboard', sub: 'Weekly and all-time scores across every quote round and duel.' },
-        { kicker: 'Listen', title: 'Story Tour', sub: 'Walk the codex end to end with narration playing automatically.' },
+        { kicker: 'Listen', title: 'Story Tour', sub: 'Walk the collection end to end with narration playing automatically.' },
       ],
     },
     chapters: {
       chip: 'Chapters',
-      title: 'How the codex is laid out',
+      title: 'How the collection is laid out',
       lede: 'Six chapters of figures — from mythic ancestors to the heroes of the modern republic.',
       list: [
         { num: 'I', title: 'Khans', count: '13 figures', desc: 'From Genghis to the last Bogd — the throne of the Great Mongol state.' },
@@ -199,11 +199,11 @@ const COPY = {
     },
     timeline: {
       chip: 'Timeline',
-      title: 'The codex on a timeline',
+      title: 'The collection on a timeline',
       lede: 'See all 52 figures placed against each other and against the rise and ebb of imperial reach.',
     },
     nav_admin: 'Admin',
-    foot: { rights: 'Altan Domog · Codex I · Ulaanbaatar' },
+    foot: { rights: 'Altan Domog · Collection I · Ulaanbaatar' },
   },
 };
 
@@ -644,7 +644,7 @@ function Hero({ c }) {
                 textTransform: 'uppercase',
               }}
             >
-              Codex I · 52 figures · 3 languages
+              Collection I · 52 figures · 3 languages
             </div>
             <h1
               style={{

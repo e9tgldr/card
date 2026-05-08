@@ -57,7 +57,7 @@ const COPY = {
       app: 'Апп руу орох',
     },
     hero: {
-      chip: '52 түүхэн зүтгэлтэн · Codex I',
+      chip: '52 түүхэн зүтгэлтэн · Collection I',
       title1: 'Их Монгол Улсын',
       title2: 'түүхийн хөзөр',
       lede:
@@ -124,13 +124,13 @@ const COPY = {
       ],
     },
     cta: {
-      chip: 'Codex I · 2026',
+      chip: 'Collection I · 2026',
       title: '52 түүхэн дүртэй уулзахад нэг QR л хүрнэ.',
       lede: 'Хөзрөө аваад, утсаараа уншуулаад, эртний түүхээ амьд сонс.',
       primary: 'Premium багц захиалах',
       secondary: 'Эхлээд апп үзэх',
     },
-    footer: 'Алтан Домог · Codex I',
+    footer: 'Алтан Домог · Collection I',
     cityline: 'Ulaanbaatar · ',
     heroMeta: ['52 ЗҮТГЭЛТЭН', '5 ЦАГ ҮЕ', '1206–1924', 'MN · EN · 中文'],
     quoteAttribLabel: 'Өдрийн үг',
@@ -158,7 +158,7 @@ const COPY = {
       app: 'Open app',
     },
     hero: {
-      chip: '52 historical figures · Codex I',
+      chip: '52 historical figures · Collection I',
       title1: 'The cards of the',
       title2: 'Great Mongol Empire',
       lede:
@@ -212,13 +212,13 @@ const COPY = {
       ],
     },
     cta: {
-      chip: 'Codex I · 2026',
+      chip: 'Collection I · 2026',
       title: 'One scan, fifty-two voices from history.',
       lede: 'Pick up a card, scan it with your phone, and listen to history speak.',
       primary: 'Order the Premium deck',
       secondary: 'See the app first',
     },
-    footer: 'Altan Domog · Codex I',
+    footer: 'Altan Domog · Collection I',
     cityline: 'Ulaanbaatar · ',
     heroMeta: ['52 FIGURES', '5 EPOCHS', '1206–1924', 'MN · EN · 中文'],
     quoteAttribLabel: 'Quote of the day',
@@ -232,7 +232,7 @@ const COPY = {
     },
     featured: {
       chip: 'Featured',
-      title: 'Four faces from the codex',
+      title: 'Four faces from the collection',
       view: 'See all 52 figures',
     },
   },

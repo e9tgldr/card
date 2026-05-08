@@ -115,7 +115,7 @@ export default function StoryTour() {
 
       {/* Heading */}
       <div className="relative max-w-[64rem] mx-auto px-5 md:px-10 pt-6 pb-3 text-center space-y-3">
-        <CodexRule caption={lang === 'en' ? 'CODEX · STORY TOUR' : 'КОДЕКС · ТҮҮХЭН АЯЛАЛ'} fleuronSize={18} />
+        <CodexRule caption={lang === 'en' ? 'STORY TOUR' : 'ТҮҮХЭН АЯЛАЛ'} fleuronSize={18} />
       </div>
 
       <AnimatePresence mode="wait">

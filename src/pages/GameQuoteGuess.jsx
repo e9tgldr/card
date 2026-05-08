@@ -220,7 +220,7 @@ export default function GameQuoteGuess() {
       </div>
 
       <div className="relative max-w-[60rem] mx-auto px-5 md:px-8 pt-8 pb-6 text-center space-y-4">
-        <CodexRule caption={activeLang === 'en' ? 'CODEX · GAME' : 'КОДЕКС · ТОГЛООМ'} fleuronSize={20} />
+        <CodexRule caption={activeLang === 'en' ? 'GAME' : 'ТОГЛООМ'} fleuronSize={20} />
         <h1
           className="display-title text-[clamp(2rem,5vw,3.5rem)] text-ivory"
           style={{ fontVariationSettings: '"opsz" 96, "SOFT" 70, "WONK" 1, "wght" 540' }}
@@ -376,7 +376,7 @@ function ResultScreen({ score, total, lang, sessionId, mode, onReplay, navigate,
 
       <div className="flex items-center justify-center gap-3 flex-wrap">
         <BrassButton variant="ghost" size="sm" onClick={() => navigate('/app')}>
-          {lang === 'en' ? 'Back to Codex' : 'Кодекс руу'}
+          {lang === 'en' ? 'Back to Collection' : 'Цуглуулга руу'}
         </BrassButton>
         <BrassButton
           variant="primary"
@@ -406,14 +406,14 @@ function scoreVerdict(score, total, lang) {
   const pct = score / total;
   if (lang === 'en') {
     if (pct >= 0.9) return 'A scholar of the steppe — exceptional.';
-    if (pct >= 0.7) return 'Strong knowledge of the codex.';
+    if (pct >= 0.7) return 'Strong knowledge of the collection.';
     if (pct >= 0.5) return 'A respectable showing.';
     if (pct >= 0.3) return 'A start — read on, the chronicle awaits.';
-    return 'The codex is patient. Try again.';
+    return 'The chronicle is patient. Try again.';
   }
   if (pct >= 0.9) return 'Тал нутгийн жинхэнэ судлаач — гайхалтай.';
-  if (pct >= 0.7) return 'Кодекстээ тулгуурласан мэдлэг бий.';
+  if (pct >= 0.7) return 'Цуглуулгадаа тулгуурласан мэдлэг бий.';
   if (pct >= 0.5) return 'Дунд зэргийн амжилт.';
-  if (pct >= 0.3) return 'Эхлэл сайхан — кодекс хүлээж байна.';
-  return 'Кодекс тэвчээртэй. Дахин оролдоорой.';
+  if (pct >= 0.3) return 'Эхлэл сайхан — түүх хүлээж байна.';
+  return 'Түүх тэвчээртэй. Дахин оролдоорой.';
 }

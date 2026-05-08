@@ -49,7 +49,7 @@ export default function HeroSection({ onExplore }) {
           <div className="relative page-turn">
             {/* catalog number + imprint */}
             <div className="flex items-baseline gap-4 mb-6">
-              <span className="catalog-no">Codex · Vol. I</span>
+              <span className="catalog-no">Collection · Vol. I</span>
               <span className="h-px flex-1 bg-brass/30" />
               <span className="font-meta text-[10px] tracking-[0.24em] text-brass/70">MMXXVI</span>
             </div>
@@ -74,7 +74,7 @@ export default function HeroSection({ onExplore }) {
                 className="block text-seal"
                 style={{ fontVariationSettings: '"opsz" 144, "SOFT" 80, "WONK" 1, "wght" 600' }}
               >
-                Кодекс
+                Цуглуулга
               </motion.span>
             </h1>
 
@@ -94,7 +94,7 @@ export default function HeroSection({ onExplore }) {
               style={{ fontVariationSettings: '"opsz" 40' }}
             >
               Тавин хоёр зүтгэлтний намтар, гавьяа, домог — найман зуун жилийн
-              түүхийг нэгэн хөзрийн баглаанд багтаасан зураглалт кодекс.
+              түүхийг нэгэн хөзрийн баглаанд багтаасан зураглалт цуглуулга.
             </motion.p>
 
             {/* CTA row */}
@@ -109,7 +109,7 @@ export default function HeroSection({ onExplore }) {
                 variant="primary"
                 trailingIcon={<ChevronDown className="w-3.5 h-3.5" />}
               >
-                Кодексоо Нээх
+                Цуглуулга Нээх
               </BrassButton>
               <div className="flex flex-col">
                 <span className="font-meta text-[9.5px] tracking-[0.26em] uppercase text-brass/60">Эсхүл</span>

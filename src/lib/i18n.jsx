@@ -16,15 +16,15 @@ export const LOCALES = ['mn', 'en'];
 
 export const STRINGS = {
   // Chapter rule captions
-  'codex.chapter.II':  { mn: 'КОДЕКС · ГЛАВА II',  en: 'CODEX · CHAPTER II' },
-  'codex.chapter.III': { mn: 'КОДЕКС · ГЛАВА III', en: 'CODEX · CHAPTER III' },
-  'codex.chapter.IV':  { mn: 'КОДЕКС · ГЛАВА IV',  en: 'CODEX · CHAPTER IV' },
-  'codex.chapter.V':   { mn: 'КОДЕКС · ГЛАВА V',   en: 'CODEX · CHAPTER V' },
-  'codex.chapter.VI':  { mn: 'КОДЕКС · ГЛАВА VI',  en: 'CODEX · CHAPTER VI' },
+  'codex.chapter.II':  { mn: 'ГЛАВА II',  en: 'CHAPTER II' },
+  'codex.chapter.III': { mn: 'ГЛАВА III', en: 'CHAPTER III' },
+  'codex.chapter.IV':  { mn: 'ГЛАВА IV',  en: 'CHAPTER IV' },
+  'codex.chapter.V':   { mn: 'ГЛАВА V',   en: 'CHAPTER V' },
+  'codex.chapter.VI':  { mn: 'ГЛАВА VI',  en: 'CHAPTER VI' },
 
   // Navbar
   'nav.home':      { mn: 'Нүүр',         en: 'Home' },
-  'nav.codex':     { mn: 'Кодекс',       en: 'Codex' },
+  'nav.codex':     { mn: 'Цуглуулга',    en: 'Collection' },
   'nav.chapters':    { mn: 'Бүлгүүд',        en: 'Chapters' },
   'nav.myteam':      { mn: 'Миний Баг',      en: 'My Team' },
   'nav.engagements': { mn: 'Тоглоом',        en: 'Games' },
@@ -79,11 +79,11 @@ export const STRINGS = {
   // Hero section
   'hero.eyebrow':         { mn: 'Монголын Их Эзэнт Гүрний', en: 'Of the Great Mongol Empire' },
   'hero.title.top':       { mn: 'Хүмүүний',      en: 'The' },
-  'hero.title.bottom':    { mn: 'Кодекс',        en: 'Codex' },
+  'hero.title.bottom':    { mn: 'Цуглуулга',     en: 'Collection' },
   'hero.pageLabel':       { mn: 'ТАВИН ХОЁР · FIFTY-TWO', en: 'ТАВИН ХОЁР · FIFTY-TWO' },
-  'hero.lead':            { mn: 'Тавин хоёр зүтгэлтний намтар, гавьяа, домог — найман зуун жилийн түүхийг нэгэн хөзрийн баглаанд багтаасан зураглалт кодекс.',
-                            en: 'Fifty-two figures — eight centuries of history bound into a single illustrated codex of playing cards.' },
-  'hero.cta':             { mn: 'Кодексоо Нээх', en: 'Open the Codex' },
+  'hero.lead':            { mn: 'Тавин хоёр зүтгэлтний намтар, гавьяа, домог — найман зуун жилийн түүхийг нэгэн хөзрийн баглаанд багтаасан зураглалт цуглуулга.',
+                            en: 'Fifty-two figures — eight centuries of history bound into a single illustrated deck of playing cards.' },
+  'hero.cta':             { mn: 'Цуглуулга Нээх', en: 'Open the Collection' },
   'hero.or':              { mn: 'Эсхүл',         en: 'Or' },
   'hero.timelineLink':    { mn: 'Он дарааллаар үзэх', en: 'Browse by timeline' },
   'hero.scrollHint':      { mn: 'Хуудас эргүүлэх', en: 'Turn the page' },
@@ -128,14 +128,14 @@ export const STRINGS = {
   'col.label':            { mn: 'Catalogus · Мөн нь', en: 'Catalogus · Holdings' },
   'col.progress':         { mn: 'Нийт явц',          en: 'Total progress' },
   'col.howTo.h':          { mn: 'Инструкция — Цуглуулах аргачлал', en: 'How to collect' },
-  'col.howTo.b':          { mn: 'Зүтгэлтний хуудас нэг бүрийн § IV · Шалгалт табыг ялагнаар даван гарч, тухайн зүтгэлтний хөзрийг кодекс цуглуулгадаа нэмнэ.',
-                            en: 'Pass the § IV · Quiz on each figure’s page to add that figure’s card to your codex collection.' },
+  'col.howTo.b':          { mn: 'Зүтгэлтний хуудас нэг бүрийн § IV · Шалгалт табыг ялагнаар даван гарч, тухайн зүтгэлтний хөзрийг цуглуулгадаа нэмнэ.',
+                            en: 'Pass the § IV · Quiz on each figure’s page to add that figure’s card to your collection.' },
   'col.filter':           { mn: 'Шүүлтэнд',           en: 'In filter' },
 
   // Footer
   'footer.colophon':      { mn: 'Colophon',           en: 'Colophon' },
-  'footer.body':          { mn: 'Тавин хоёр түүхэн зүтгэлтний намтар, гавьяа, домог — Монголын найман зуун жилийн түүхийг нэгэн хөзрийн баглаанд багтаасан зураглалт кодекс.',
-                            en: 'A Codex of fifty-two figures — biography, deeds, and legend — binding eight centuries of Mongol history into a single illustrated deck.' },
+  'footer.body':          { mn: 'Тавин хоёр түүхэн зүтгэлтний намтар, гавьяа, домог — Монголын найман зуун жилийн түүхийг нэгэн хөзрийн баглаанд багтаасан зураглалт цуглуулга.',
+                            en: 'A collection of fifty-two figures — biography, deeds, and legend — binding eight centuries of Mongol history into a single illustrated deck.' },
 
   // Game
   'game.loadFailed':      { mn: 'Тоглоомыг ачаалахад алдаа гарлаа.',        en: 'Failed to load the game.' },
@@ -271,7 +271,7 @@ export const STRINGS = {
   'story.outro.label':      { mn: 'Төгсгөл',               en: 'Epilogue' },
   'story.ending.title':     { mn: 'Бүлэг дуусав',          en: 'Chapter complete' },
   'story.ending.continue':  { mn: 'Үргэлжлүүлэх',          en: 'Continue' },
-  'story.ending.done':      { mn: 'Кодекс дуусав. Баярлалаа.', en: 'The codex is complete. Thank you.' },
+  'story.ending.done':      { mn: 'Түүх дуусав. Баярлалаа.', en: 'The story is complete. Thank you.' },
   'story.empty':            { mn: 'Бүлэг хоосон байна.',   en: 'This chapter is empty.' },
   'story.notFound':         { mn: 'Бүлэг олдсонгүй.',      en: 'Chapter not found.' },
   'chapters.play':          { mn: 'Энэ бүлгийн түүхийг үзэх', en: 'Play this chapter' },
@@ -333,8 +333,8 @@ export const STRINGS = {
   'toast.auth.loginSuccess':      { mn: 'Тавтай морилно уу.',                  en: 'Welcome back.' },
 
   // Empty states
-  'empty.collection.title':       { mn: 'Хөзрийн цуглуулга хоосон байна', en: 'Your codex is empty' },
-  'empty.collection.description': { mn: 'Шинэ зүтгэлтэн нэмэхийн тулд QR код уншуулж эхэл.', en: 'Scan QR codes to collect figures into your codex.' },
+  'empty.collection.title':       { mn: 'Хөзрийн цуглуулга хоосон байна', en: 'Your collection is empty' },
+  'empty.collection.description': { mn: 'Шинэ зүтгэлтэн нэмэхийн тулд QR код уншуулж эхэл.', en: 'Scan QR codes to collect figures into your collection.' },
   'empty.collection.action':      { mn: 'Хэрхэн уншуулах вэ?',           en: 'How does scanning work?' },
   'empty.leaderboard.title':      { mn: 'Тэргүүлэгчид хоосон',           en: 'No leaders yet' },
   'empty.leaderboard.description':{ mn: 'Эхлээд тоглож, эхний тэргүүлэгч бай.', en: 'Play a round to be the first on the board.' },

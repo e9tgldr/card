@@ -153,7 +153,7 @@ export default function Tournaments() {
 
       <div className="max-w-[52rem] mx-auto px-5 md:px-8 pt-8 pb-6 text-center space-y-3">
         <CodexRule
-          caption={lang === 'mn' ? 'КОДЕКС · ТЭМЦЭЭН' : 'CODEX · TOURNAMENTS'}
+          caption={lang === 'mn' ? 'ТЭМЦЭЭН' : 'TOURNAMENTS'}
           fleuronSize={20}
         />
         <h1 className="display-title text-[clamp(2rem,5vw,3rem)] text-ivory"

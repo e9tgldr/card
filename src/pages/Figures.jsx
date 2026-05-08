@@ -158,7 +158,7 @@ export default function Figures() {
               marginBottom: 14,
             }}
           >
-            Codex · {visible.length} / {FIGURES.length}
+            Collection · {visible.length} / {FIGURES.length}
           </div>
           <h1
             style={{

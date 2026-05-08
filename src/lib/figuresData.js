@@ -137,7 +137,7 @@ export const ERAS = {
     start: 1921, end: 3000,
     color: '#C69A4A',
     intro: 'Монголын Ардын Хувьсгалаас эхлэн шинэ орчин цагийн монгол түүх — хувьсгалчид, зохиолчид, уран бүтээлчид, сансрын нисэгч хүртэл.',
-    intro_en: 'From the 1921 People’s Revolution to the present — revolutionaries, writers, painters, singers, and the first Mongolian cosmonaut. The Codex leaves its ink still wet.',
+    intro_en: 'From the 1921 People’s Revolution to the present — revolutionaries, writers, painters, singers, and the first Mongolian cosmonaut. The collection leaves its ink still wet.',
   },
 };
 

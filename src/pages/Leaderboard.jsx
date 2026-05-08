@@ -69,7 +69,7 @@ export default function Leaderboard() {
 
       <div className="max-w-[50rem] mx-auto px-5 md:px-8 pt-8 pb-6 text-center space-y-3">
         <CodexRule
-          caption={lang === 'en' ? 'CODEX · LEADERBOARD' : 'КОДЕКС · ТЭРГҮҮЛЭГЧИД'}
+          caption={lang === 'en' ? 'LEADERBOARD' : 'ТЭРГҮҮЛЭГЧИД'}
           fleuronSize={20}
         />
         <h1

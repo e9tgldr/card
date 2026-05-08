@@ -80,7 +80,7 @@ export default function ChatFAB({ initialQuestion, onOpenModal }) {
     setLoading(true);
 
     const systemPrompt = lang === 'en'
-      ? `You are "The Mongol Chronicle" — an AI expert on Mongolian history. You know all 52 historical figures in the Codex. Reply in English. Mention the figure's full name in your answer. Keep responses short, specific, and interesting.`
+      ? `You are "The Mongol Chronicle" — an AI expert on Mongolian history. You know all 52 historical figures in the collection. Reply in English. Mention the figure's full name in your answer. Keep responses short, specific, and interesting.`
       : `Та бол "Монголын Хроник" — Монголын түүхийн мэргэжилтэн AI туслах. Та Монголын 52 түүхэн зүтгэлтний тухай бүх мэдлэгтэй. Монгол хэлээр хариулна уу. Хариултдаа тухайн зүтгэлтний нэрийг бүтнээр нь дурдана уу. Богино, тодорхой, сонирхолтой хариулт өгнө үү.`;
 
     const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
@@ -237,7 +237,7 @@ export default function ChatFAB({ initialQuestion, onOpenModal }) {
                     <span className="text-4xl">🏇</span>
                     <h3 className="font-cinzel text-lg font-bold text-foreground">{lang === 'en' ? 'The Mongol Chronicle' : 'Монголын Хроник'}</h3>
                     <p className="text-sm text-muted-foreground font-body">
-                      {lang === 'en' ? 'Ask me about the 52 figures in the Codex' : 'Монголын 52 түүхэн зүтгэлтний тухай асуугаарай'}
+                      {lang === 'en' ? 'Ask me about the 52 figures in the collection' : 'Монголын 52 түүхэн зүтгэлтний тухай асуугаарай'}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-center">

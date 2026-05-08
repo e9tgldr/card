@@ -69,7 +69,7 @@ export default function TournamentDetail() {
         <>
           <div className="max-w-[52rem] mx-auto px-5 md:px-8 pt-8 pb-6 text-center space-y-3">
             <CodexRule
-              caption={lang === 'mn' ? 'КОДЕКС · ТЭМЦЭЭН' : 'CODEX · TOURNAMENT'}
+              caption={lang === 'mn' ? 'ТЭМЦЭЭН' : 'TOURNAMENT'}
               fleuronSize={20}
             />
             <h1

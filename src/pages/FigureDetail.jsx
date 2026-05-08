@@ -117,7 +117,7 @@ export default function FigureDetail() {
         <div className="text-center space-y-4">
           <Fleuron size={48} className="mx-auto opacity-60" />
           <p className="font-prose italic text-ivory/70">Зүтгэлтэн олдсонгүй</p>
-          <Button onClick={() => navigate('/app')} variant="outline">Кодекс руу буцах</Button>
+          <Button onClick={() => navigate('/app')} variant="outline">Цуглуулга руу буцах</Button>
         </div>
       </div>
     );
@@ -655,7 +655,7 @@ export default function FigureDetail() {
               onClick={() => navigate('/app', { state: { scrollTo: 'gallery' } })}
               className="hidden sm:inline-block font-meta text-[10px] tracking-[0.3em] uppercase text-brass/70 hover:text-ivory transition-colors"
             >
-              ← Кодекс ↗
+              ← Цуглуулга ↗
             </button>
             {figure.fig_id < 52 ? (
               <button

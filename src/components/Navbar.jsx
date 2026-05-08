@@ -71,7 +71,7 @@ export default function Navbar({ onScrollTo }) {
               {lang === 'en' ? 'Altan Domog' : 'Алтан Домог'}
             </span>
             <span className="font-meta text-[8px] tracking-[0.3em] text-brass/70 mt-1.5">
-              CODEX · MMXXVI
+              MMXXVI
             </span>
           </span>
         </button>

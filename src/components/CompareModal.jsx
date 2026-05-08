@@ -212,8 +212,8 @@ export default function CompareModal({ figures, compareList, onClose }) {
                     {aiSummary?.source === 'local' && (
                       <p className="text-[11px] text-muted-foreground font-body italic">
                         {lang === 'en'
-                          ? 'AI service is offline; showing data-driven comparison from the codex.'
-                          : 'AI үйлчилгээ идэвхгүй байна; кодексийн өгөгдөлд тулгуурласан харьцуулалтыг үзүүлж байна.'}
+                          ? 'AI service is offline; showing data-driven comparison from the collection.'
+                          : 'AI үйлчилгээ идэвхгүй байна; цуглуулгын өгөгдөлд тулгуурласан харьцуулалтыг үзүүлж байна.'}
                       </p>
                     )}
 

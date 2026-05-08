@@ -16,7 +16,7 @@ export default function BrandHeader({ className = '', dim = false }) {
           {lang === 'en' ? 'Altan Domog' : 'Алтан Домог'}
         </span>
         <span className="font-meta text-[7px] tracking-[0.3em] text-brass/70 mt-1">
-          CODEX · MMXXVI
+          MMXXVI
         </span>
       </span>
     </div>

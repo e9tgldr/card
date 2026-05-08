@@ -75,8 +75,8 @@ function HomeEngagements() {
       kicker: lang === 'en' ? 'Listen' : 'Сонсох',
       title: lang === 'en' ? 'Story Tour' : 'Түүхэн Аялал',
       sub: lang === 'en'
-        ? 'Walk the Codex from end to end with narration playing automatically.'
-        : 'Кодексийн эхнээс сүүл хүртэл дуу автоматаар тоглож өгнө.',
+        ? 'Walk the collection from end to end with narration playing automatically.'
+        : 'Цуглуулгын эхнээс сүүл хүртэл дуу автоматаар тоглож өгнө.',
       cta: lang === 'en' ? 'Begin tour' : 'Аяллыг эхлэх',
     },
   ];
@@ -92,8 +92,8 @@ function HomeEngagements() {
             style={{ fontVariationSettings: '"opsz" 96, "SOFT" 60, "wght" 520' }}
           >
             {lang === 'en'
-              ? <>Step <span className="text-seal">into</span> the codex</>
-              : <>Кодекстээ <span className="text-seal">оролцох</span></>}
+              ? <>Step <span className="text-seal">into</span> the collection</>
+              : <>Цуглуулгадаа <span className="text-seal">оролцох</span></>}
           </h2>
         </div>
         <div className="grid sm:grid-cols-2 gap-4 md:gap-5">
@@ -164,7 +164,7 @@ function HomeFooter({ settings }) {
           <div className="flex items-center gap-4 font-meta text-[9.5px] tracking-[0.3em] uppercase text-brass/60">
             <span>© MMXXVI</span>
             <span>·</span>
-            <span>Altan Domog · Codex I</span>
+            <span>Altan Domog · Collection I</span>
             <span>·</span>
             <span>ULAANBAATAR</span>
           </div>

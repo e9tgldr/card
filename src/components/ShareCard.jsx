@@ -310,7 +310,7 @@ export default function ShareCard({ figure, onClose }) {
                       color: 'hsl(var(--brass) / 0.85)',
                     }}
                   >
-                    ALTAN DOMOG · CODEX I
+                    ALTAN DOMOG · COLLECTION I
                   </span>
                   <span
                     style={{

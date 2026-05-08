@@ -122,7 +122,7 @@ const EN = {
   achCountDiff: (a, an, b, bn) => `${a} has ${an} recorded achievements while ${b} has only ${bn}.`,
   sharedRoleKeyword: (w) => `Their roles share a common thread — both are connected to “${w}”.`,
   overall: (names, simN, diffN) =>
-    `Comparing ${list(names, 'and')}: ${simN} shared trait${simN === 1 ? '' : 's'} and ${diffN} clear difference${diffN === 1 ? '' : 's'} surface from the codex data alone.`,
+    `Comparing ${list(names, 'and')}: ${simN} shared trait${simN === 1 ? '' : 's'} and ${diffN} clear difference${diffN === 1 ? '' : 's'} surface from the collection data alone.`,
 };
 
 const MN = {
@@ -137,5 +137,5 @@ const MN = {
   achCountDiff: (a, an, b, bn) => `${a} нь ${an} гавьяатай, харин ${b} ${bn} гавьяатай тэмдэглэгдсэн.`,
   sharedRoleKeyword: (w) => `Үүрэгт нь нэг түлхүүр үг давхцаж байна — “${w}”.`,
   overall: (names, simN, diffN) =>
-    `${list(names, 'болон')}-ыг харьцуулахад: кодексийн өгөгдлөөс ${simN} ижил тал, ${diffN} ялгаатай тал тодорсон.`,
+    `${list(names, 'болон')}-ыг харьцуулахад: цуглуулгын өгөгдлөөс ${simN} ижил тал, ${diffN} ялгаатай тал тодорсон.`,
 };

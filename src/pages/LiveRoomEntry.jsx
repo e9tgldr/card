@@ -40,7 +40,7 @@ export default function LiveRoomEntry() {
         <div className="mt-10 text-center space-y-4">
           <Fleuron size={48} className="mx-auto opacity-80" />
           <span className="font-meta text-[10px] tracking-[0.32em] uppercase text-brass/80">
-            {lang === 'en' ? 'CODEX · LIVE' : 'КОДЕКС · ЖИВЕ'}
+            {lang === 'en' ? 'LIVE' : 'ЖИВЕ'}
           </span>
           <h1
             className="display-title text-[clamp(2rem,5vw,3.5rem)] text-ivory"

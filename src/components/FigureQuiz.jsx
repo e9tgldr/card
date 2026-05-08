@@ -140,7 +140,7 @@ function shuffle(arr) {
 }
 
 const SCORE_MSG = [
-  { min: 4, emoji: '🏆', msg: 'Гайхалтай! Та жинхэнэ мэдлэгтэй!',    msg_en: 'Outstanding! You truly know the Codex.' },
+  { min: 4, emoji: '🏆', msg: 'Гайхалтай! Та жинхэнэ мэдлэгтэй!',    msg_en: 'Outstanding! You truly know the collection.' },
   { min: 3, emoji: '⭐', msg: 'Сайн байна! Мэдлэг бий.',              msg_en: 'Well done! Solid knowledge.' },
   { min: 2, emoji: '📚', msg: 'Дунд зэрэг. Дахин судлаарай!',         msg_en: 'Fair. Study a little more, then return!' },
   { min: 0, emoji: '💪', msg: 'Дахин оролдоод, илүү сайн болно!',     msg_en: 'Try again — you’ll do better next time.' },
