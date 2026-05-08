@@ -427,6 +427,7 @@ export const STRINGS = {
   'admin.arPack.targetOrder.dirty':      { mn: 'Хадгалагдаагүй өөрчлөлт',            en: 'Unsaved changes' },
   'admin.arPack.targetOrder.reset':      { mn: 'Анхдагч руу буцаах',                 en: 'Reset to default' },
   'admin.arPack.targetOrder.searchPlaceholder': { mn: 'Нэрээр хайх…',                en: 'Search by name…' },
+  'admin.arPack.targetOrder.changeFigure':      { mn: 'Зүтгэлтэн солих',                    en: 'Change figure' },
   'admin.arPack.tooBig':      { mn: 'Багц файл хэт том ({mb} MB > 30 MB)',    en: 'Pack file too large ({mb} MB > 30 MB)' },
   'admin.arPack.notMind':     { mn: '.mind өргөтгөлтэй файл байх ёстой',     en: 'File must have a .mind extension' },
   'admin.arPack.replaceWarn': { mn: 'Хуучин AR багц устах болно. Үргэлжлүүлэх үү?', en: 'The previous AR pack will be deleted. Continue?' },

@@ -127,4 +127,25 @@ describe('ARPackUploader', () => {
     fireEvent.click(screen.getByTestId('ar-pack-order-add-toggle'));
     expect(screen.getByTestId('ar-pack-order-save')).toBeDisabled();
   });
+
+  it('replaces a row in place when picking a figure not currently in the order', () => {
+    mockPack.mockReturnValue({ ready: true, targetOrder: [1, 14, 24] });
+    render(wrap(<ARPackUploader />));
+    fireEvent.click(screen.getByTestId('ar-pack-order-edit-1'));
+    expect(screen.getByTestId('ar-pack-order-editor-1')).toBeInTheDocument();
+    // Pick figure id 36 which is not currently in the order — straight replace.
+    fireEvent.click(screen.getByTestId('ar-pack-order-editor-pick-1-36'));
+    expect(screen.getByTestId('ar-pack-order-figid-1')).toHaveTextContent('id 36');
+    expect(screen.getByTestId('ar-pack-order-dirty')).toBeInTheDocument();
+  });
+
+  it('swaps two rows when picking a figure that is already in the order', () => {
+    mockPack.mockReturnValue({ ready: true, targetOrder: [1, 14, 24] });
+    render(wrap(<ARPackUploader />));
+    fireEvent.click(screen.getByTestId('ar-pack-order-edit-0'));
+    // Pick figure id 24 — already at row 2, so picking it from row 0 should swap.
+    fireEvent.click(screen.getByTestId('ar-pack-order-editor-pick-0-24'));
+    expect(screen.getByTestId('ar-pack-order-figid-0')).toHaveTextContent('id 24');
+    expect(screen.getByTestId('ar-pack-order-figid-2')).toHaveTextContent('id 1');
+  });
 });

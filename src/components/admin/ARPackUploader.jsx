@@ -32,9 +32,35 @@ export default function ARPackUploader() {
   const [order, setOrder] = useState(DEFAULT_ORDER);
   const [adderOpen, setAdderOpen] = useState(false);
   const [adderFilter, setAdderFilter] = useState('');
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editFilter, setEditFilter] = useState('');
   const [savedFlash, setSavedFlash] = useState(false);
   const inputRef = useRef(null);
+  const editPopoverRef = useRef(null);
   const { confirm, dialog: confirmDialog } = useConfirm();
+
+  // Close the inline figure picker when clicking outside it.
+  useEffect(() => {
+    if (editingIdx == null) return undefined;
+    const onClick = (ev) => {
+      if (editPopoverRef.current && !editPopoverRef.current.contains(ev.target)) {
+        setEditingIdx(null);
+        setEditFilter('');
+      }
+    };
+    const onKey = (ev) => {
+      if (ev.key === 'Escape') {
+        setEditingIdx(null);
+        setEditFilter('');
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [editingIdx]);
 
   // Sync editor state from server whenever the persisted order changes (e.g.
   // first load, or after another admin saves). Editing here only mutates
@@ -87,6 +113,35 @@ export default function ARPackUploader() {
     setOrder((prev) => [...prev, figId]);
     setAdderFilter('');
   };
+
+  // Replace the figure at `idx` with `newFigId`. If `newFigId` already lives
+  // somewhere else in the order, swap the two slots so the order stays a
+  // permutation (no duplicate fig_ids — each .mind target maps to one figure).
+  const handleReplaceAt = (idx, newFigId) => {
+    setOrder((prev) => {
+      const cur = prev[idx];
+      if (cur === newFigId) return prev;
+      const next = [...prev];
+      const otherIdx = prev.indexOf(newFigId);
+      if (otherIdx === -1) {
+        next[idx] = newFigId;
+      } else {
+        next[idx] = newFigId;
+        next[otherIdx] = cur;
+      }
+      return next;
+    });
+    setEditingIdx(null);
+    setEditFilter('');
+  };
+
+  const filteredAllForEdit = useMemo(() => {
+    const q = editFilter.trim().toLowerCase();
+    if (!q) return FIGURES;
+    return FIGURES.filter((f) =>
+      `${f.fig_id} ${f.name} ${f.role || ''}`.toLowerCase().includes(q),
+    );
+  }, [editFilter]);
 
   const handleResetToDefault = async () => {
     const ok = await confirm({
@@ -305,6 +360,7 @@ export default function ARPackUploader() {
                 )}
                 {order.map((figId, idx) => {
                   const fig = FIGURES_BY_ID[figId];
+                  const isEditing = editingIdx === idx;
                   return (
                     <Draggable key={figId} draggableId={`fig-${figId}`} index={idx}>
                       {(draggableProvided, snapshot) => (
@@ -312,9 +368,9 @@ export default function ARPackUploader() {
                           ref={draggableProvided.innerRef}
                           {...draggableProvided.draggableProps}
                           data-testid={`ar-pack-order-row-${idx}`}
-                          className={`flex items-center gap-3 px-3 py-2 ${
+                          className={`relative flex items-center gap-3 px-3 py-2 ${
                             snapshot.isDragging ? 'bg-brass/10' : ''
-                          }`}
+                          } ${isEditing ? 'bg-brass/5 ring-1 ring-brass/40' : ''}`}
                         >
                           <span
                             {...draggableProvided.dragHandleProps}
@@ -326,17 +382,34 @@ export default function ARPackUploader() {
                           <span className="font-mono text-[11px] text-brass/70 w-8 tabular-nums">
                             #{idx + 1}
                           </span>
-                          <span className="font-mono text-[11px] text-ivory/55 w-10">
-                            id {figId}
-                          </span>
-                          <span className="flex-1 min-w-0 truncate text-sm text-ivory">
-                            {fig ? fig.name : `${t('admin.arPack.targetOrder.unknown')} #${figId}`}
-                          </span>
-                          {fig && (
-                            <span className="font-mono text-[11px] text-ivory/45 truncate">
-                              {fig.yrs}
+                          <button
+                            type="button"
+                            data-testid={`ar-pack-order-edit-${idx}`}
+                            aria-label={t('admin.arPack.targetOrder.changeFigure')}
+                            aria-expanded={isEditing}
+                            onClick={() => {
+                              setEditingIdx(isEditing ? null : idx);
+                              setEditFilter('');
+                            }}
+                            className={`flex-1 min-w-0 flex items-center gap-3 text-left rounded px-1 -mx-1 py-1 hover:bg-brass/10 focus:outline-none focus:bg-brass/10 ${
+                              isEditing ? 'bg-brass/10' : ''
+                            }`}
+                          >
+                            <span
+                              className="font-mono text-[11px] text-ivory/55 w-10"
+                              data-testid={`ar-pack-order-figid-${idx}`}
+                            >
+                              id {figId}
                             </span>
-                          )}
+                            <span className="flex-1 min-w-0 truncate text-sm text-ivory">
+                              {fig ? fig.name : `${t('admin.arPack.targetOrder.unknown')} #${figId}`}
+                            </span>
+                            {fig && (
+                              <span className="font-mono text-[11px] text-ivory/45 truncate">
+                                {fig.yrs}
+                              </span>
+                            )}
+                          </button>
                           <button
                             type="button"
                             aria-label={t('admin.arPack.targetOrder.remove')}
@@ -346,6 +419,73 @@ export default function ARPackUploader() {
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
+
+                          {isEditing && (
+                            <div
+                              ref={editPopoverRef}
+                              data-testid={`ar-pack-order-editor-${idx}`}
+                              className="absolute left-12 right-12 top-full mt-1 z-20 border border-brass/40 rounded bg-ink/97 shadow-2xl max-h-72 overflow-auto"
+                            >
+                              <label className="flex items-center gap-2 px-3 py-2 border-b border-brass/20 sticky top-0 bg-ink/97">
+                                <Search className="w-3.5 h-3.5 text-ivory/40" />
+                                <input
+                                  type="text"
+                                  value={editFilter}
+                                  onChange={(e) => setEditFilter(e.target.value)}
+                                  placeholder={t('admin.arPack.targetOrder.searchPlaceholder')}
+                                  data-testid={`ar-pack-order-editor-search-${idx}`}
+                                  className="flex-1 bg-transparent text-sm text-ivory outline-none placeholder:text-ivory/35"
+                                  autoFocus
+                                />
+                              </label>
+                              <ul>
+                                {filteredAllForEdit.map((f) => {
+                                  const inUseAt = order.indexOf(f.fig_id);
+                                  const isCurrent = inUseAt === idx;
+                                  const isElsewhere = inUseAt !== -1 && inUseAt !== idx;
+                                  return (
+                                    <li key={f.fig_id}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleReplaceAt(idx, f.fig_id)}
+                                        data-testid={`ar-pack-order-editor-pick-${idx}-${f.fig_id}`}
+                                        disabled={isCurrent}
+                                        className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm ${
+                                          isCurrent
+                                            ? 'text-brass bg-brass/5 cursor-default'
+                                            : 'text-ivory hover:bg-brass/10'
+                                        }`}
+                                      >
+                                        <span className="font-mono text-[11px] text-ivory/55 w-10">
+                                          id {f.fig_id}
+                                        </span>
+                                        <span className="flex-1 truncate">{f.name}</span>
+                                        <span className="font-mono text-[11px] text-ivory/45">{f.yrs}</span>
+                                        {isCurrent && (
+                                          <span className="font-mono text-[10px] text-brass tracking-[0.2em] uppercase">
+                                            ✓
+                                          </span>
+                                        )}
+                                        {isElsewhere && (
+                                          <span
+                                            className="font-mono text-[10px] text-amber-300/80 tracking-[0.18em] uppercase"
+                                            title={`Currently at #${inUseAt + 1} — picking will swap`}
+                                          >
+                                            ↔ #{inUseAt + 1}
+                                          </span>
+                                        )}
+                                      </button>
+                                    </li>
+                                  );
+                                })}
+                                {filteredAllForEdit.length === 0 && (
+                                  <li className="px-3 py-3 text-center text-sm text-ivory/45 font-body">
+                                    —
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
                         </li>
                       )}
                     </Draggable>
