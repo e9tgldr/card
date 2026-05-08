@@ -34,54 +34,23 @@ const TABS = [
   { key: 'links',    roman: 'VI',  labelKey: 'fd.tab.links',    icon: ExternalLink },
 ];
 
-// External reading links per figure (curated). Figures not listed still get a Wikipedia-MN
-// search suggestion in the UI below.
+// External reading links per figure (curated, keyed by current fig_id).
+// Figures not listed still get a Wikipedia-MN search suggestion in the UI below.
+// Add entries here as you fill in references for the Golden Lineage khans.
 const EXTERNAL_LINKS = {
-  1:  [
+  1: [
     { label: 'Wikipedia: Genghis Khan', url: 'https://en.wikipedia.org/wiki/Genghis_Khan' },
     { label: 'Britannica: Genghis Khan', url: 'https://www.britannica.com/biography/Genghis-Khan' },
     { label: 'National Geographic', url: 'https://www.nationalgeographic.com/history/article/genghis-khan' },
   ],
-  2:  [{ label: 'Wikipedia: Ögedei Khan', url: 'https://en.wikipedia.org/wiki/%C3%96gedei_Khan' }],
-  3:  [
+  2: [{ label: 'Wikipedia: Ögedei Khan', url: 'https://en.wikipedia.org/wiki/%C3%96gedei_Khan' }],
+  3: [{ label: 'Wikipedia: Güyük Khan', url: 'https://en.wikipedia.org/wiki/G%C3%BCy%C3%BCk_Khan' }],
+  4: [{ label: 'Wikipedia: Möngke Khan', url: 'https://en.wikipedia.org/wiki/M%C3%B6ngke_Khan' }],
+  5: [
     { label: 'Wikipedia: Kublai Khan', url: 'https://en.wikipedia.org/wiki/Kublai_Khan' },
     { label: 'Britannica: Kublai Khan', url: 'https://www.britannica.com/biography/Kublai-Khan' },
   ],
-  4:  [{ label: 'Wikipedia: Möngke Khan', url: 'https://en.wikipedia.org/wiki/M%C3%B6ngke_Khan' }],
-  5:  [{ label: 'Wikipedia: Tolui', url: 'https://en.wikipedia.org/wiki/Tolui' }],
-  6:  [{ label: 'Wikipedia: Güyük Khan', url: 'https://en.wikipedia.org/wiki/G%C3%BCy%C3%BCk_Khan' }],
-  7:  [{ label: 'Wikipedia: Hulagu Khan', url: 'https://en.wikipedia.org/wiki/Hulagu_Khan' }],
-  8:  [{ label: 'Wikipedia: Batu Khan', url: 'https://en.wikipedia.org/wiki/Batu_Khan' }],
-  9:  [{ label: 'Wikipedia: Chagatai Khan', url: 'https://en.wikipedia.org/wiki/Chagatai_Khan' }],
-  10: [{ label: 'Wikipedia: Jochi', url: 'https://en.wikipedia.org/wiki/Jochi' }],
-  11: [{ label: 'Wikipedia: Kaidu', url: 'https://en.wikipedia.org/wiki/Kaidu' }],
-  12: [{ label: 'Wikipedia: Dayan Khan', url: 'https://en.wikipedia.org/wiki/Dayan_Khan' }],
-  13: [{ label: 'Wikipedia: Bogd Khan', url: 'https://en.wikipedia.org/wiki/Bogd_Khan' }],
-  14: [{ label: 'Wikipedia: Börte', url: 'https://en.wikipedia.org/wiki/B%C3%B6rte' }],
-  15: [{ label: 'Wikipedia: Sorghaghtani Beki', url: 'https://en.wikipedia.org/wiki/Sorghaghtani_Beki' }],
-  16: [{ label: 'Wikipedia: Mandukhai Khatun', url: 'https://en.wikipedia.org/wiki/Mandukhai_Khatun' }],
-  18: [{ label: 'Wikipedia: Khutulun', url: 'https://en.wikipedia.org/wiki/Khutulun' }],
-  19: [{ label: 'Wikipedia: Töregene Khatun', url: 'https://en.wikipedia.org/wiki/T%C3%B6regene_Khatun' }],
-  20: [{ label: 'Wikipedia: Chabi', url: 'https://en.wikipedia.org/wiki/Chabi' }],
-  21: [{ label: 'Wikipedia: Hoelun', url: 'https://en.wikipedia.org/wiki/Hoelun' }],
-  24: [{ label: 'Wikipedia: Subutai', url: 'https://en.wikipedia.org/wiki/Subutai' }],
-  25: [{ label: 'Wikipedia: Jebe', url: 'https://en.wikipedia.org/wiki/Jebe' }],
-  26: [{ label: 'Wikipedia: Muqali', url: 'https://en.wikipedia.org/wiki/Muqali' }],
-  30: [{ label: 'Wikipedia: Qasar', url: 'https://en.wikipedia.org/wiki/Qasar' }],
-  32: [{ label: 'Wikipedia: Bayan of the Baarin', url: 'https://en.wikipedia.org/wiki/Bayan_of_the_Baarin' }],
-  34: [{ label: 'Wikipedia: Damdin Sükhbaatar', url: 'https://en.wikipedia.org/wiki/Damdin_S%C3%BCkhbaatar' }],
-  36: [{ label: 'Wikipedia: Yelü Chucai', url: 'https://en.wikipedia.org/wiki/Yel%C3%BC_Chucai' }],
-  40: [{ label: 'Wikipedia: Khorloogiin Choibalsan', url: 'https://en.wikipedia.org/wiki/Khorloogiin_Choibalsan' }],
-  41: [{ label: 'Wikipedia: Yumjaagiin Tsedenbal', url: 'https://en.wikipedia.org/wiki/Yumjaagiin_Tsedenbal' }],
-  44: [{ label: 'Wikipedia: Galdan Boshugtu Khan', url: 'https://en.wikipedia.org/wiki/Galdan_Boshugtu_Khan' }],
-  45: [{ label: 'Wikipedia: Rashid al-Din Hamadani', url: 'https://en.wikipedia.org/wiki/Rashid-al-Din_Hamadani' }],
-  46: [
-    { label: 'Wikipedia: Marco Polo', url: 'https://en.wikipedia.org/wiki/Marco_Polo' },
-    { label: 'Britannica: Marco Polo', url: 'https://www.britannica.com/biography/Marco-Polo' },
-  ],
-  47: [{ label: 'Wikipedia: Zanabazar', url: 'https://en.wikipedia.org/wiki/Zanabazar' }],
-  49: [{ label: 'Wikipedia: Dashdorjiin Natsagdorj', url: 'https://en.wikipedia.org/wiki/Dashdorjiin_Natsagdorj' }],
-  50: [{ label: 'Wikipedia: Jugderdemidiin Gürragchaa', url: 'https://en.wikipedia.org/wiki/Jugderdemidiin_G%C3%BCrragchaa' }],
+  31: [{ label: 'Wikipedia: Dayan Khan', url: 'https://en.wikipedia.org/wiki/Dayan_Khan' }],
 };
 
 export default function FigureDetail() {

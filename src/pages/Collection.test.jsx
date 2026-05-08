@@ -29,11 +29,11 @@ describe('Collection', () => {
   });
 
   it('renders the owned figures grid with names and a tile per figure', () => {
-    mockUseOwnedFigures.mockReturnValue({ figIds: [1, 3, 14], loading: false, error: null });
+    mockUseOwnedFigures.mockReturnValue({ figIds: [1, 5, 31], loading: false, error: null });
     renderPage();
     expect(screen.getByText('Чингис Хаан')).toBeInTheDocument();
     expect(screen.getByText('Хубилай Хаан')).toBeInTheDocument();
-    expect(screen.getByText('Бөртэ Үжин')).toBeInTheDocument();
+    expect(screen.getByText('Батмөнх Даян Хаан')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Чингис Хаан/i })).toBeInTheDocument();
   });
 
