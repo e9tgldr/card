@@ -20,11 +20,6 @@ const COPY = {
     cats: {
       all: 'Бүгд',
       khans: 'Хаад',
-      queens: 'Хатад',
-      warriors: 'Жанжид',
-      political: 'Зөвлөх',
-      cultural: 'Соёл',
-      modern: 'Орчин үе',
     },
     claiming: 'Цуглуулж байна…',
   },
@@ -35,17 +30,12 @@ const COPY = {
     cats: {
       all: 'All',
       khans: 'Khans',
-      queens: 'Queens',
-      warriors: 'Warriors',
-      political: 'Advisors',
-      cultural: 'Culture',
-      modern: 'Modern',
     },
     claiming: 'Claiming…',
   },
 };
 
-const CAT_ORDER = ['all', 'khans', 'queens', 'warriors', 'political', 'cultural', 'modern'];
+const CAT_ORDER = ['all', 'khans'];
 
 export default function Figures() {
   const navigate = useNavigate();

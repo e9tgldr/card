@@ -43,10 +43,9 @@ export const FIGURES = [
 
 export const CATEGORIES = {
   khans:     { label: 'Хаад',                 label_en: 'Khans',      ico: '👑', color: '#9A1B1B', roman: 'I',   genus: 'KHAN'    },
-  queens:    { label: 'Хатад',                label_en: 'Khatuns',    ico: '♛', color: '#6B3E5C', roman: 'II',  genus: 'KHATUN'  },
-  warriors:  { label: 'Дайчид',               label_en: 'Warriors',   ico: '⚔️', color: '#3B4A3D', roman: 'III', genus: 'WARRIOR' },
-  political: { label: 'Төрийн Зүтгэлтнүүд', label_en: 'Ministers',  ico: '📜', color: '#1F3857', roman: 'IV',  genus: 'MINISTER' },
-  cultural:  { label: 'Соёлын Зүтгэлтнүүд', label_en: 'Sages',      ico: '🎭', color: '#8E6B2F', roman: 'V',   genus: 'SAGE'    },
+  // queens / warriors / political / cultural intentionally omitted — no
+  // figures in those categories today. Re-add here when content lands so
+  // HomeV2's filter chips and per-cat metadata pick them up automatically.
 };
 
 // --- Era (Chapter) taxonomy — derived from each figure's `yrs` field. ---

@@ -963,7 +963,7 @@ function ExploreFigures({ c, figures, onFigureClick, onToggleCompare, isInCompar
     catFilter !== 'all' || eraFilter !== 'all' || debouncedSearch.length > 0;
 
   const featured = useMemo(() => {
-    const order = ['khans', 'queens', 'warriors', 'political', 'cultural', 'modern'];
+    const order = ['khans'];
     const seen = new Set();
     const picks = [];
     order.forEach((cat) => {
