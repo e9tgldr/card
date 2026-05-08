@@ -6,6 +6,13 @@ import { useNarration } from '@/hooks/useNarration';
 import { FIGURES } from '@/lib/figuresData';
 
 const FRAMING_HINT_MS = 15000;
+// mindar.start() runs _startVideo (getUserMedia + loadedmetadata) then
+// _startAR (Controller construction, .mind pack fetch+parse, tfjs dummy
+// warmup). Any of those can hang silently — most often the dummyRun on a
+// thermal-throttled phone or a malformed/oversized pack. After this many
+// ms we abort and surface the stage so the user sees a real error instead
+// of staring at an unending spinner.
+const START_TIMEOUT_MS = 30000;
 
 // MindAR is loaded via the programmatic three.js API, not the A-Frame
 // component build, because mind-ar's `mindar-image-aframe.prod.js` was
@@ -63,7 +70,20 @@ export default function MultiTargetARScene({
       // synchronously inside the click handler, iOS Safari treats the
       // camera <video>.play() inside start() as gesture-bound and lets
       // it through.
-      await mindar.start();
+      const startPromise = mindar.start();
+      let timeoutId;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          const err = new Error(`mindar.start() did not resolve within ${START_TIMEOUT_MS}ms`);
+          err.name = 'TimeoutError';
+          reject(err);
+        }, START_TIMEOUT_MS);
+      });
+      try {
+        await Promise.race([startPromise, timeoutPromise]);
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       stage = 'renderer.setAnimationLoop';
       mindar.renderer.setAnimationLoop(() => {
