@@ -7,6 +7,11 @@ const ANON_HOURLY_LIMIT = 10;
 const AUTHED_HOURLY_LIMIT = 60;
 const BUCKET = 'voice-cache';
 
+// Synth tunings. Included in the cache key so any future change auto-busts
+// cached MP3s for the same lang/voice/text.
+const VOICE_STABILITY = 0.45;
+const VOICE_SIMILARITY = 0.7;
+
 const DEFAULT_VOICE_IDS: Record<string, string | undefined> = {
   mn: Deno.env.get('ELEVENLABS_VOICE_ID_MN'),
   en: Deno.env.get('ELEVENLABS_VOICE_ID_EN'),
@@ -65,7 +70,9 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason: 'no_key', source: 'fallback' });
   }
 
-  const key = await sha256Hex(`${lang}|${effectiveVoiceId}|${text}`);
+  const key = await sha256Hex(
+    `${lang}|${effectiveVoiceId}|${text}|s${VOICE_STABILITY}|b${VOICE_SIMILARITY}`,
+  );
   const path = `${key}.mp3`;
   const { data: publicData } = admin.storage.from(BUCKET).getPublicUrl(path);
   const publicUrl = publicData.publicUrl;
@@ -94,7 +101,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         text,
         model_id: 'eleven_multilingual_v2',
-        voice_settings: { stability: 0.45, similarity_boost: 0.7 },
+        voice_settings: { stability: VOICE_STABILITY, similarity_boost: VOICE_SIMILARITY },
       }),
     });
     if (resp.status === 429 || !resp.ok) {

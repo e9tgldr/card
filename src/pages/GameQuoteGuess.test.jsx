@@ -46,4 +46,15 @@ describe('GameQuoteGuess', () => {
       expect(screen.queryByText(/loadFailed/)).not.toBeInTheDocument();
     });
   });
+
+  it('shows a Demo link in the header when roster fallback is active', async () => {
+    const { createSession } = await import('@/lib/gameApi');
+    createSession.mockResolvedValue({ id: 's1', seed: 'seed', join_code: null, share_path: null });
+    renderPage();
+    // No logged-in user → ownedWithQuotes < 4 → rosterFallback === true → Demo
+    // entry surfaces. The Demo badge must NOT be visible (we're not in demo
+    // mode), but the link to enter demo mode should be.
+    const link = await screen.findByRole('link', { name: /demo/i });
+    expect(link).toHaveAttribute('href', '/games/quotes?demo=1');
+  });
 });

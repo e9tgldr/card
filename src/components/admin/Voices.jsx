@@ -25,7 +25,7 @@ export default function AdminVoices({ onToast }) {
     setLoading(true);
     const { data, error } = await supabase
       .from('figure_voices')
-      .select('fig_id, lang, voice_id');
+      .select('fig_id, lang, voice_id, sample_url');
     setLoading(false);
     if (error) { onToast('Ачаалахад алдаа: ' + adminErrorText(error), true); return; }
     setRows(data ?? []);
@@ -38,6 +38,12 @@ export default function AdminVoices({ onToast }) {
     return m;
   }, [rows]);
 
+  const sampleMap = useMemo(() => {
+    const m = new Map();
+    for (const r of rows) if (r.sample_url) m.set(`${r.fig_id}:${r.lang}`, r.sample_url);
+    return m;
+  }, [rows]);
+
   const visibleFigures = useMemo(() => {
     return FIGURES
       .filter((f) => !filterQuoteOnly || f.quote)
@@ -47,12 +53,17 @@ export default function AdminVoices({ onToast }) {
   const save = async () => {
     if (!editing) return;
     const { fig_id, lang, voice_id } = editing;
+    const trimmed = voice_id.trim();
+    // Existing row's voice_id, if any. If admin is changing voice_id, the old
+    // sample_url no longer matches the new voice — clear it so next preview
+    // re-populates against the new voice.
+    const previousVoiceId = voiceMap.get(`${fig_id}:${lang}`) ?? null;
+    const voiceChanged = previousVoiceId !== null && previousVoiceId !== trimmed;
+    const payload = { fig_id, lang, voice_id: trimmed, assigned_by: user?.id };
+    if (voiceChanged) payload.sample_url = null;
     const { error } = await supabase
       .from('figure_voices')
-      .upsert(
-        { fig_id, lang, voice_id: voice_id.trim(), assigned_by: user?.id },
-        { onConflict: 'fig_id,lang' },
-      );
+      .upsert(payload, { onConflict: 'fig_id,lang' });
     if (error) { onToast('Хадгалахад алдаа: ' + adminErrorText(error), true); return; }
     onToast('Хадгалагдлаа');
     setEditing(null);
@@ -75,8 +86,40 @@ export default function AdminVoices({ onToast }) {
     const { data } = await supabase.functions.invoke('speak', {
       body: { text: sample, lang: editing.lang, voice_id: editing.voice_id.trim() },
     });
-    if (data?.url) new Audio(data.url).play();
-    else onToast('Preview боломжгүй', true);
+    if (!data?.url) { onToast('Preview боломжгүй', true); return; }
+    new Audio(data.url).play();
+    // Persist the cached sample URL so admins can replay it from the grid
+    // without a second synth/HEAD round-trip. Best-effort — failure here is
+    // non-blocking for the preview itself.
+    const { error: updateError } = await supabase
+      .from('figure_voices')
+      .update({ sample_url: data.url })
+      .eq('fig_id', editing.fig_id)
+      .eq('lang', editing.lang);
+    if (!updateError) {
+      setRows((prev) => {
+        const existing = prev.find((r) => r.fig_id === editing.fig_id && r.lang === editing.lang);
+        if (existing) {
+          return prev.map((r) =>
+            r.fig_id === editing.fig_id && r.lang === editing.lang
+              ? { ...r, sample_url: data.url }
+              : r,
+          );
+        }
+        return [...prev, {
+          fig_id: editing.fig_id,
+          lang: editing.lang,
+          voice_id: editing.voice_id.trim(),
+          sample_url: data.url,
+        }];
+      });
+    }
+  };
+
+  const playSample = (figId, lang) => {
+    const url = sampleMap.get(`${figId}:${lang}`);
+    if (!url) return;
+    new Audio(url).play().catch(() => onToast('Тоглуулах боломжгүй', true));
   };
 
   // Close the editor on ESC (only when it's open). Skip when focus is in an
@@ -165,14 +208,28 @@ export default function AdminVoices({ onToast }) {
               <td className="py-2 pr-4">{f.fig_id}. {f.name}</td>
               {LANGS.map((lang) => {
                 const vid = voiceMap.get(`${f.fig_id}:${lang}`);
+                const hasSample = sampleMap.has(`${f.fig_id}:${lang}`);
                 return (
                   <td key={lang} className="py-2 px-3">
-                    <button
-                      onClick={() => setEditing({ fig_id: f.fig_id, lang, voice_id: vid ?? '' })}
-                      className="text-xs underline decoration-dotted text-muted-foreground hover:text-foreground"
-                    >
-                      {vid ? `🎙 ${vid.slice(0, 8)}…` : '— оноох —'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setEditing({ fig_id: f.fig_id, lang, voice_id: vid ?? '' })}
+                        className="text-xs underline decoration-dotted text-muted-foreground hover:text-foreground"
+                      >
+                        {vid ? `🎙 ${vid.slice(0, 8)}…` : '— оноох —'}
+                      </button>
+                      {hasSample && (
+                        <button
+                          type="button"
+                          onClick={() => playSample(f.fig_id, lang)}
+                          aria-label={`Play sample (fig ${f.fig_id}, ${lang})`}
+                          title="Сонсох"
+                          className="text-xs text-brass/70 hover:text-foreground"
+                        >
+                          ▶
+                        </button>
+                      )}
+                    </div>
                   </td>
                 );
               })}

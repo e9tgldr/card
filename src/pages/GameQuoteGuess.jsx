@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, RefreshCw, Trophy, Share2 } from 'lucide-react';
 import { FIGURES } from '@/lib/figuresData';
@@ -187,15 +187,27 @@ export default function GameQuoteGuess() {
             </span>
           )}
           {!isDemo && rosterFallback && (
-            <span
-              className="font-meta text-[10px] tracking-[0.28em] uppercase px-2 py-0.5 rounded opacity-80"
-              style={{ border: '1px dashed rgba(201,168,76,0.5)', color: '#c9a84c' }}
-              title={activeLang === 'en'
-                ? 'You need 4+ owned figures with quotes to play with your roster.'
-                : 'Цуглуулсан цөөн байна — бүх дүрсээр тоглож байна'}
-            >
-              {activeLang === 'en' ? 'All figures' : 'Бүгд'}
-            </span>
+            <>
+              <span
+                className="font-meta text-[10px] tracking-[0.28em] uppercase px-2 py-0.5 rounded opacity-80"
+                style={{ border: '1px dashed rgba(201,168,76,0.5)', color: '#c9a84c' }}
+                title={activeLang === 'en'
+                  ? 'You need 4+ owned figures with quotes to play with your roster.'
+                  : 'Цуглуулсан цөөн байна — бүх дүрсээр тоглож байна'}
+              >
+                {activeLang === 'en' ? 'All figures' : 'Бүгд'}
+              </span>
+              <Link
+                to="?demo=1"
+                replace
+                className="font-meta text-[10px] tracking-[0.28em] uppercase text-brass/70 hover:text-ivory underline decoration-dotted"
+                title={activeLang === 'en'
+                  ? 'Demo mode — play without earning XP'
+                  : 'Demo горим — XP оноогүй тоглох'}
+              >
+                {activeLang === 'en' ? 'Try demo' : 'Demo үзэх'}
+              </Link>
+            </>
           )}
           <span className="font-meta text-[10px] tracking-[0.28em] uppercase text-brass/80">
             {String(idx + 1).padStart(2, '0')} / {String(round.length).padStart(2, '0')}
