@@ -726,23 +726,27 @@ export default function FigureDetail() {
             >
               ← Цуглуулга ↗
             </button>
-            {figure.fig_id < 52 ? (
-              <button
-                onClick={() => navigate(`/figure/${figure.fig_id + 1}`)}
-                className="group flex items-baseline gap-3 text-right"
-              >
-                <div>
-                  <div className="font-meta text-[9px] tracking-[0.3em] uppercase text-brass/60">Next · N° {String(figure.fig_id + 1).padStart(2, '0')}</div>
-                  <div
-                    className="font-display text-sm text-ivory/75 group-hover:text-ivory"
-                    style={{ fontVariationSettings: '"opsz" 24, "SOFT" 40' }}
-                  >
-                    {figureName(FIGURES.find(f => f.fig_id === figure.fig_id + 1), lang)}
+            {(() => {
+              const nextFig = FIGURES.find(f => f.fig_id === figure.fig_id + 1);
+              if (!nextFig) return <div />;
+              return (
+                <button
+                  onClick={() => navigate(`/figure/${nextFig.fig_id}`)}
+                  className="group flex items-baseline gap-3 text-right"
+                >
+                  <div>
+                    <div className="font-meta text-[9px] tracking-[0.3em] uppercase text-brass/60">Next · N° {String(nextFig.fig_id).padStart(2, '0')}</div>
+                    <div
+                      className="font-display text-sm text-ivory/75 group-hover:text-ivory"
+                      style={{ fontVariationSettings: '"opsz" 24, "SOFT" 40' }}
+                    >
+                      {figureName(nextFig, lang)}
+                    </div>
                   </div>
-                </div>
-                <ArrowLeft className="w-3.5 h-3.5 rotate-180 text-brass/60 group-hover:text-brass transition-colors self-center" />
-              </button>
-            ) : <div />}
+                  <ArrowLeft className="w-3.5 h-3.5 rotate-180 text-brass/60 group-hover:text-brass transition-colors self-center" />
+                </button>
+              );
+            })()}
           </div>
         </nav>
       </article>
