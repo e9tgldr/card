@@ -32,6 +32,9 @@ vi.mock('@/components/HistoricalMap', () => ({ default: () => <div data-testid="
 vi.mock('@/components/TimelineSection', () => ({ default: () => <div data-testid="timeline-section" /> }));
 vi.mock('@/components/CompareBar', () => ({ default: () => null }));
 vi.mock('@/lib/authStore', () => authStoreMock);
+vi.mock('@/lib/AuthContext', () => ({
+  useAuth: () => ({ isAuthenticated: false, logout: vi.fn() }),
+}));
 
 import HomeV2 from './HomeV2';
 

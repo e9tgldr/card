@@ -13,9 +13,11 @@ import {
   Wrench,
   Clock,
   Search,
+  LogOut,
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
 import { isGuest } from '@/lib/authStore';
+import { useAuth } from '@/lib/AuthContext';
 import { FIGURES, CATEGORIES, ERAS, ERA_KEYS, getEra } from '@/lib/figuresData';
 import { SepiaPortrait } from '@/components/photo/SepiaPortrait';
 import { useFeaturedToday } from '@/hooks/useFeaturedToday';
@@ -64,7 +66,7 @@ const SECTION_PADY = 64;
 
 const COPY = {
   mn: {
-    nav: { figures: 'Дүрүүд', team: 'Миний баг', engagements: 'Тоглоом', chapters: 'Бүлгүүд', classic: 'Хуучин', scan: 'AR-аар таниулах', guests: 'Зочин' },
+    nav: { figures: 'Дүрүүд', team: 'Миний баг', engagements: 'Тоглоом', chapters: 'Бүлгүүд', classic: 'Хуучин', scan: 'AR-аар таниулах', guests: 'Зочин', logout: 'Гарах' },
     hero: {
       kicker: 'Кодекс I',
       title1: 'Алтан Домогийн',
@@ -134,7 +136,7 @@ const COPY = {
     foot: { rights: 'Алтан Домог · Codex I · Ulaanbaatar' },
   },
   en: {
-    nav: { figures: 'Figures', team: 'My team', engagements: 'Play', chapters: 'Chapters', classic: 'Classic', scan: 'Scan card (AR)', guests: 'Guests' },
+    nav: { figures: 'Figures', team: 'My team', engagements: 'Play', chapters: 'Chapters', classic: 'Classic', scan: 'Scan card (AR)', guests: 'Guests', logout: 'Logout' },
     hero: {
       kicker: 'Codex I',
       title1: 'The face of',
@@ -388,6 +390,7 @@ function LangToggle() {
 }
 
 function NavBar({ c, isAdmin = false, showGuests = false, onOpenAdmin }) {
+  const { isAuthenticated, logout } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -519,6 +522,41 @@ function NavBar({ c, isAdmin = false, showGuests = false, onOpenAdmin }) {
           <PrimaryButton to="/ar">
             <ScanLine size={16} /> {c.nav.scan}
           </PrimaryButton>
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => logout()}
+              aria-label={c.nav.logout}
+              title={c.nav.logout}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 12px',
+                borderRadius: 14,
+                background: 'transparent',
+                color: tokens.body,
+                border: `1px solid ${tokens.borderStrong}`,
+                fontSize: 13.5,
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'background 160ms ease, border-color 160ms ease, color 160ms ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                e.currentTarget.style.borderColor = tokens.brand;
+                e.currentTarget.style.color = tokens.ink;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = tokens.borderStrong;
+                e.currentTarget.style.color = tokens.body;
+              }}
+            >
+              <LogOut size={14} />
+              <span className="hidden-on-mobile" style={{ fontSize: 13.5 }}>{c.nav.logout}</span>
+            </button>
+          )}
         </div>
       </div>
     </header>
