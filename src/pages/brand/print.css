@@ -1,0 +1,21 @@
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  /* Hide app chrome that shouldn't appear in the PDF.
+     Toaster portals, nav, etc. The brand book route does not render the app shell, but this is defensive. */
+  body > div[role="status"],
+  body > nav,
+  body > header,
+  body > footer {
+    display: none !important;
+  }
+  [data-testid="brand-book"] section {
+    page-break-inside: avoid;
+  }
+  /* Each chapter Plate / Spread starts a new page. Phase 2 may refine. */
+  [data-testid="brand-book"] > * {
+    page-break-after: always;
+  }
+}
