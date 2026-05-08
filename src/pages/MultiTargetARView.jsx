@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '@/lib/i18n';
 import { useFigureARPack } from '@/hooks/useFigureARPack';
@@ -96,6 +96,22 @@ export default function MultiTargetARView() {
     fetch(pack.packUrl, { mode: 'cors' }).catch(() => {});
   }, [pack.packUrl]);
 
+  // Stable identities prevent MultiTargetARScene's setup useEffect from
+  // tearing down and re-creating MindAR on every parent re-render — which
+  // would otherwise leave the user staring at the Start overlay with a
+  // freshly-instantiated (un-started) MindAR after even a single state tick
+  // in this component. Hooks live above the early returns so React's
+  // call-order invariant holds across all render branches.
+  const handleArError = useCallback((err) => {
+    const rawMsg = formatArError(err);
+    setArErrorDetail(rawMsg.slice(0, 800));
+    setArError(classifyArError(
+      err,
+      typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
+    ));
+  }, []);
+  const videosByFigId = useMemo(() => videos.data ?? {}, [videos.data]);
+
   // User-gesture-bound permission re-request. The previous "Try again" handler
   // only cleared `arError`, which remounted MindAR — but if the browser had
   // already cached a denial for this origin, MindAR's getUserMedia call would
@@ -184,20 +200,11 @@ export default function MultiTargetARView() {
     );
   }
 
-  const handleArError = (err) => {
-    const rawMsg = formatArError(err);
-    setArErrorDetail(rawMsg.slice(0, 800));
-    setArError(classifyArError(
-      err,
-      typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
-    ));
-  };
-
   return (
     <MultiTargetARScene
       packUrl={pack.packUrl}
       targetOrder={pack.targetOrder}
-      videosByFigId={videos.data ?? {}}
+      videosByFigId={videosByFigId}
       onError={handleArError}
     />
   );

@@ -35,6 +35,11 @@ export default function MultiTargetARScene({
   const [showHint, setShowHint] = useState(false);
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
+  // True from the click on Start until mindar.start() resolves. Distinguishes
+  // "button waiting for tap" from "camera/pack pipeline in flight" — without
+  // this, getUserMedia inside start() turns the camera on early but the Start
+  // button still shows until the pack download + tracker init complete.
+  const [starting, setStarting] = useState(false);
 
   const activeFigId = activeIndex == null ? null : (targetOrder?.[activeIndex] ?? null);
   const activeFigure = activeFigId
@@ -44,11 +49,13 @@ export default function MultiTargetARScene({
   const narration = useNarration({ text: voiceText, lang, useSpeak: true });
 
   const handleStart = async () => {
+    if (starting) return;
     const mindar = mindarRef.current;
     if (!mindar) {
       onError?.(new Error('MindARThree not initialised'));
       return;
     }
+    setStarting(true);
     let stage = 'mindar.start()';
     try {
       // start() runs the whole pipeline: getUserMedia, camera-video setup,
@@ -71,6 +78,8 @@ export default function MultiTargetARScene({
       wrapped.name = errName;
       wrapped.stack = err?.stack;
       onError?.(wrapped);
+    } finally {
+      setStarting(false);
     }
   };
 
@@ -208,7 +217,12 @@ export default function MultiTargetARScene({
 
       {!started && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/85" data-testid="ar-start-overlay">
-          {ready ? (
+          {starting ? (
+            <div className="text-center space-y-4" data-testid="ar-start-spinner">
+              <div className="w-8 h-8 border-2 border-muted-foreground/20 border-t-crimson rounded-full animate-spin mx-auto" />
+              <p className="text-sm text-ivory/70 font-body">{t('ar.start.starting')}</p>
+            </div>
+          ) : ready ? (
             <button
               type="button"
               onClick={handleStart}

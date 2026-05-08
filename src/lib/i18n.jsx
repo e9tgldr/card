@@ -404,6 +404,7 @@ export const STRINGS = {
   'ar.error.permission.retry':{ mn: 'Дахин оролдох',                         en: 'Try again' },
   'ar.start':                 { mn: 'Камер эхлүүлэх',                        en: 'Start camera' },
   'ar.start.preparing':       { mn: 'Бэлдэж байна…',                          en: 'Preparing…' },
+  'ar.start.starting':        { mn: 'Камер асааж байна…',                    en: 'Starting camera…' },
   'ar.error.noCamera':        { mn: 'Энэ төхөөрөмжид камер олдсонгүй',        en: 'No camera found on this device' },
   'ar.error.inAppBrowser':    { mn: 'Аппын дотор камер ашиглах боломжгүй. Safari/Chrome-оор нээнэ үү', en: 'Camera is not available inside in-app browsers. Open in Safari or Chrome.' },
 
