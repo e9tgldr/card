@@ -6,6 +6,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 
 const MultiTargetARView = lazy(() => import('@/pages/MultiTargetARView'));
+const BrandBook = lazy(() => import('@/pages/brand/BrandBook'));
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { LangProvider } from '@/lib/i18n';
@@ -102,6 +103,18 @@ const AuthenticatedApp = () => {
               <MultiTargetARView />
             </Suspense>
           </OtpGate>
+        }
+      />
+      <Route
+        path="/v2/brand"
+        element={
+          <Suspense fallback={
+            <div className="fixed inset-0 bg-ink flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-muted-foreground/20 border-t-brass rounded-full animate-spin" />
+            </div>
+          }>
+            <BrandBook />
+          </Suspense>
         }
       />
       <Route path="*" element={<PageNotFound />} />
