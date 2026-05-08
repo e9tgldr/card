@@ -33,13 +33,30 @@ import { listOrders, updateOrderStatus, deleteOrder } from '@/lib/ordersStore';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { adminErrorText } from '@/lib/adminErrors';
 
+// Whitelist of columns that actually exist on `public.figures`. Anything
+// outside this set gets stripped before the upsert; callers (saveFig,
+// upload handlers) routinely pass shapes that include UI-only fields like
+// `story`/`story_en` (live in `story_content`, not on figures) or seed
+// fields like `portrait_url` (legacy FIGURES constant only). Without the
+// filter, PostgREST returns PGRST204 ("column not found") and the save
+// silently fails behind a generic "save failed" toast.
+const FIGURE_COLUMNS = new Set([
+  'fig_id', 'cat', 'ico', 'card', 'name', 'yrs', 'role',
+  'bio', 'achs', 'fact', 'quote', 'qattr', 'rel',
+  'front_img', 'back_img',
+]);
+
 // Upsert a single figure row by its natural key fig_id. Solves the case
 // where `selectedFig.id` is undefined because the figure originates from
 // the in-memory FIGURES constant — a plain `update(id, patch)` would
 // silently match zero rows. Returns the persisted row so callers can
 // pick up the now-existing `id` for subsequent calls.
 async function upsertFigureByFigId(fig, patch) {
-  const seed = { fig_id: fig.fig_id, ...patch };
+  const merged = { fig_id: fig.fig_id, ...patch };
+  const seed = {};
+  for (const [key, value] of Object.entries(merged)) {
+    if (FIGURE_COLUMNS.has(key)) seed[key] = value;
+  }
   const { data, error } = await supabase
     .from('figures')
     .upsert(seed, { onConflict: 'fig_id' })
