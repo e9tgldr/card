@@ -11,12 +11,8 @@ import CodexRule from '@/components/ornaments/CodexRule';
 import { useFigureBackVideos, mergeBackVideos } from '@/hooks/useFigureBackVideos';
 
 const FILTER_OPTIONS = [
-  { key: 'all',       label: 'Бүгд',    label_en: 'All',        roman: '∑' },
-  { key: 'khans',     label: 'Хаад',    label_en: 'Khans',      roman: 'I' },
-  { key: 'queens',    label: 'Хатад',   label_en: 'Khatuns',    roman: 'II' },
-  { key: 'warriors',  label: 'Дайчид',  label_en: 'Warriors',   roman: 'III' },
-  { key: 'political', label: 'Төрийн',  label_en: 'Ministers',  roman: 'IV' },
-  { key: 'cultural',  label: 'Соёлын',  label_en: 'Sages',      roman: 'V' },
+  { key: 'all',   label: 'Бүгд', label_en: 'All',   roman: '∑' },
+  { key: 'khans', label: 'Хаад', label_en: 'Khans', roman: 'I' },
 ];
 
 export default function GallerySection({ figures, onCardClick, isInTeam, onToggleTeam, isInCompare, onToggleCompare }) {
