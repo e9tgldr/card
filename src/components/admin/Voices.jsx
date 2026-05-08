@@ -78,41 +78,40 @@ export default function AdminVoices({ onToast }) {
     if (!editing?.voice_id?.trim()) return;
     const figure = FIGURES.find((f) => f.fig_id === editing.fig_id);
     if (!figure) return;
-    const sample = editing.lang === 'en'
+    // Snapshot the (fig_id, lang, voice_id) at click-time. If admin saves a
+    // different voice_id while the synth is in flight, the post-synth UPDATE
+    // below would otherwise clobber the new row's sample_url with audio for
+    // the OLD voice. Scoping the UPDATE to all three columns prevents that.
+    const previewFigId = editing.fig_id;
+    const previewLang = editing.lang;
+    const previewVoiceId = editing.voice_id.trim();
+    const sample = previewLang === 'en'
       ? `I am ${figure.name}.`
-      : editing.lang === 'cn'
+      : previewLang === 'cn'
         ? `我是${figure.name}。`
         : `Би бол ${figure.name}.`;
     const { data } = await supabase.functions.invoke('speak', {
-      body: { text: sample, lang: editing.lang, voice_id: editing.voice_id.trim() },
+      body: { text: sample, lang: previewLang, voice_id: previewVoiceId },
     });
     if (!data?.url) { onToast('Preview боломжгүй', true); return; }
     new Audio(data.url).play();
-    // Persist the cached sample URL so admins can replay it from the grid
-    // without a second synth/HEAD round-trip. Best-effort — failure here is
-    // non-blocking for the preview itself.
-    const { error: updateError } = await supabase
+    // Persist the cached sample URL only if the row still has the voice_id
+    // we previewed. Best-effort — failure here is non-blocking. Skipping the
+    // local-state patch when the DB UPDATE matches no rows means we never
+    // claim a sample exists when it doesn't.
+    const { data: updatedRows, error: updateError } = await supabase
       .from('figure_voices')
       .update({ sample_url: data.url })
-      .eq('fig_id', editing.fig_id)
-      .eq('lang', editing.lang);
-    if (!updateError) {
-      setRows((prev) => {
-        const existing = prev.find((r) => r.fig_id === editing.fig_id && r.lang === editing.lang);
-        if (existing) {
-          return prev.map((r) =>
-            r.fig_id === editing.fig_id && r.lang === editing.lang
-              ? { ...r, sample_url: data.url }
-              : r,
-          );
-        }
-        return [...prev, {
-          fig_id: editing.fig_id,
-          lang: editing.lang,
-          voice_id: editing.voice_id.trim(),
-          sample_url: data.url,
-        }];
-      });
+      .eq('fig_id', previewFigId)
+      .eq('lang', previewLang)
+      .eq('voice_id', previewVoiceId)
+      .select('fig_id');
+    if (!updateError && Array.isArray(updatedRows) && updatedRows.length > 0) {
+      setRows((prev) => prev.map((r) =>
+        r.fig_id === previewFigId && r.lang === previewLang && r.voice_id === previewVoiceId
+          ? { ...r, sample_url: data.url }
+          : r,
+      ));
     }
   };
 

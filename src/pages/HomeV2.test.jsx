@@ -3,7 +3,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const { teamHook, base44Mock, authStoreMock } = vi.hoisted(() => ({
+const { teamHook, base44Mock, authStoreMock, authMock } = vi.hoisted(() => ({
   teamHook: { team: [], removeFromTeam: vi.fn(), isInTeam: () => false, toggleTeam: vi.fn() },
   base44Mock: {
     entities: {
@@ -18,6 +18,7 @@ const { teamHook, base44Mock, authStoreMock } = vi.hoisted(() => ({
     },
   },
   authStoreMock: { isGuest: vi.fn(() => false), currentSession: vi.fn(() => null) },
+  authMock: { isAuthenticated: false, logout: vi.fn() },
 }));
 
 vi.mock('@/lib/i18n', async () => {
@@ -33,12 +34,16 @@ vi.mock('@/components/TimelineSection', () => ({ default: () => <div data-testid
 vi.mock('@/components/CompareBar', () => ({ default: () => null }));
 vi.mock('@/lib/authStore', () => authStoreMock);
 vi.mock('@/lib/AuthContext', () => ({
-  useAuth: () => ({ isAuthenticated: false, logout: vi.fn() }),
+  useAuth: () => authMock,
 }));
 
 import HomeV2 from './HomeV2';
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  authMock.isAuthenticated = false;
+  authMock.logout.mockReset();
+});
 
 const renderPage = () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -106,5 +111,21 @@ describe('HomeV2 — render smoke', () => {
     expect(
       screen.queryByRole('link', { name: /Зочин|Guests/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the Logout button only when authenticated, and routes through useAuth().logout', async () => {
+    const user = (await import('@testing-library/user-event')).default.setup();
+    authMock.isAuthenticated = true;
+    renderPage();
+    const logoutButton = screen.getByRole('button', { name: /Гарах|Logout/ });
+    expect(logoutButton).toBeInTheDocument();
+    await user.click(logoutButton);
+    expect(authMock.logout).toHaveBeenCalled();
+  });
+
+  it('hides the Logout button when not authenticated', () => {
+    authMock.isAuthenticated = false;
+    renderPage();
+    expect(screen.queryByRole('button', { name: /Гарах|Logout/ })).not.toBeInTheDocument();
   });
 });

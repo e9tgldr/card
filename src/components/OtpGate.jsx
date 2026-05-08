@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { currentSession, logout } from '@/lib/authStore';
+import { currentSession } from '@/lib/authStore';
 
 export default function OtpGate({ children }) {
   const location = useLocation();
@@ -9,8 +9,4 @@ export default function OtpGate({ children }) {
     return <Navigate to={`/otp?next=${next}`} replace />;
   }
   return children;
-}
-
-export function clearOtpVerification() {
-  logout();
 }

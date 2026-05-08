@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useCollection } from '@/hooks/useCollection';
-import { clearOtpVerification } from '@/components/OtpGate';
 import { currentSession } from '@/lib/authStore';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/i18n';
@@ -175,10 +174,9 @@ export default function Navbar({ onScrollTo }) {
             </button>
           )}
 
-          {/* Logout — icon-only. AuthContext.logout() clears session, stops
-              heartbeat, and signs the supabase session out before redirecting. */}
+          {/* Logout — icon-only. AuthContext.logout() does the full cleanup. */}
           <button
-            onClick={() => { clearOtpVerification(); logout(); }}
+            onClick={() => logout()}
             title={t('nav.logout')}
             className="relative group flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-meta tracking-[0.2em] uppercase text-ivory/60 hover:text-ivory transition-colors"
           >

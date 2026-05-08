@@ -116,7 +116,7 @@ export default function GameQuoteGuess() {
       setIdx((i) => i + 1);
       setPicked(null);
     }
-  }, [idx, round.length, submitted, sessionState, answers]);
+  }, [idx, round.length, submitted, sessionState, answers, isDemo]);
 
   const restart = useCallback(async () => {
     setIdx(0);

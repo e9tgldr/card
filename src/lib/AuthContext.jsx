@@ -1,10 +1,10 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { logout as authStoreLogout } from '@/lib/authStore';
 import {
   getStoredSessionId,
   startHeartbeat,
   stopHeartbeat,
-  clearStoredSessionId,
   onEvicted,
 } from '@/lib/deviceSession';
 
@@ -55,12 +55,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Single canonical logout. Delegates to authStore.logout, which clears
+  // device session id, stops the heartbeat, resets module-scope guest state
+  // (_parentDisplayName), and calls supabase.auth.signOut. Every logout
+  // surface (HomeV2, legacy Navbar, OtpGate eviction) routes through this
+  // so cleanup can never drift between callers.
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    clearStoredSessionId();
-    stopHeartbeat();
-    base44.auth.logout();
+    authStoreLogout();
     if (shouldRedirect) {
       window.location.href = '/';
     }
