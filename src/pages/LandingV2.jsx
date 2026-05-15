@@ -298,36 +298,6 @@ const PORTRAITS = {
 
 const SECTION_PADY = 72;
 
-const HERO_STAGE_CARDS = [
-  {
-    className: 'hero-card-main',
-    rank: 'K',
-    suit: '♠',
-    name: 'Чингис Хаан',
-    years: '1162–1227',
-    role: 'Founder',
-    img: PORTRAITS.genghis,
-  },
-  {
-    className: 'hero-card-left',
-    rank: 'Q',
-    suit: '♥',
-    name: 'Бөртэ Үжин',
-    years: '1161–1230',
-    role: 'Empress',
-    img: PORTRAITS.borte,
-  },
-  {
-    className: 'hero-card-right',
-    rank: 'J',
-    suit: '♦',
-    name: 'Сүбээдэй',
-    years: '1175–1248',
-    role: 'General',
-    img: PORTRAITS.subedei,
-  },
-];
-
 function useReveal(threshold = 0.15) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
@@ -597,51 +567,30 @@ function NavBar({ c }) {
   );
 }
 
-function StageCard({ card }) {
+function Hero({ c }) {
+  const featured = useFeaturedToday();
+  const quoteOfDay = useQuoteToday();
   return (
-    <div className={`hero-stage-card ${card.className}`} aria-hidden="true">
-      <div className="hero-stage-card-depth" />
-      <div className="hero-stage-card-face">
-        <div className="hero-stage-card-media" style={{ backgroundImage: `url(${card.img})` }} />
-        <div className="hero-stage-card-corner">
-          <strong>{card.rank}</strong>
-          <span>{card.suit}</span>
-        </div>
-        <div className="hero-stage-card-copy">
-          <strong>{card.name}</strong>
-          <span>{card.role} · {card.years}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PhoneScanPreview({ c }) {
-  return (
-    <div className="hero-scan-phone" aria-label={c.hero.scanLabel}>
-      <div className="hero-phone-lens" aria-hidden="true" />
-      <div className="hero-phone-screen">
-        <div className="hero-phone-viewfinder" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="hero-phone-chat">
-          <p>{c.hero.scanLabel}</p>
-          <strong>{c.hero.scanBody}</strong>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function HeroProductStage({ c, featured, quoteOfDay }) {
-  return (
-    <aside className="hero-product-stage" aria-label="3D product preview">
-      <div className="hero-stage-light hero-stage-light-top" aria-hidden="true" />
-      <div className="hero-stage-light hero-stage-light-floor" aria-hidden="true" />
-      <div className="hero-stage-backplate" aria-hidden="true">
+    <section
+      style={{
+        position: 'relative',
+        padding: 0,
+        overflow: 'hidden',
+        minHeight: 'clamp(560px, 82vh, 760px)',
+        background:
+          'radial-gradient(ellipse at 75% 35%, #6a4828 0%, #2a1810 45%, #0a0606 100%)',
+      }}
+      className="hero-natgeo"
+    >
+      <div
+        className="hero-natgeo-photo"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+        }}
+      >
         {featured ? (
           <SepiaPortrait
             figure={featured}
@@ -649,132 +598,70 @@ function HeroProductStage({ c, featured, quoteOfDay }) {
             aspectRatio="auto"
             size="100%"
             fit="cover"
-            position="50% 20%"
+            position="50% 22%"
             tilt
             priority
           />
         ) : null}
       </div>
-      <div className="hero-orbit hero-orbit-one" aria-hidden="true" />
-      <div className="hero-orbit hero-orbit-two" aria-hidden="true" />
-      <div className="hero-glass-plinth" aria-hidden="true" />
-      <div className="hero-card-cluster">
-        {HERO_STAGE_CARDS.map((card) => (
-          <StageCard key={card.name} card={card} />
-        ))}
-      </div>
-      <div className="hero-scan-beam" aria-hidden="true" />
-      <PhoneScanPreview c={c} />
-      {quoteOfDay ? (
-        <blockquote data-hero="quote-of-day" className="hero-quote-glass hidden-on-mobile">
-          <span>“</span>
-          {quoteOfDay.quote}
-          <span>”</span>
-          <cite>
-            — {quoteOfDay.attr}
-            {quoteOfDay.yrs ? <small> · {quoteOfDay.yrs}</small> : null}
-          </cite>
-        </blockquote>
-      ) : null}
-      {featured ? (
-        <div data-hero="pictured-caption" className="hero-pictured-caption hidden-on-mobile">
-          {featured.scene ? (
-            <>
-              <span>Pictured:</span> {featured.scene.title?.en ?? 'Historical scene'}
-              <br />
-              <small>{featured.scene.credit}</small>
-              <br />
-              <small>Featuring {featured.name}, {featured.yrs || '—'}</small>
-            </>
-          ) : (
-            <>
-              <span>Pictured:</span> {featured.name}, {featured.yrs || '—'}
-            </>
-          )}
-        </div>
-      ) : null}
-    </aside>
-  );
-}
-
-function Hero({ c }) {
-  const featured = useFeaturedToday();
-  const quoteOfDay = useQuoteToday();
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-
-  const onPointerMove = (event) => {
-    if (event.pointerType === 'touch') return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const px = (event.clientX - rect.left) / rect.width - 0.5;
-    const py = (event.clientY - rect.top) / rect.height - 0.5;
-    setTilt({
-      x: Math.max(-1, Math.min(1, -py * 4.5)),
-      y: Math.max(-1, Math.min(1, px * 5.5)),
-    });
-  };
-
-  return (
-    <section
-      className="landing-hero-3d"
-      onPointerMove={onPointerMove}
-      onPointerLeave={() => setTilt({ x: 0, y: 0 })}
-      style={{
-        position: 'relative',
-        padding: 0,
-        overflow: 'hidden',
-        minHeight: 'clamp(680px, 86vh, 860px)',
-        background: '#07080c',
-        '--hero-tilt-x': `${tilt.x}deg`,
-        '--hero-tilt-y': `${tilt.y}deg`,
-      }}
-    >
       <div
         aria-hidden="true"
+        className="hero-natgeo-readability"
         style={{
           position: 'absolute',
           inset: 0,
           zIndex: 2,
           background:
-            'radial-gradient(circle at 72% 28%, rgba(212,168,67,0.24), transparent 25%), radial-gradient(circle at 34% 76%, rgba(176,89,38,0.18), transparent 28%), linear-gradient(120deg, rgba(7,8,12,0.98) 0%, rgba(12,14,20,0.94) 42%, rgba(7,8,12,0.54) 100%)',
+            'linear-gradient(90deg, rgba(10,6,6,0.85) 0%, rgba(20,12,8,0.55) 35%, rgba(20,12,8,0.15) 60%, rgba(20,12,8,0) 100%), linear-gradient(0deg, rgba(10,6,6,0.55) 0%, rgba(10,6,6,0) 50%)',
           pointerEvents: 'none',
         }}
       />
       <div
-        className="hero-shell-grid"
+        className="hero-natgeo-grid"
         style={{
           position: 'relative',
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 0.92fr) minmax(420px, 1.08fr)',
-          gap: 'clamp(24px, 4vw, 56px)',
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
           minHeight: 'inherit',
           zIndex: 3,
-          maxWidth: 1240,
-          margin: '0 auto',
-          padding: 'clamp(84px, 11vh, 118px) 24px clamp(48px, 7vh, 72px)',
-          alignItems: 'center',
         }}
       >
         <header
-          className="hero-copy-panel"
+          className="hero-natgeo-text"
           style={{
             position: 'relative',
+            gridColumn: '1 / 2',
+            gridRow: '1 / 2',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
-            maxWidth: 610,
+            justifyContent: 'flex-end',
+            padding: 'clamp(28px, 4vw, 56px) clamp(24px, 4vw, 56px) clamp(36px, 6vw, 72px)',
+            maxWidth: 720,
             zIndex: 3,
           }}
         >
+          <p
+            style={{
+              fontFamily: FONT_SANS,
+              fontSize: 11,
+              letterSpacing: 3,
+              color: tokens.accent,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              margin: 0,
+            }}
+          >
+            The Mongol Empire · 1206–1368
+          </p>
           <h1
             style={{
-              margin: 0,
+              marginTop: 14,
               fontFamily: tokens.serif,
-              fontSize: 'clamp(2.72rem, 6.1vw, 5.55rem)',
+              fontSize: 'clamp(2.4rem, 5.4vw, 4.4rem)',
               fontWeight: 600,
-              lineHeight: 0.91,
-              letterSpacing: 0,
-              color: tokens.ink,
-              textShadow: '0 26px 70px rgba(0,0,0,0.55)',
+              lineHeight: 0.95,
+              letterSpacing: -0.3,
+              color: '#fff',
             }}
           >
             {c.hero.title1}
@@ -783,7 +670,7 @@ function Hero({ c }) {
               style={{
                 fontStyle: 'italic',
                 fontWeight: 500,
-                color: tokens.brandStrong,
+                color: tokens.accent,
               }}
             >
               {c.hero.title2}
@@ -794,8 +681,8 @@ function Hero({ c }) {
               marginTop: 18,
               fontFamily: FONT_SANS,
               fontSize: 16,
-              lineHeight: 1.68,
-              color: 'rgba(237,232,213,0.77)',
+              lineHeight: 1.55,
+              color: 'rgba(255,255,255,0.78)',
               maxWidth: 540,
             }}
           >
@@ -805,20 +692,18 @@ function Hero({ c }) {
             <Link
               to="/order?tier=premium"
               style={{
-                background: 'linear-gradient(135deg, #f3d276 0%, #d4a843 46%, #9d6327 100%)',
+                background: tokens.accent,
                 color: tokens.bg,
-                padding: '13px 22px',
+                padding: '12px 22px',
                 fontFamily: FONT_SANS,
                 fontSize: 13,
                 fontWeight: 700,
-                letterSpacing: 1.1,
+                letterSpacing: 1.5,
                 textTransform: 'uppercase',
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
-                borderRadius: 6,
-                boxShadow: '0 18px 40px rgba(212,168,67,0.24), inset 0 1px 0 rgba(255,255,255,0.48)',
               }}
             >
               {c.hero.ctaPrimary} <ArrowRight size={16} />
@@ -830,7 +715,7 @@ function Hero({ c }) {
                 fontFamily: FONT_SANS,
                 fontSize: 13,
                 fontWeight: 600,
-                letterSpacing: 0.8,
+                letterSpacing: 1,
                 textTransform: 'uppercase',
                 textDecoration: 'none',
                 paddingBottom: 4,
@@ -840,26 +725,15 @@ function Hero({ c }) {
               {c.hero.ctaSecondary}
             </Link>
           </div>
-          <div className="hero-proof-rail" aria-label="Collection facts">
-            {c.stats.band.map((item) => (
-              <span key={item.label}>
-                <strong>{item.num}</strong>
-                {item.label}
-              </span>
-            ))}
-          </div>
         </header>
-        <HeroProductStage c={c} featured={featured} quoteOfDay={quoteOfDay} />
       </div>
       <div
         data-hero="meta-strip"
         className="hidden-on-mobile"
         style={{
           position: 'absolute',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          left: 'clamp(24px, 4vw, 56px)',
           top: 'clamp(24px, 3vw, 36px)',
-          width: 'min(1192px, calc(100% - 48px))',
           display: 'flex',
           alignItems: 'center',
           gap: 14,
@@ -888,11 +762,54 @@ function Hero({ c }) {
           ))}
         </div>
       </div>
+      {quoteOfDay ? (
+        <blockquote
+          data-hero="quote-of-day"
+          style={{
+            position: 'absolute',
+            right: 'clamp(24px, 4vw, 56px)',
+            top: 'clamp(76px, 9vh, 116px)',
+            maxWidth: 'min(440px, 38vw)',
+            fontFamily: tokens.serif,
+            fontStyle: 'italic',
+            fontWeight: 500,
+            fontSize: 'clamp(1.15rem, 1.7vw, 1.6rem)',
+            lineHeight: 1.32,
+            color: 'rgba(255,255,255,0.94)',
+            textAlign: 'right',
+            zIndex: 4,
+            textShadow: '0 2px 18px rgba(0,0,0,0.55)',
+            pointerEvents: 'none',
+            margin: 0,
+          }}
+          className="hidden-on-mobile"
+        >
+          <span style={{ color: tokens.accent, marginRight: 4 }}>“</span>
+          {quoteOfDay.quote}
+          <span style={{ color: tokens.accent, marginLeft: 4 }}>”</span>
+          <cite
+            style={{
+              display: 'block',
+              marginTop: 10,
+              fontFamily: FONT_SANS,
+              fontStyle: 'normal',
+              fontSize: 10,
+              letterSpacing: 2.2,
+              color: tokens.accent,
+              textTransform: 'uppercase',
+              fontWeight: 700,
+            }}
+          >
+            — {quoteOfDay.attr}
+            {quoteOfDay.yrs ? <span style={{ opacity: 0.7 }}> · {quoteOfDay.yrs}</span> : null}
+          </cite>
+        </blockquote>
+      ) : null}
       <div
         className="hidden-on-mobile"
         style={{
           position: 'absolute',
-          right: 'calc(50% - min(596px, calc(50% - 24px)))',
+          right: 'clamp(24px, 4vw, 56px)',
           top: 'clamp(24px, 3vw, 36px)',
           fontFamily: FONT_SANS,
           fontSize: 10,
@@ -905,6 +822,40 @@ function Hero({ c }) {
       >
         {c.hero.chip}
       </div>
+      {featured ? (
+        <div
+          data-hero="pictured-caption"
+          className="hidden-on-mobile"
+          style={{
+            position: 'absolute',
+            right: 'clamp(24px, 4vw, 56px)',
+            bottom: 'clamp(24px, 3vw, 36px)',
+            fontFamily: FONT_SANS,
+            fontSize: 10,
+            letterSpacing: 2,
+            color: 'rgba(255,255,255,0.55)',
+            textTransform: 'uppercase',
+            textAlign: 'right',
+            lineHeight: 1.6,
+            fontStyle: 'italic',
+            zIndex: 4,
+          }}
+        >
+          {featured.scene ? (
+            <>
+              <span style={{ color: tokens.accent }}>Pictured:</span> {featured.scene.title?.en ?? 'Historical scene'}
+              <br />
+              <span style={{ opacity: 0.75 }}>{featured.scene.credit}</span>
+              <br />
+              <span style={{ opacity: 0.85 }}>Featuring {featured.name}, {featured.yrs || '—'}</span>
+            </>
+          ) : (
+            <>
+              <span style={{ color: tokens.accent }}>Pictured:</span> {featured.name}, {featured.yrs || '—'}
+            </>
+          )}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -2769,426 +2720,6 @@ export default function LandingV2() {
           box-shadow: inset 0 0 0 7px rgba(7,8,12,0.9), inset 0 0 0 8px rgba(212,168,67,0.36), 0 32px 70px rgba(0,0,0,0.46);
           transform: translateZ(calc(var(--i) * 60px)) rotateY(calc(-24deg + var(--i) * 13deg)) rotateZ(calc(-8deg + var(--i) * 4deg));
         }
-        .landing-hero-3d::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          z-index: 1;
-          background:
-            linear-gradient(180deg, rgba(255,255,255,0.045) 0%, transparent 18%),
-            repeating-linear-gradient(96deg, rgba(212,168,67,0.045) 0 1px, transparent 1px 72px);
-          mask-image: radial-gradient(circle at 70% 40%, rgba(0,0,0,0.9), transparent 74%);
-          -webkit-mask-image: radial-gradient(circle at 70% 40%, rgba(0,0,0,0.9), transparent 74%);
-          pointer-events: none;
-        }
-        .landing-hero-3d::after {
-          content: '';
-          position: absolute;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          height: 34%;
-          z-index: 2;
-          background:
-            linear-gradient(180deg, transparent, rgba(7,8,12,0.88) 58%, #0a0c14 100%),
-            radial-gradient(ellipse at 70% 18%, rgba(212,168,67,0.18), transparent 50%);
-          pointer-events: none;
-        }
-        .hero-copy-panel {
-          transform: translateZ(16px);
-        }
-        .hero-proof-rail {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 10px;
-          margin-top: clamp(28px, 4vw, 42px);
-          max-width: 540px;
-        }
-        .hero-proof-rail span {
-          min-height: 74px;
-          padding: 13px 12px;
-          border: 1px solid rgba(212,168,67,0.18);
-          background:
-            linear-gradient(135deg, rgba(255,255,255,0.055), rgba(255,255,255,0.015)),
-            rgba(12,14,20,0.72);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 20px 40px rgba(0,0,0,0.28);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          color: rgba(237,232,213,0.58);
-          font-family: ${FONT_SANS};
-          font-size: 10px;
-          line-height: 1.25;
-          letter-spacing: 1.6px;
-          text-transform: uppercase;
-        }
-        .hero-proof-rail strong {
-          display: block;
-          color: #e6bc52;
-          font-family: ${tokens.serif};
-          font-size: clamp(1.45rem, 2.4vw, 2.15rem);
-          font-weight: 650;
-          line-height: 0.9;
-          letter-spacing: 0;
-          margin-bottom: 8px;
-          text-transform: none;
-        }
-        .hero-product-stage {
-          position: relative;
-          min-height: min(620px, 62vw);
-          transform-style: preserve-3d;
-          transform: perspective(1600px) rotateX(var(--hero-tilt-x)) rotateY(var(--hero-tilt-y));
-          transition: transform 180ms ease-out;
-          isolation: isolate;
-        }
-        .hero-stage-light {
-          position: absolute;
-          border-radius: 999px;
-          pointer-events: none;
-          filter: blur(1px);
-        }
-        .hero-stage-light-top {
-          width: 62%;
-          height: 24%;
-          left: 23%;
-          top: 2%;
-          background: radial-gradient(ellipse at center, rgba(255,236,176,0.28), rgba(212,168,67,0.08) 45%, transparent 72%);
-          transform: translateZ(-140px) rotateX(72deg);
-        }
-        .hero-stage-light-floor {
-          width: 72%;
-          height: 22%;
-          left: 19%;
-          bottom: 2%;
-          background: radial-gradient(ellipse at center, rgba(212,168,67,0.2), rgba(176,89,38,0.07) 45%, transparent 72%);
-          transform: translateZ(-120px) rotateX(74deg);
-        }
-        .hero-stage-backplate {
-          position: absolute;
-          inset: 8% 5% 9% 24%;
-          overflow: hidden;
-          border: 1px solid rgba(212,168,67,0.18);
-          background: linear-gradient(145deg, rgba(237,232,213,0.06), rgba(237,232,213,0.015));
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.1),
-            inset 0 0 90px rgba(7,8,12,0.72),
-            0 44px 90px rgba(0,0,0,0.46);
-          transform: translateZ(-140px) rotateY(-8deg) rotateX(2deg);
-          opacity: 0.78;
-        }
-        .hero-stage-backplate::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background:
-            linear-gradient(90deg, rgba(7,8,12,0.86), rgba(7,8,12,0.18) 48%, rgba(7,8,12,0.7)),
-            linear-gradient(180deg, rgba(212,168,67,0.12), transparent 34%);
-          pointer-events: none;
-        }
-        .hero-orbit {
-          position: absolute;
-          border: 1px solid rgba(212,168,67,0.28);
-          border-radius: 999px;
-          transform-style: preserve-3d;
-          pointer-events: none;
-          box-shadow: 0 0 42px rgba(212,168,67,0.08);
-        }
-        .hero-orbit-one {
-          width: 69%;
-          height: 34%;
-          left: 18%;
-          top: 35%;
-          transform: translateZ(44px) rotateX(66deg) rotateZ(-12deg);
-        }
-        .hero-orbit-two {
-          width: 47%;
-          height: 23%;
-          left: 27%;
-          top: 42%;
-          border-color: rgba(176,89,38,0.34);
-          transform: translateZ(86px) rotateX(69deg) rotateZ(18deg);
-        }
-        .hero-glass-plinth {
-          position: absolute;
-          left: 16%;
-          right: 8%;
-          bottom: 9%;
-          height: 25%;
-          border-radius: 50%;
-          background:
-            radial-gradient(ellipse at 50% 42%, rgba(237,232,213,0.18), rgba(212,168,67,0.08) 32%, rgba(7,8,12,0.12) 58%, transparent 74%);
-          border: 1px solid rgba(212,168,67,0.14);
-          transform: translateZ(-58px) rotateX(72deg);
-          box-shadow: inset 0 0 54px rgba(255,255,255,0.08), 0 34px 80px rgba(0,0,0,0.52);
-        }
-        .hero-card-cluster {
-          position: absolute;
-          inset: 0;
-          transform-style: preserve-3d;
-          z-index: 3;
-        }
-        .hero-stage-card {
-          position: absolute;
-          width: clamp(138px, 18vw, 220px);
-          aspect-ratio: 5 / 7.35;
-          transform-style: preserve-3d;
-          filter: drop-shadow(0 34px 30px rgba(0,0,0,0.46));
-        }
-        .hero-stage-card-depth {
-          position: absolute;
-          inset: 2px -7px -9px 7px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #a87928, #2b1b0c 55%, #050506);
-          transform: translateZ(-18px);
-          box-shadow: inset 0 0 0 1px rgba(255,236,176,0.26);
-        }
-        .hero-stage-card-face {
-          position: absolute;
-          inset: 0;
-          overflow: hidden;
-          border-radius: 10px;
-          border: 1px solid rgba(255,224,140,0.64);
-          background:
-            linear-gradient(135deg, rgba(255,255,255,0.16), transparent 28%),
-            linear-gradient(165deg, #161922, #090a0f 55%, #2b170d);
-          box-shadow:
-            inset 0 0 0 5px rgba(7,8,12,0.82),
-            inset 0 0 0 6px rgba(212,168,67,0.45),
-            inset 0 0 44px rgba(212,168,67,0.1);
-          transform: translateZ(16px);
-        }
-        .hero-stage-card-face::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background:
-            linear-gradient(112deg, transparent 0%, rgba(255,255,255,0.18) 26%, transparent 38%),
-            repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 5px);
-          mix-blend-mode: screen;
-          opacity: 0.78;
-          pointer-events: none;
-        }
-        .hero-stage-card-media {
-          position: absolute;
-          inset: 12% 9% 24%;
-          border: 1px solid rgba(212,168,67,0.45);
-          background-size: cover;
-          background-position: 50% 16%;
-          filter: saturate(0.92) contrast(1.08);
-          box-shadow: inset 0 -42px 46px rgba(0,0,0,0.64);
-        }
-        .hero-stage-card-corner {
-          position: absolute;
-          left: 9%;
-          top: 7%;
-          color: #f1d47c;
-          font-family: ${tokens.serif};
-          line-height: 0.86;
-          text-shadow: 0 2px 10px rgba(0,0,0,0.7);
-        }
-        .hero-stage-card-corner strong {
-          display: block;
-          font-size: clamp(1.2rem, 2vw, 1.72rem);
-        }
-        .hero-stage-card-corner span {
-          display: block;
-          margin-top: 6px;
-          color: #b05926;
-          font-size: clamp(0.88rem, 1.4vw, 1.2rem);
-        }
-        .hero-stage-card-copy {
-          position: absolute;
-          left: 10%;
-          right: 10%;
-          bottom: 8%;
-          color: #fff7df;
-          text-shadow: 0 2px 12px rgba(0,0,0,0.72);
-        }
-        .hero-stage-card-copy strong {
-          display: block;
-          font-family: ${tokens.serif};
-          font-size: clamp(1rem, 1.75vw, 1.36rem);
-          font-weight: 650;
-          line-height: 1.02;
-        }
-        .hero-stage-card-copy span {
-          display: block;
-          margin-top: 6px;
-          color: rgba(237,232,213,0.68);
-          font-family: ${FONT_SANS};
-          font-size: clamp(0.62rem, 0.9vw, 0.78rem);
-          letter-spacing: 1.3px;
-          text-transform: uppercase;
-        }
-        .hero-card-main {
-          left: 38%;
-          top: 20%;
-          transform: translateZ(122px) rotateY(-18deg) rotateX(7deg) rotateZ(5deg);
-          animation: heroFloat 7.5s ease-in-out infinite;
-        }
-        .hero-card-left {
-          left: 18%;
-          top: 31%;
-          transform: translateZ(44px) rotateY(26deg) rotateX(9deg) rotateZ(-13deg) scale(0.82);
-          opacity: 0.92;
-          animation: heroFloat 8.6s ease-in-out -1.4s infinite;
-        }
-        .hero-card-right {
-          left: 57%;
-          top: 35%;
-          transform: translateZ(64px) rotateY(-38deg) rotateX(11deg) rotateZ(12deg) scale(0.78);
-          opacity: 0.88;
-          animation: heroFloat 8s ease-in-out -2.5s infinite;
-        }
-        .hero-scan-beam {
-          position: absolute;
-          left: 48%;
-          top: 42%;
-          width: 30%;
-          height: 25%;
-          z-index: 4;
-          transform: translateZ(150px) rotateX(62deg) rotateZ(-14deg);
-          background: linear-gradient(90deg, transparent, rgba(242,216,138,0.38), rgba(255,255,255,0.22), transparent);
-          clip-path: polygon(0 34%, 100% 0, 82% 100%, 12% 76%);
-          filter: blur(0.5px) drop-shadow(0 0 20px rgba(212,168,67,0.34));
-          opacity: 0.82;
-          animation: scanSweep 3.4s ease-in-out infinite;
-        }
-        .hero-scan-phone {
-          position: absolute;
-          right: 3%;
-          bottom: 13%;
-          width: clamp(132px, 15vw, 178px);
-          aspect-ratio: 0.56;
-          z-index: 5;
-          border-radius: 26px;
-          padding: 9px;
-          background: linear-gradient(135deg, #343742, #06070a 68%);
-          border: 1px solid rgba(255,255,255,0.18);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 34px 70px rgba(0,0,0,0.54);
-          transform: translateZ(172px) rotateY(-19deg) rotateX(9deg) rotateZ(7deg);
-        }
-        .hero-phone-lens {
-          position: absolute;
-          top: 11px;
-          left: 50%;
-          width: 38px;
-          height: 5px;
-          transform: translateX(-50%);
-          border-radius: 999px;
-          background: rgba(255,255,255,0.22);
-          z-index: 2;
-        }
-        .hero-phone-screen {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          overflow: hidden;
-          border-radius: 19px;
-          background:
-            radial-gradient(circle at 50% 22%, rgba(212,168,67,0.24), transparent 32%),
-            linear-gradient(180deg, #0c0f16, #07080c);
-          border: 1px solid rgba(212,168,67,0.22);
-        }
-        .hero-phone-viewfinder {
-          position: absolute;
-          inset: 17% 18% auto;
-          aspect-ratio: 1;
-        }
-        .hero-phone-viewfinder span {
-          position: absolute;
-          width: 25px;
-          height: 25px;
-          border-color: #f2d88a;
-          opacity: 0.78;
-        }
-        .hero-phone-viewfinder span:nth-child(1) { left: 0; top: 0; border-left: 2px solid; border-top: 2px solid; }
-        .hero-phone-viewfinder span:nth-child(2) { right: 0; top: 0; border-right: 2px solid; border-top: 2px solid; }
-        .hero-phone-viewfinder span:nth-child(3) { left: 0; bottom: 0; border-left: 2px solid; border-bottom: 2px solid; }
-        .hero-phone-viewfinder span:nth-child(4) { right: 0; bottom: 0; border-right: 2px solid; border-bottom: 2px solid; }
-        .hero-phone-chat {
-          position: absolute;
-          left: 10px;
-          right: 10px;
-          bottom: 10px;
-          padding: 11px;
-          border: 1px solid rgba(212,168,67,0.22);
-          background: rgba(7,8,12,0.78);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          color: rgba(237,232,213,0.76);
-        }
-        .hero-phone-chat p {
-          margin: 0 0 6px;
-          color: #e6bc52;
-          font-size: 9px;
-          letter-spacing: 1.5px;
-          text-transform: uppercase;
-          font-weight: 700;
-        }
-        .hero-phone-chat strong {
-          display: block;
-          font-size: 11px;
-          line-height: 1.35;
-          font-weight: 600;
-        }
-        .hero-quote-glass {
-          position: absolute;
-          top: 13%;
-          right: 2%;
-          max-width: min(360px, 42%);
-          z-index: 6;
-          margin: 0;
-          padding: 18px 20px;
-          border: 1px solid rgba(212,168,67,0.2);
-          background: rgba(7,8,12,0.48);
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 22px 46px rgba(0,0,0,0.34);
-          color: rgba(255,255,255,0.9);
-          font-family: ${tokens.serif};
-          font-size: clamp(1rem, 1.4vw, 1.28rem);
-          line-height: 1.34;
-          font-style: italic;
-          transform: translateZ(190px) rotateY(-8deg);
-        }
-        .hero-quote-glass > span {
-          color: #e6bc52;
-        }
-        .hero-quote-glass cite {
-          display: block;
-          margin-top: 10px;
-          color: #e6bc52;
-          font-family: ${FONT_SANS};
-          font-size: 9px;
-          letter-spacing: 1.8px;
-          text-transform: uppercase;
-          font-style: normal;
-          font-weight: 800;
-        }
-        .hero-quote-glass small {
-          opacity: 0.72;
-        }
-        .hero-pictured-caption {
-          position: absolute;
-          right: 2%;
-          bottom: 3%;
-          z-index: 6;
-          max-width: 350px;
-          color: rgba(237,232,213,0.54);
-          font-family: ${FONT_SANS};
-          font-size: 9px;
-          line-height: 1.65;
-          letter-spacing: 1.8px;
-          text-align: right;
-          text-transform: uppercase;
-          transform: translateZ(190px);
-        }
-        .hero-pictured-caption span {
-          color: #e6bc52;
-        }
-        .hero-pictured-caption small {
-          opacity: 0.8;
-        }
         .scan-lab-section {
           position: relative;
           overflow: hidden;
@@ -3424,10 +2955,6 @@ export default function LandingV2() {
           font-size: 0.94rem;
           line-height: 1.55;
         }
-        @keyframes heroFloat {
-          0%, 100% { margin-top: 0; }
-          50% { margin-top: -14px; }
-        }
         @keyframes scanSweep {
           0%, 100% { opacity: 0.48; transform: translateZ(150px) rotateX(62deg) rotateZ(-14deg) translateX(-5%); }
           50% { opacity: 0.94; transform: translateZ(150px) rotateX(62deg) rotateZ(-14deg) translateX(5%); }
@@ -3477,35 +3004,18 @@ export default function LandingV2() {
             width: 72px;
             height: 72px;
           }
-          .hero-shell-grid {
+          .hero-natgeo-grid {
             grid-template-columns: 1fr !important;
-            padding-top: 88px !important;
-            gap: 28px !important;
           }
-          .hero-copy-panel {
+          .hero-natgeo-text {
+            grid-column: 1 / -1 !important;
+            grid-row: 1 / 2 !important;
             max-width: 100% !important;
+            justify-content: flex-end !important;
           }
-          .hero-proof-rail {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-          .hero-product-stage {
-            min-height: 520px;
-          }
-          .hero-stage-backplate {
-            inset: 5% 2% 7% 14%;
-          }
-          .hero-card-main {
-            left: 34%;
-          }
-          .hero-card-left {
-            left: 8%;
-          }
-          .hero-card-right {
-            left: 60%;
-          }
-          .hero-scan-phone {
-            right: 0;
-            bottom: 8%;
+          .hero-natgeo-readability {
+            background:
+              linear-gradient(0deg, rgba(10,6,6,0.92) 0%, rgba(10,6,6,0.55) 45%, rgba(10,6,6,0.1) 100%) !important;
           }
           .scan-lab-grid {
             grid-template-columns: 1fr !important;
@@ -3593,9 +3103,6 @@ export default function LandingV2() {
             left: calc(24% + var(--i) * 8%);
             top: calc(16% + var(--i) * 10%);
           }
-          .hero-proof-rail {
-            display: none;
-          }
           .nav-primary-cta {
             width: 54px !important;
             height: 54px !important;
@@ -3608,32 +3115,6 @@ export default function LandingV2() {
           .nav-primary-cta svg {
             width: 18px !important;
             height: 18px !important;
-          }
-          .hero-product-stage {
-            min-height: 390px;
-            margin-top: -12px;
-          }
-          .hero-stage-card {
-            width: 132px;
-          }
-          .hero-card-main {
-            left: 32%;
-            top: 18%;
-          }
-          .hero-card-left {
-            left: 4%;
-            top: 35%;
-          }
-          .hero-card-right {
-            left: 58%;
-            top: 39%;
-          }
-          .hero-scan-phone {
-            width: 124px;
-          }
-          .hero-scan-beam {
-            left: 45%;
-            width: 36%;
           }
           .scan-lab-visual {
             min-height: 420px;
@@ -3653,15 +3134,8 @@ export default function LandingV2() {
           }
         }
         @media (prefers-reduced-motion: reduce) {
-          .hero-card-main,
-          .hero-card-left,
-          .hero-card-right,
-          .hero-scan-beam,
           .scan-lab-beam {
             animation: none !important;
-          }
-          .hero-product-stage {
-            transition: none !important;
           }
           .scroll-3d-dots b {
             transition: none !important;
