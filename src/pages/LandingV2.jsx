@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  QrCode,
   MessageCircle,
   HelpCircle,
   Volume2,
@@ -20,7 +19,6 @@ import { useLang } from '@/lib/i18n';
 import { SepiaPortrait } from '@/components/photo/SepiaPortrait';
 import { useFeaturedToday } from '@/hooks/useFeaturedToday';
 import { useQuoteToday } from '@/hooks/useQuoteToday';
-import { useFiguresWithDb } from '@/hooks/useFiguresWithDb';
 import JsonLd, { siteUrl } from '@/components/JsonLd';
 
 const FONT_SANS =
@@ -62,21 +60,52 @@ const COPY = {
       title1: 'Их Монгол Улсын',
       title2: 'түүхийн хөзөр',
       lede:
-        'Чингис Хаанаас Занабазар хүртэл — 52 түүхэн дүрийн намтар, ишлэл, гавьяа нэг алтан хөзрийн багцад. QR уншуулмагц AI хөтөч амьсгалтай ярьж өгнө.',
+        'Чингис Хаанаас Занабазар хүртэл — 52 түүхэн дүрийн намтар, ишлэл, гавьяа нэг алтан хөзрийн багцад. Утсаараа AR-аар картаа таниулмагц AI хөтөч амьсгалтай ярьж өгнө.',
       ctaPrimary: 'Хөзрийн багц захиалах',
       ctaSecondary: 'Апп үзэх',
-      scanLabel: 'QR уншуулсан',
+      scanLabel: 'AR таньсан',
       scanBody: 'Би бол Чингис Хаан. Намайг 1162 онд төрсөн…',
+    },
+    scroll3d: {
+      ariaLabel: 'Алтан Домогийн 3D аялал',
+      progress: 'Аяллын явц',
+      targetTitle: 'AR карт танилт',
+      targetBody: 'Камераа картын нүүр рүү чиглүүлэхэд систем аль дүрийн карт болохыг танина.',
+      arHud: 'AR танилт ажиллаж байна',
+      sceneFrame: 'Кино мэт 3D цагийн хонгил ба AR танилт',
+      chapters: [
+        {
+          label: 'I',
+          title: 'Цагийн хонгилоор хөвөх хөзөр',
+          body: 'Алтан багцын дүрүүд нээлттэй 3D орон зайд давхарлан нисэж, зуунаар үргэлжлэх аяллын эхний хаалгыг нээнэ.',
+        },
+        {
+          label: 'II',
+          title: 'AR түгжээ карт дээр бууна',
+          body: 'Нэг хөзөр камерын төвд орж ирэхэд танилтын хүрээ гэрэлтэн, тухайн дүрийг яг аль карт болохыг түгжинэ.',
+        },
+        {
+          label: 'III',
+          title: 'Зуунаар дамжих зам',
+          body: '1162 оноос XX зуун хүртэлх үеүүд цагираг, тэмдэг, гэрлийн замаар урагшилж, дүр бүр өөрийн эринд байрлана.',
+        },
+        {
+          label: 'IV',
+          title: '52 дуу хоолой',
+          body: 'Төгсгөлд нь бүх хөзөр оддын тойрог шиг нэгдэж, багц, апп, аудио, AI хөтөч нэг цуглуулга болж харагдана.',
+        },
+      ],
     },
     how: {
       chip: 'Хэрхэн ажилладаг вэ?',
       title: '30 секундэд түүхэн дүртэй ярилцана',
-      lede: 'Хөзрөө гартаа барь, утсаараа QR-ыг уншуул — тэр чигтээ алдартай дүр амьсгалтай ярина.',
+      lede: 'Хөзрөө гартаа барь, утсаараа AR-аар таниул — тэр чигтээ алдартай дүр амьсгалтай ярина.',
+      visualLabel: 'AR card recognition',
       step: 'Алхам',
       steps: [
         {
-          title: 'QR код уншуулах',
-          desc: 'Хөзөр бүрийн арын алтан QR-ыг утсаараа сканнердаж эхэлнэ — апп суулгах шаардлагагүй.',
+          title: 'AR-аар картаа таниулах',
+          desc: 'Картын нүүрийг утасны камерын голд барина — AR систем тухайн картын дүрийг шууд танина.',
         },
         {
           title: 'Зүтгэлтэн амилна',
@@ -119,15 +148,15 @@ const COPY = {
       pickBadge: 'Сонгомол',
       cta: 'Захиалах',
       tiers: [
-        { name: 'Энгийн хувилбар', blurb: 'Анх танилцагчдад', features: ['52 хөзөр бүхий багц', 'QR код бүхий AI чат', 'Монгол хэлний дэмжлэг', 'Стандарт хайрцаг'] },
-        { name: 'Premium хувилбар', blurb: 'Хамгийн их сонгодог', features: ['52 хөзөр + 4 тусгай хөзөр', 'QR код бүхий AI чат', '3 хэлний дэмжлэг', 'Дуут тайлбар', 'Premium хайрцаг'] },
-        { name: 'Collector Edition', blurb: 'Цуглуулагчийн хайрцаг', features: ['56 хөзөр + 8 тусгай хөзөр', 'QR код бүхий AI чат', '3 хэлний дэмжлэг', 'Дуут тайлбар', 'Алтан хүрээтэй хайрцаг', 'Дугаарлагдсан хувилбар', 'Гарын үсэгтэй сертификат'] },
+        { name: 'Энгийн хувилбар', blurb: 'Анх танилцагчдад', features: ['52 хөзөр бүхий багц', 'AR танилттай AI чат', 'Монгол хэлний дэмжлэг', 'Стандарт хайрцаг'] },
+        { name: 'Premium хувилбар', blurb: 'Хамгийн их сонгодог', features: ['52 хөзөр + 4 тусгай хөзөр', 'AR танилттай AI чат', '3 хэлний дэмжлэг', 'Дуут тайлбар', 'Premium хайрцаг'] },
+        { name: 'Collector Edition', blurb: 'Цуглуулагчийн хайрцаг', features: ['56 хөзөр + 8 тусгай хөзөр', 'AR танилттай AI чат', '3 хэлний дэмжлэг', 'Дуут тайлбар', 'Алтан хүрээтэй хайрцаг', 'Дугаарлагдсан хувилбар', 'Гарын үсэгтэй сертификат'] },
       ],
     },
     cta: {
       chip: 'Collection I · 2026',
-      title: '52 түүхэн дүртэй уулзахад нэг QR л хүрнэ.',
-      lede: 'Хөзрөө аваад, утсаараа уншуулаад, эртний түүхээ амьд сонс.',
+      title: '52 түүхэн дүртэй уулзахад нэг AR танилт л хүрнэ.',
+      lede: 'Хөзрөө аваад, утсаараа таниулаад, эртний түүхээ амьд сонс.',
       primary: 'Premium багц захиалах',
       secondary: 'Эхлээд апп үзэх',
     },
@@ -143,11 +172,6 @@ const COPY = {
         { num: '3', label: 'Хэл' },
       ],
     },
-    featured: {
-      chip: 'Онцолж буй',
-      title: 'Цуглуулгын дөрвөн дүр',
-      view: 'Бүх 52 дүрийг харах',
-    },
   },
   en: {
     nav: {
@@ -155,7 +179,7 @@ const COPY = {
       cards: 'Collection',
       features: 'Features',
       pricing: 'Pricing',
-      scan: 'Scan card (AR)',
+      scan: 'Recognize card (AR)',
       app: 'Open app',
     },
     hero: {
@@ -163,19 +187,50 @@ const COPY = {
       title1: 'The cards of the',
       title2: 'Great Mongol Empire',
       lede:
-        'From Genghis Khan to Zanabazar — 52 historical figures, their lives and words, gathered into one gold-edged deck. Scan the QR and an AI guide speaks back, in their voice.',
+        'From Genghis Khan to Zanabazar — 52 historical figures, their lives and words, gathered into one gold-edged deck. Point your phone at a card and AR recognition opens its AI guide.',
       ctaPrimary: 'Order the deck',
       ctaSecondary: 'See the app',
-      scanLabel: 'QR scanned',
+      scanLabel: 'AR recognized',
       scanBody: "I am Genghis Khan. I was born in 1162…",
+    },
+    scroll3d: {
+      ariaLabel: 'Altan Domog 3D journey',
+      progress: 'Journey progress',
+      targetTitle: 'AR card recognition',
+      targetBody: 'Point the camera at the card face so the system identifies which figure it belongs to.',
+      arHud: 'AR recognition active',
+      sceneFrame: 'Cinematic 3D timeline and AR recognition',
+      chapters: [
+        {
+          label: 'I',
+          title: 'Cards through the timeline',
+          body: 'The gold deck opens in a wide 3D space, sending historical figures forward through a cinematic tunnel of centuries.',
+        },
+        {
+          label: 'II',
+          title: 'The AR lock finds one card',
+          body: 'One card enters the recognition frame, the scanner locks onto its face, and the system identifies the exact historical figure.',
+        },
+        {
+          label: 'III',
+          title: 'Centuries in motion',
+          body: 'From 1162 into the twentieth century, epochs move forward as rings, markers, and light paths around the figures.',
+        },
+        {
+          label: 'IV',
+          title: 'Fifty-two voices',
+          body: 'The full deck resolves into a constellation of 52 cards: collection, app, audio, and AI guide in one experience.',
+        },
+      ],
     },
     how: {
       chip: 'How it works',
       title: 'Meet a historical figure in 30 seconds',
-      lede: 'Hold a card, scan its QR — and the figure on the front begins talking back.',
+      lede: 'Hold a card, let AR recognize it, and the figure on the front begins talking back.',
+      visualLabel: 'AR card recognition',
       step: 'Step',
       steps: [
-        { title: 'Scan the QR', desc: 'Each card has a gold QR on its back. Open your phone camera — no app to install.' },
+        { title: 'Recognize the card in AR', desc: 'Hold the illustrated face inside the camera frame so AR can identify the exact card.' },
         { title: 'The figure awakens', desc: "An AI trained on each figure's history responds as if you'd just asked them yourself." },
         { title: 'Ask anything', desc: 'Birth year, conquests, family, sayings — pull on whichever thread you find interesting.' },
         { title: 'Listen in three languages', desc: 'Mongolian, English, Chinese — read the answer or hear it in a professional narrator’s voice.' },
@@ -207,15 +262,15 @@ const COPY = {
       pickBadge: 'Most chosen',
       cta: 'Order',
       tiers: [
-        { name: 'Standard', blurb: 'For first-timers', features: ['52-card deck', 'AI chat via QR', 'Mongolian language', 'Standard box'] },
-        { name: 'Premium', blurb: 'Most chosen', features: ['52 cards + 4 special', 'AI chat via QR', 'Three languages', 'Audio biographies', 'Premium box'] },
-        { name: 'Collector', blurb: "Collector's case", features: ['56 cards + 8 special', 'AI chat via QR', 'Three languages', 'Audio biographies', 'Gold-edged case', 'Numbered edition', 'Signed certificate'] },
+        { name: 'Standard', blurb: 'For first-timers', features: ['52-card deck', 'AI chat via AR recognition', 'Mongolian language', 'Standard box'] },
+        { name: 'Premium', blurb: 'Most chosen', features: ['52 cards + 4 special', 'AI chat via AR recognition', 'Three languages', 'Audio biographies', 'Premium box'] },
+        { name: 'Collector', blurb: "Collector's case", features: ['56 cards + 8 special', 'AI chat via AR recognition', 'Three languages', 'Audio biographies', 'Gold-edged case', 'Numbered edition', 'Signed certificate'] },
       ],
     },
     cta: {
       chip: 'Collection I · 2026',
-      title: 'One scan, fifty-two voices from history.',
-      lede: 'Pick up a card, scan it with your phone, and listen to history speak.',
+      title: 'One AR recognition, fifty-two voices from history.',
+      lede: 'Pick up a card, recognize it with your phone, and listen to history speak.',
       primary: 'Order the Premium deck',
       secondary: 'See the app first',
     },
@@ -231,11 +286,6 @@ const COPY = {
         { num: '3', label: 'Languages' },
       ],
     },
-    featured: {
-      chip: 'Featured',
-      title: 'Four faces from the collection',
-      view: 'See all 52 figures',
-    },
   },
 };
 
@@ -247,6 +297,36 @@ const PORTRAITS = {
 };
 
 const SECTION_PADY = 72;
+
+const HERO_STAGE_CARDS = [
+  {
+    className: 'hero-card-main',
+    rank: 'K',
+    suit: '♠',
+    name: 'Чингис Хаан',
+    years: '1162–1227',
+    role: 'Founder',
+    img: PORTRAITS.genghis,
+  },
+  {
+    className: 'hero-card-left',
+    rank: 'Q',
+    suit: '♥',
+    name: 'Бөртэ Үжин',
+    years: '1161–1230',
+    role: 'Empress',
+    img: PORTRAITS.borte,
+  },
+  {
+    className: 'hero-card-right',
+    rank: 'J',
+    suit: '♦',
+    name: 'Сүбээдэй',
+    years: '1175–1248',
+    role: 'General',
+    img: PORTRAITS.subedei,
+  },
+];
 
 function useReveal(threshold = 0.15) {
   const ref = useRef(null);
@@ -507,7 +587,7 @@ function NavBar({ c }) {
             <ScanLine size={15} />
             {c.nav.scan}
           </Link>
-          <PrimaryButton to="/app">
+          <PrimaryButton to="/app" className="nav-primary-cta" aria-label={c.nav.app}>
             {c.nav.app}
             <ArrowRight size={16} />
           </PrimaryButton>
@@ -517,30 +597,51 @@ function NavBar({ c }) {
   );
 }
 
-function Hero({ c }) {
-  const featured = useFeaturedToday();
-  const quoteOfDay = useQuoteToday();
+function StageCard({ card }) {
   return (
-    <section
-      style={{
-        position: 'relative',
-        padding: 0,
-        overflow: 'hidden',
-        minHeight: 'clamp(560px, 82vh, 760px)',
-        background:
-          'radial-gradient(ellipse at 75% 35%, #6a4828 0%, #2a1810 45%, #0a0606 100%)',
-      }}
-      className="hero-natgeo"
-    >
-      <div
-        className="hero-natgeo-photo"
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 1,
-        }}
-      >
+    <div className={`hero-stage-card ${card.className}`} aria-hidden="true">
+      <div className="hero-stage-card-depth" />
+      <div className="hero-stage-card-face">
+        <div className="hero-stage-card-media" style={{ backgroundImage: `url(${card.img})` }} />
+        <div className="hero-stage-card-corner">
+          <strong>{card.rank}</strong>
+          <span>{card.suit}</span>
+        </div>
+        <div className="hero-stage-card-copy">
+          <strong>{card.name}</strong>
+          <span>{card.role} · {card.years}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PhoneScanPreview({ c }) {
+  return (
+    <div className="hero-scan-phone" aria-label={c.hero.scanLabel}>
+      <div className="hero-phone-lens" aria-hidden="true" />
+      <div className="hero-phone-screen">
+        <div className="hero-phone-viewfinder" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className="hero-phone-chat">
+          <p>{c.hero.scanLabel}</p>
+          <strong>{c.hero.scanBody}</strong>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroProductStage({ c, featured, quoteOfDay }) {
+  return (
+    <aside className="hero-product-stage" aria-label="3D product preview">
+      <div className="hero-stage-light hero-stage-light-top" aria-hidden="true" />
+      <div className="hero-stage-light hero-stage-light-floor" aria-hidden="true" />
+      <div className="hero-stage-backplate" aria-hidden="true">
         {featured ? (
           <SepiaPortrait
             figure={featured}
@@ -548,70 +649,132 @@ function Hero({ c }) {
             aspectRatio="auto"
             size="100%"
             fit="cover"
-            position="50% 22%"
+            position="50% 20%"
             tilt
             priority
           />
         ) : null}
       </div>
+      <div className="hero-orbit hero-orbit-one" aria-hidden="true" />
+      <div className="hero-orbit hero-orbit-two" aria-hidden="true" />
+      <div className="hero-glass-plinth" aria-hidden="true" />
+      <div className="hero-card-cluster">
+        {HERO_STAGE_CARDS.map((card) => (
+          <StageCard key={card.name} card={card} />
+        ))}
+      </div>
+      <div className="hero-scan-beam" aria-hidden="true" />
+      <PhoneScanPreview c={c} />
+      {quoteOfDay ? (
+        <blockquote data-hero="quote-of-day" className="hero-quote-glass hidden-on-mobile">
+          <span>“</span>
+          {quoteOfDay.quote}
+          <span>”</span>
+          <cite>
+            — {quoteOfDay.attr}
+            {quoteOfDay.yrs ? <small> · {quoteOfDay.yrs}</small> : null}
+          </cite>
+        </blockquote>
+      ) : null}
+      {featured ? (
+        <div data-hero="pictured-caption" className="hero-pictured-caption hidden-on-mobile">
+          {featured.scene ? (
+            <>
+              <span>Pictured:</span> {featured.scene.title?.en ?? 'Historical scene'}
+              <br />
+              <small>{featured.scene.credit}</small>
+              <br />
+              <small>Featuring {featured.name}, {featured.yrs || '—'}</small>
+            </>
+          ) : (
+            <>
+              <span>Pictured:</span> {featured.name}, {featured.yrs || '—'}
+            </>
+          )}
+        </div>
+      ) : null}
+    </aside>
+  );
+}
+
+function Hero({ c }) {
+  const featured = useFeaturedToday();
+  const quoteOfDay = useQuoteToday();
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  const onPointerMove = (event) => {
+    if (event.pointerType === 'touch') return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width - 0.5;
+    const py = (event.clientY - rect.top) / rect.height - 0.5;
+    setTilt({
+      x: Math.max(-1, Math.min(1, -py * 4.5)),
+      y: Math.max(-1, Math.min(1, px * 5.5)),
+    });
+  };
+
+  return (
+    <section
+      className="landing-hero-3d"
+      onPointerMove={onPointerMove}
+      onPointerLeave={() => setTilt({ x: 0, y: 0 })}
+      style={{
+        position: 'relative',
+        padding: 0,
+        overflow: 'hidden',
+        minHeight: 'clamp(680px, 86vh, 860px)',
+        background: '#07080c',
+        '--hero-tilt-x': `${tilt.x}deg`,
+        '--hero-tilt-y': `${tilt.y}deg`,
+      }}
+    >
       <div
         aria-hidden="true"
-        className="hero-natgeo-readability"
         style={{
           position: 'absolute',
           inset: 0,
           zIndex: 2,
           background:
-            'linear-gradient(90deg, rgba(10,6,6,0.85) 0%, rgba(20,12,8,0.55) 35%, rgba(20,12,8,0.15) 60%, rgba(20,12,8,0) 100%), linear-gradient(0deg, rgba(10,6,6,0.55) 0%, rgba(10,6,6,0) 50%)',
+            'radial-gradient(circle at 72% 28%, rgba(212,168,67,0.24), transparent 25%), radial-gradient(circle at 34% 76%, rgba(176,89,38,0.18), transparent 28%), linear-gradient(120deg, rgba(7,8,12,0.98) 0%, rgba(12,14,20,0.94) 42%, rgba(7,8,12,0.54) 100%)',
           pointerEvents: 'none',
         }}
       />
       <div
-        className="hero-natgeo-grid"
+        className="hero-shell-grid"
         style={{
           position: 'relative',
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+          gridTemplateColumns: 'minmax(0, 0.92fr) minmax(420px, 1.08fr)',
+          gap: 'clamp(24px, 4vw, 56px)',
           minHeight: 'inherit',
           zIndex: 3,
+          maxWidth: 1240,
+          margin: '0 auto',
+          padding: 'clamp(84px, 11vh, 118px) 24px clamp(48px, 7vh, 72px)',
+          alignItems: 'center',
         }}
       >
         <header
-          className="hero-natgeo-text"
+          className="hero-copy-panel"
           style={{
             position: 'relative',
-            gridColumn: '1 / 2',
-            gridRow: '1 / 2',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'flex-end',
-            padding: 'clamp(28px, 4vw, 56px) clamp(24px, 4vw, 56px) clamp(36px, 6vw, 72px)',
-            maxWidth: 720,
+            justifyContent: 'center',
+            maxWidth: 610,
             zIndex: 3,
           }}
         >
-          <p
-            style={{
-              fontFamily: FONT_SANS,
-              fontSize: 11,
-              letterSpacing: 3,
-              color: tokens.accent,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              margin: 0,
-            }}
-          >
-            The Mongol Empire · 1206–1368
-          </p>
           <h1
             style={{
-              marginTop: 14,
+              margin: 0,
               fontFamily: tokens.serif,
-              fontSize: 'clamp(2.4rem, 5.4vw, 4.4rem)',
+              fontSize: 'clamp(2.72rem, 6.1vw, 5.55rem)',
               fontWeight: 600,
-              lineHeight: 0.95,
-              letterSpacing: -0.3,
-              color: '#fff',
+              lineHeight: 0.91,
+              letterSpacing: 0,
+              color: tokens.ink,
+              textShadow: '0 26px 70px rgba(0,0,0,0.55)',
             }}
           >
             {c.hero.title1}
@@ -620,7 +783,7 @@ function Hero({ c }) {
               style={{
                 fontStyle: 'italic',
                 fontWeight: 500,
-                color: tokens.accent,
+                color: tokens.brandStrong,
               }}
             >
               {c.hero.title2}
@@ -631,8 +794,8 @@ function Hero({ c }) {
               marginTop: 18,
               fontFamily: FONT_SANS,
               fontSize: 16,
-              lineHeight: 1.55,
-              color: 'rgba(255,255,255,0.78)',
+              lineHeight: 1.68,
+              color: 'rgba(237,232,213,0.77)',
               maxWidth: 540,
             }}
           >
@@ -642,18 +805,20 @@ function Hero({ c }) {
             <Link
               to="/order?tier=premium"
               style={{
-                background: tokens.accent,
+                background: 'linear-gradient(135deg, #f3d276 0%, #d4a843 46%, #9d6327 100%)',
                 color: tokens.bg,
-                padding: '12px 22px',
+                padding: '13px 22px',
                 fontFamily: FONT_SANS,
                 fontSize: 13,
                 fontWeight: 700,
-                letterSpacing: 1.5,
+                letterSpacing: 1.1,
                 textTransform: 'uppercase',
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
+                borderRadius: 6,
+                boxShadow: '0 18px 40px rgba(212,168,67,0.24), inset 0 1px 0 rgba(255,255,255,0.48)',
               }}
             >
               {c.hero.ctaPrimary} <ArrowRight size={16} />
@@ -665,7 +830,7 @@ function Hero({ c }) {
                 fontFamily: FONT_SANS,
                 fontSize: 13,
                 fontWeight: 600,
-                letterSpacing: 1,
+                letterSpacing: 0.8,
                 textTransform: 'uppercase',
                 textDecoration: 'none',
                 paddingBottom: 4,
@@ -675,15 +840,26 @@ function Hero({ c }) {
               {c.hero.ctaSecondary}
             </Link>
           </div>
+          <div className="hero-proof-rail" aria-label="Collection facts">
+            {c.stats.band.map((item) => (
+              <span key={item.label}>
+                <strong>{item.num}</strong>
+                {item.label}
+              </span>
+            ))}
+          </div>
         </header>
+        <HeroProductStage c={c} featured={featured} quoteOfDay={quoteOfDay} />
       </div>
       <div
         data-hero="meta-strip"
         className="hidden-on-mobile"
         style={{
           position: 'absolute',
-          left: 'clamp(24px, 4vw, 56px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
           top: 'clamp(24px, 3vw, 36px)',
+          width: 'min(1192px, calc(100% - 48px))',
           display: 'flex',
           alignItems: 'center',
           gap: 14,
@@ -712,54 +888,11 @@ function Hero({ c }) {
           ))}
         </div>
       </div>
-      {quoteOfDay ? (
-        <blockquote
-          data-hero="quote-of-day"
-          style={{
-            position: 'absolute',
-            right: 'clamp(24px, 4vw, 56px)',
-            top: 'clamp(76px, 9vh, 116px)',
-            maxWidth: 'min(440px, 38vw)',
-            fontFamily: tokens.serif,
-            fontStyle: 'italic',
-            fontWeight: 500,
-            fontSize: 'clamp(1.15rem, 1.7vw, 1.6rem)',
-            lineHeight: 1.32,
-            color: 'rgba(255,255,255,0.94)',
-            textAlign: 'right',
-            zIndex: 4,
-            textShadow: '0 2px 18px rgba(0,0,0,0.55)',
-            pointerEvents: 'none',
-            margin: 0,
-          }}
-          className="hidden-on-mobile"
-        >
-          <span style={{ color: tokens.accent, marginRight: 4 }}>“</span>
-          {quoteOfDay.quote}
-          <span style={{ color: tokens.accent, marginLeft: 4 }}>”</span>
-          <cite
-            style={{
-              display: 'block',
-              marginTop: 10,
-              fontFamily: FONT_SANS,
-              fontStyle: 'normal',
-              fontSize: 10,
-              letterSpacing: 2.2,
-              color: tokens.accent,
-              textTransform: 'uppercase',
-              fontWeight: 700,
-            }}
-          >
-            — {quoteOfDay.attr}
-            {quoteOfDay.yrs ? <span style={{ opacity: 0.7 }}> · {quoteOfDay.yrs}</span> : null}
-          </cite>
-        </blockquote>
-      ) : null}
       <div
         className="hidden-on-mobile"
         style={{
           position: 'absolute',
-          right: 'clamp(24px, 4vw, 56px)',
+          right: 'calc(50% - min(596px, calc(50% - 24px)))',
           top: 'clamp(24px, 3vw, 36px)',
           fontFamily: FONT_SANS,
           fontSize: 10,
@@ -772,40 +905,719 @@ function Hero({ c }) {
       >
         {c.hero.chip}
       </div>
-      {featured ? (
-        <div
-          data-hero="pictured-caption"
-          className="hidden-on-mobile"
-          style={{
-            position: 'absolute',
-            right: 'clamp(24px, 4vw, 56px)',
-            bottom: 'clamp(24px, 3vw, 36px)',
-            fontFamily: FONT_SANS,
-            fontSize: 10,
-            letterSpacing: 2,
-            color: 'rgba(255,255,255,0.55)',
-            textTransform: 'uppercase',
-            textAlign: 'right',
-            lineHeight: 1.6,
-            fontStyle: 'italic',
-            zIndex: 4,
-          }}
-        >
-          {featured.scene ? (
-            <>
-              <span style={{ color: tokens.accent }}>Pictured:</span> {featured.scene.title?.en ?? 'Historical scene'}
-              <br />
-              <span style={{ opacity: 0.75 }}>{featured.scene.credit}</span>
-              <br />
-              <span style={{ opacity: 0.85 }}>Featuring {featured.name}, {featured.yrs || '—'}</span>
-            </>
-          ) : (
-            <>
-              <span style={{ color: tokens.accent }}>Pictured:</span> {featured.name}, {featured.yrs || '—'}
-            </>
-          )}
+    </section>
+  );
+}
+
+const SCROLL_STORY_CARDS = [
+  { rank: 'K', suit: '♠', name: 'Чингис Хаан', years: '1162–1227', accent: '#d4a843' },
+  { rank: 'Q', suit: '♥', name: 'Бөртэ Үжин', years: '1161–1230', accent: '#b9572f' },
+  { rank: 'J', suit: '♦', name: 'Сүбээдэй', years: '1175–1248', accent: '#7db2b7' },
+  { rank: 'A', suit: '♣', name: 'Елүй Чуцай', years: '1190–1244', accent: '#c8a35d' },
+  { rank: '9', suit: '♠', name: 'Занабазар', years: '1635–1723', accent: '#9a86d9' },
+  { rank: '7', suit: '♦', name: 'Мандухай', years: '1449–1510', accent: '#d26952' },
+];
+
+const clamp01 = (value) => Math.max(0, Math.min(1, value));
+
+function ARTargetGlyph({ className = '' }) {
+  return (
+    <span className={`ar-target-glyph ${className}`} aria-hidden="true">
+      <i />
+      <i />
+      <i />
+      <i />
+      <b />
+      <em />
+      <strong>AR</strong>
+    </span>
+  );
+}
+
+function createStoryTexture(THREE, draw, size = { width: 512, height: 768 }) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size.width;
+  canvas.height = size.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  draw(ctx, canvas.width, canvas.height);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = size.width < 512 ? 2 : 6;
+  return texture;
+}
+
+function createScrollCardTexture(THREE, card, size) {
+  return createStoryTexture(THREE, (ctx, w, h) => {
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#171a22');
+    bg.addColorStop(0.55, '#090a0f');
+    bg.addColorStop(1, '#261309');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = '#f0cb68';
+    ctx.lineWidth = 7;
+    ctx.strokeRect(20, 20, w - 40, h - 40);
+    ctx.strokeStyle = card.accent;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(36, 36, w - 72, h - 72);
+
+    ctx.fillStyle = card.accent;
+    ctx.globalAlpha = 0.28;
+    ctx.fillRect(58, 118, w - 116, 358);
+    ctx.globalAlpha = 1;
+
+    const halo = ctx.createRadialGradient(w / 2, 300, 30, w / 2, 300, 230);
+    halo.addColorStop(0, `${card.accent}aa`);
+    halo.addColorStop(0.48, `${card.accent}3a`);
+    halo.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = halo;
+    ctx.fillRect(58, 118, w - 116, 358);
+
+    ctx.fillStyle = '#f7df92';
+    ctx.font = '700 58px Georgia, serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(card.rank, 58, 96);
+    ctx.font = '44px Georgia, serif';
+    ctx.fillStyle = card.accent;
+    ctx.fillText(card.suit, 62, 146);
+
+    ctx.textAlign = 'center';
+    ctx.font = '700 88px Georgia, serif';
+    ctx.fillStyle = 'rgba(255,247,223,0.92)';
+    ctx.fillText(card.suit, w / 2, 322);
+
+    ctx.strokeStyle = 'rgba(240,203,104,0.48)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(62, 512);
+    ctx.lineTo(w - 62, 512);
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff7df';
+    ctx.font = '700 35px Georgia, serif';
+    ctx.fillText(card.name, w / 2, 572);
+    ctx.fillStyle = '#d4a843';
+    ctx.font = '700 22px Arial, sans-serif';
+    ctx.letterSpacing = '2px';
+    ctx.fillText(card.years, w / 2, 612);
+
+    ctx.fillStyle = 'rgba(237,232,213,0.58)';
+    ctx.font = '700 17px Arial, sans-serif';
+    ctx.fillText('ALTAN DOMOG · COLLECTION I', w / 2, 688);
+  }, size);
+}
+
+function createRecognitionPanelTexture(THREE, c, size) {
+  return createStoryTexture(THREE, (ctx, w, h) => {
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#111927');
+    bg.addColorStop(0.52, '#070b12');
+    bg.addColorStop(1, '#0a0c14');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    const glow = ctx.createRadialGradient(w / 2, h * 0.36, 20, w / 2, h * 0.36, w * 0.46);
+    glow.addColorStop(0, 'rgba(118,212,216,0.34)');
+    glow.addColorStop(0.42, 'rgba(118,212,216,0.12)');
+    glow.addColorStop(1, 'rgba(118,212,216,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = 'rgba(118,212,216,0.68)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(72, 96, w - 144, h * 0.42);
+    ctx.strokeStyle = 'rgba(230,188,82,0.62)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(112, 132, w - 224, h * 0.32);
+
+    const cx = w / 2;
+    const cy = h * 0.31;
+    ctx.strokeStyle = 'rgba(118,212,216,0.58)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i += 1) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 44 + i * 28, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#76d4d8';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 118, cy);
+    ctx.lineTo(cx - 42, cy);
+    ctx.moveTo(cx + 42, cy);
+    ctx.lineTo(cx + 118, cy);
+    ctx.moveTo(cx, cy - 118);
+    ctx.lineTo(cx, cy - 42);
+    ctx.moveTo(cx, cy + 42);
+    ctx.lineTo(cx, cy + 118);
+    ctx.stroke();
+
+    ctx.fillStyle = '#e6bc52';
+    ctx.font = '700 22px Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText((c.scroll3d.arHud || c.hero.scanLabel).toUpperCase(), 56, 540);
+
+    ctx.fillStyle = '#ede8d5';
+    ctx.font = '700 31px Georgia, serif';
+    const text = c.hero.scanBody;
+    const line = text.length > 26 ? `${text.slice(0, 26)}…` : text;
+    ctx.fillText(line, 56, 592);
+
+    ctx.fillStyle = 'rgba(118,212,216,0.72)';
+    ctx.font = '800 18px Arial, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('MATCH FOUND', w - 56, 540);
+  }, size);
+}
+
+function createARTargetTexture(THREE, c, size = { width: 512, height: 512 }) {
+  return createStoryTexture(THREE, (ctx, w, h) => {
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#f7df92');
+    bg.addColorStop(1, '#d4a843');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(7,8,12,0.82)';
+    ctx.lineWidth = Math.max(4, w * 0.014);
+    ctx.strokeRect(w * 0.055, h * 0.055, w * 0.89, h * 0.89);
+
+    const cx = w / 2;
+    const cy = h * 0.44;
+    const frame = w * 0.58;
+    const corner = frame * 0.22;
+    const left = cx - frame / 2;
+    const right = cx + frame / 2;
+    const top = cy - frame / 2;
+    const bottom = cy + frame / 2;
+
+    ctx.strokeStyle = '#07080c';
+    ctx.lineWidth = Math.max(7, w * 0.018);
+    [
+      [left, top, left + corner, top, left, top + corner],
+      [right, top, right - corner, top, right, top + corner],
+      [left, bottom, left + corner, bottom, left, bottom - corner],
+      [right, bottom, right - corner, bottom, right, bottom - corner],
+    ].forEach(([x1, y1, x2, y2, x3, y3]) => {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x3, y3);
+      ctx.stroke();
+    });
+
+    ctx.lineWidth = Math.max(3, w * 0.008);
+    ctx.strokeStyle = 'rgba(7,8,12,0.68)';
+    for (let i = 0; i < 3; i += 1) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, frame * (0.14 + i * 0.11), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = '#07080c';
+    ctx.beginPath();
+    ctx.arc(cx, cy, frame * 0.055, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(7,8,12,0.9)';
+    ctx.font = `800 ${Math.floor(w * 0.16)}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('AR', cx, cy + frame * 0.32);
+
+    ctx.fillStyle = '#07080c';
+    ctx.font = `700 ${Math.floor(w * 0.045)}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(c.scroll3d.targetTitle.toUpperCase(), w / 2, h * 0.86);
+  }, size);
+}
+
+function ScrollStory3D({ c }) {
+  const sectionRef = useRef(null);
+  const stickyRef = useRef(null);
+  const screenRef = useRef(null);
+  const canvasRef = useRef(null);
+  const progressRef = useRef(null);
+  const activeStepRef = useRef(0);
+  const [activeStep, setActiveStep] = useState(0);
+  const [webglReady, setWebglReady] = useState(null);
+  const chapters = c.scroll3d.chapters;
+  const active = chapters[activeStep] || chapters[0];
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    const screen = screenRef.current;
+    const canvas = canvasRef.current;
+    if (!section || !screen || !canvas || typeof window === 'undefined') return undefined;
+
+    const setProgressDom = (progress) => {
+      if (progressRef.current) {
+        progressRef.current.style.transform = `scaleX(${progress})`;
+      }
+      const nextStep = Math.min(chapters.length - 1, Math.floor(progress * chapters.length));
+      if (nextStep !== activeStepRef.current) {
+        activeStepRef.current = nextStep;
+        setActiveStep(nextStep);
+      }
+    };
+
+    const getProgress = () => {
+      const rect = section.getBoundingClientRect();
+      const travel = Math.max(1, rect.height - window.innerHeight);
+      return clamp01(-rect.top / travel);
+    };
+
+    const deviceMemory = Number(navigator.deviceMemory || 8);
+    const hardwareConcurrency = Number(navigator.hardwareConcurrency || 8);
+    const mobileViewport = window.matchMedia?.('(max-width: 720px)').matches;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const lowPower = mobileViewport || deviceMemory <= 4 || hardwareConcurrency <= 4;
+    const staticFallback = reduceMotion && lowPower;
+
+    if (!window.WebGLRenderingContext || staticFallback) {
+      setWebglReady(false);
+      setProgressDom(getProgress());
+      return undefined;
+    }
+
+    let disposed = false;
+    let cleanupScene = () => {};
+
+    import('three')
+      .then((THREE) => {
+        if (disposed) return;
+
+        const disposables = new Set();
+        const track = (item) => {
+          if (item) disposables.add(item);
+          return item;
+        };
+
+        let renderer;
+        try {
+          renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: !lowPower,
+            alpha: true,
+            powerPreference: lowPower ? 'low-power' : 'high-performance',
+          });
+        } catch {
+          setWebglReady(false);
+          setProgressDom(getProgress());
+          return;
+        }
+
+        setWebglReady(true);
+        renderer.setClearColor(0x07080c, 0);
+        renderer.setPixelRatio(1);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = lowPower ? 0.98 : 1.08;
+
+        const textureSize = lowPower
+          ? { width: 384, height: 576 }
+          : { width: 512, height: 768 };
+        const squareTextureSize = lowPower
+          ? { width: 384, height: 384 }
+          : { width: 512, height: 512 };
+        const visibleCards = lowPower ? SCROLL_STORY_CARDS.slice(0, 4) : SCROLL_STORY_CARDS;
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x07080c, lowPower ? 0.045 : 0.035);
+
+        const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 90);
+        camera.position.set(0, 0.18, 7);
+
+        const root = new THREE.Group();
+        scene.add(root);
+
+        const ambient = new THREE.AmbientLight(0xe5d1a0, lowPower ? 0.86 : 0.72);
+        const key = new THREE.DirectionalLight(0xffe0a6, 2.2);
+        key.position.set(4, 5, 6);
+        const scan = new THREE.PointLight(0x76d4d8, 2.8, 9);
+        scan.position.set(1.8, 0.5, -8.6);
+        const ember = new THREE.PointLight(0xd4a843, lowPower ? 1.7 : 3.2, 14);
+        ember.position.set(-2.4, -0.9, -15);
+        scene.add(ambient, key, scan, ember);
+
+        const cardGeo = track(new THREE.BoxGeometry(1.25, 1.82, 0.06, 1, 1, 1));
+        const edgeMat = track(new THREE.MeshStandardMaterial({
+          color: 0xd4a843,
+          roughness: 0.24,
+          metalness: 0.78,
+        }));
+        const backTexture = createStoryTexture(THREE, (ctx, w, h) => {
+          const bg = ctx.createLinearGradient(0, 0, w, h);
+          bg.addColorStop(0, '#211005');
+          bg.addColorStop(0.5, '#090a0f');
+          bg.addColorStop(1, '#151922');
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, w, h);
+          ctx.strokeStyle = '#d4a843';
+          ctx.lineWidth = 8;
+          ctx.strokeRect(24, 24, w - 48, h - 48);
+          ctx.strokeStyle = 'rgba(212,168,67,0.42)';
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 11; i += 1) {
+            ctx.beginPath();
+            ctx.arc(w / 2, h / 2, 52 + i * 24, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#e6bc52';
+          ctx.font = '700 34px Georgia, serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('ALTAN DOMOG', w / 2, h / 2 + 10);
+        }, textureSize);
+        track(backTexture);
+        const backMat = track(new THREE.MeshStandardMaterial({
+          map: backTexture,
+          roughness: 0.3,
+          metalness: 0.22,
+        }));
+
+        const cardMeshes = visibleCards.map((card, index) => {
+          const texture = track(createScrollCardTexture(THREE, card, textureSize));
+          const faceMat = track(new THREE.MeshStandardMaterial({
+            map: texture,
+            roughness: 0.25,
+            metalness: 0.2,
+            transparent: true,
+            opacity: 0.98,
+          }));
+          const mesh = new THREE.Mesh(cardGeo, [edgeMat, edgeMat, edgeMat, edgeMat, faceMat, backMat]);
+          const row = index % 2 === 0 ? 1 : -1;
+          mesh.position.set((index % 3 - 1) * 1.75, row * (0.72 + index * 0.02), -2.4 - index * 2.35);
+          mesh.rotation.set(row * 0.13, (index % 2 ? -0.38 : 0.38), (index - 2.5) * 0.08);
+          mesh.userData.base = {
+            x: mesh.position.x,
+            y: mesh.position.y,
+            z: mesh.position.z,
+            rx: mesh.rotation.x,
+            ry: mesh.rotation.y,
+            rz: mesh.rotation.z,
+            speed: 0.18 + index * 0.025,
+          };
+          root.add(mesh);
+          return mesh;
+        });
+
+        const ringGeo = track(new THREE.TorusGeometry(2.82, 0.012, 8, lowPower ? 54 : 94));
+        const ringCount = lowPower ? 5 : 9;
+        const rings = Array.from({ length: ringCount }, (_, index) => {
+          const mat = track(new THREE.MeshBasicMaterial({
+            color: index % 3 === 1 ? 0x76d4d8 : 0xd4a843,
+            transparent: true,
+            opacity: index % 3 === 1 ? 0.18 : 0.24,
+          }));
+          const ring = new THREE.Mesh(ringGeo, mat);
+          ring.position.z = -1.8 - index * 2.35;
+          ring.rotation.set(Math.PI / 2 + index * 0.03, 0, index * 0.24);
+          root.add(ring);
+          return ring;
+        });
+
+        const arTargetTexture = track(createARTargetTexture(THREE, c, squareTextureSize));
+        const arTargetGeo = track(new THREE.BoxGeometry(1.12, 1.12, 0.04, 1, 1, 1));
+        const arTargetMat = track(new THREE.MeshStandardMaterial({
+          map: arTargetTexture,
+          roughness: 0.22,
+          metalness: 0.12,
+          emissive: 0x2b2208,
+          emissiveIntensity: 0.12,
+        }));
+        const arTargetCard = new THREE.Mesh(arTargetGeo, [edgeMat, edgeMat, edgeMat, edgeMat, arTargetMat, arTargetMat]);
+        arTargetCard.position.set(-1.25, -0.2, -8.2);
+        arTargetCard.rotation.set(0.06, 0.46, -0.08);
+        root.add(arTargetCard);
+
+        const recognitionTexture = track(createRecognitionPanelTexture(THREE, c, textureSize));
+        const scannerPanelGeo = track(new THREE.BoxGeometry(1.42, 1.92, 0.06, 1, 1, 1));
+        const scannerPanelEdge = track(new THREE.MeshStandardMaterial({ color: 0x101826, roughness: 0.34, metalness: 0.62 }));
+        const scannerPanelFace = track(new THREE.MeshStandardMaterial({
+          map: recognitionTexture,
+          emissive: 0x102d34,
+          emissiveIntensity: 0.58,
+          roughness: 0.24,
+        }));
+        const scannerPanel = new THREE.Mesh(
+          scannerPanelGeo,
+          [scannerPanelEdge, scannerPanelEdge, scannerPanelEdge, scannerPanelEdge, scannerPanelFace, scannerPanelEdge],
+        );
+        scannerPanel.position.set(1.5, -0.02, -9.45);
+        scannerPanel.rotation.set(0.07, -0.38, 0.08);
+        root.add(scannerPanel);
+
+        const scannerHaloGroup = new THREE.Group();
+        scannerHaloGroup.position.set(-0.45, -0.05, -8.72);
+        scannerHaloGroup.rotation.set(0.02, 0.18, -0.05);
+        root.add(scannerHaloGroup);
+        const scannerRingGeo = track(new THREE.TorusGeometry(0.76, 0.012, 8, lowPower ? 48 : 76));
+        const scannerRingMats = [0x76d4d8, 0xe6bc52, 0x76d4d8].map((color, index) => track(new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity: index === 1 ? 0.22 : 0.34,
+          depthWrite: false,
+        })));
+        const scannerRings = scannerRingMats.map((mat, index) => {
+          const ring = new THREE.Mesh(scannerRingGeo, mat);
+          ring.scale.setScalar(0.72 + index * 0.22);
+          ring.rotation.set(Math.PI / 2, index * 0.08, index * 0.34);
+          scannerHaloGroup.add(ring);
+          return ring;
+        });
+
+        const beamMat = track(new THREE.MeshBasicMaterial({
+          color: 0x9df4ef,
+          transparent: true,
+          opacity: 0.26,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }));
+        const beam = new THREE.Mesh(track(new THREE.PlaneGeometry(2.2, 1.25)), beamMat);
+        beam.position.set(0.32, -0.02, -8.8);
+        beam.rotation.set(-0.2, 0.48, -0.08);
+        root.add(beam);
+
+        const markerGeo = track(new THREE.BoxGeometry(0.12, 0.86, 0.12));
+        const markerMat = track(new THREE.MeshStandardMaterial({
+          color: 0xd4a843,
+          roughness: 0.28,
+          metalness: 0.7,
+          emissive: 0x2b1c08,
+        }));
+        const markerCount = lowPower ? 5 : 9;
+        const markers = Array.from({ length: markerCount }, (_, index) => {
+          const marker = new THREE.Mesh(markerGeo, markerMat);
+          const angle = index * 0.72;
+          marker.position.set(Math.cos(angle) * 1.8, Math.sin(angle) * 0.74, -13.4 - index * 0.68);
+          marker.rotation.set(index * 0.08, angle, 0.18);
+          root.add(marker);
+          return marker;
+        });
+
+        const deckGroup = new THREE.Group();
+        deckGroup.position.set(0.42, -0.1, -21.2);
+        deckGroup.rotation.set(-0.08, -0.36, 0.06);
+        root.add(deckGroup);
+        const deckCardCount = lowPower ? 5 : 8;
+        const deckCards = Array.from({ length: deckCardCount }, (_, index) => {
+          const source = visibleCards[index % visibleCards.length];
+          const texture = track(createScrollCardTexture(THREE, source, textureSize));
+          const faceMat = track(new THREE.MeshStandardMaterial({
+            map: texture,
+            roughness: 0.28,
+            metalness: 0.18,
+          }));
+          const mesh = new THREE.Mesh(cardGeo, [edgeMat, edgeMat, edgeMat, edgeMat, faceMat, backMat]);
+          mesh.position.set(index * 0.035, index * 0.035, index * 0.018);
+          mesh.rotation.z = index * 0.018;
+          deckGroup.add(mesh);
+          return mesh;
+        });
+
+        const constellationGroup = new THREE.Group();
+        constellationGroup.position.set(0.42, -0.08, -21.2);
+        root.add(constellationGroup);
+        const miniGeo = track(new THREE.BoxGeometry(0.32, 0.47, 0.018));
+        const miniFrontMat = track(new THREE.MeshStandardMaterial({
+          color: 0xe6bc52,
+          roughness: 0.22,
+          metalness: 0.42,
+          emissive: 0x3a2507,
+          emissiveIntensity: 0.12,
+        }));
+        const miniBackMat = track(new THREE.MeshStandardMaterial({
+          color: 0x151922,
+          roughness: 0.32,
+          metalness: 0.18,
+        }));
+        const miniCount = lowPower ? 14 : 28;
+        const constellationCards = Array.from({ length: miniCount }, (_, index) => {
+          const mesh = new THREE.Mesh(miniGeo, [edgeMat, edgeMat, edgeMat, edgeMat, miniFrontMat, miniBackMat]);
+          const angle = (index / miniCount) * Math.PI * 2;
+          const ring = index % 2 === 0 ? 1.74 : 2.32;
+          mesh.position.set(Math.cos(angle) * ring, Math.sin(angle) * ring * 0.52, Math.sin(angle * 2) * 0.18);
+          mesh.userData.baseZ = mesh.position.z;
+          mesh.rotation.set(Math.sin(angle) * 0.24, -angle + Math.PI / 2, angle * 0.08);
+          constellationGroup.add(mesh);
+          return mesh;
+        });
+
+        const particleGeo = track(new THREE.BufferGeometry());
+        const count = lowPower ? 56 : 132;
+        const positions = new Float32Array(count * 3);
+        for (let i = 0; i < count; i += 1) {
+          const seed = Math.sin(i * 14.137) * 43758.5453;
+          const rand = seed - Math.floor(seed);
+          positions[i * 3] = (rand - 0.5) * 7;
+          positions[i * 3 + 1] = (Math.sin(i * 3.71) - 0.5) * 3.6;
+          positions[i * 3 + 2] = -1 - (i / count) * 24;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particles = new THREE.Points(
+          particleGeo,
+          track(new THREE.PointsMaterial({
+            color: 0xd4a843,
+            size: 0.028,
+            transparent: true,
+            opacity: 0.55,
+            depthWrite: false,
+          })),
+        );
+        root.add(particles);
+
+        let frame = 0;
+        const clock = new THREE.Clock();
+        const renderScale = lowPower ? 0.78 : Math.min(window.devicePixelRatio || 1, 1.35);
+
+        const resize = () => {
+          const width = Math.max(1, Math.floor(screen.clientWidth));
+          const height = Math.max(1, Math.floor(screen.clientHeight));
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+          renderer.setSize(Math.floor(width * renderScale), Math.floor(height * renderScale), false);
+        };
+
+        const render = () => {
+          const progress = getProgress();
+          setProgressDom(progress);
+          const elapsed = reduceMotion ? 0 : clock.getElapsedTime();
+          const cameraZ = 7.1 - progress * 24.8;
+          camera.position.set(
+            Math.sin(progress * Math.PI * 2.1) * 0.34,
+            0.18 + Math.sin(progress * Math.PI) * 0.22,
+            cameraZ,
+          );
+          camera.lookAt(
+            Math.sin(progress * Math.PI * 1.5) * 0.45,
+            Math.sin(progress * Math.PI * 0.8) * 0.12,
+            cameraZ - 5.6,
+          );
+
+          root.rotation.y = Math.sin(progress * Math.PI * 2) * 0.08;
+          root.rotation.x = Math.sin(progress * Math.PI) * 0.035;
+          rings.forEach((ring, index) => {
+            ring.rotation.z += reduceMotion ? 0 : 0.0018 + index * 0.00015;
+            ring.material.opacity = 0.12 + Math.max(0, 1 - Math.abs(ring.position.z - cameraZ + 4) / 6) * 0.24;
+          });
+          cardMeshes.forEach((mesh, index) => {
+            const base = mesh.userData.base;
+            mesh.position.x = base.x + Math.sin(elapsed * 0.7 + index) * 0.09;
+            mesh.position.y = base.y + Math.cos(elapsed * 0.62 + index * 1.7) * 0.08;
+            mesh.rotation.x = base.rx + Math.sin(elapsed * 0.4 + index) * 0.08;
+            mesh.rotation.y = base.ry + elapsed * base.speed + progress * (0.45 + index * 0.03);
+            mesh.rotation.z = base.rz + Math.sin(elapsed * 0.5 + index) * 0.05;
+          });
+          scannerPanel.rotation.y = -0.38 + Math.sin(elapsed * 0.8) * 0.08 + progress * 0.2;
+          scannerPanel.rotation.x = 0.07 + Math.sin(elapsed * 0.55) * 0.025;
+          scannerRings.forEach((ring, index) => {
+            ring.rotation.z += reduceMotion ? 0 : 0.014 + index * 0.006;
+            ring.material.opacity = 0.08 + Math.max(0, 1 - Math.abs(progress - 0.38) * 5.2) * (index === 1 ? 0.24 : 0.42);
+          });
+          arTargetCard.rotation.y = 0.46 + Math.sin(elapsed * 0.7) * 0.05 - progress * 0.15;
+          arTargetCard.rotation.z = -0.08 + Math.sin(elapsed * 0.5) * 0.025;
+          beam.material.opacity = 0.14 + Math.sin(elapsed * 2.8) * 0.08 + Math.max(0, 1 - Math.abs(progress - 0.38) * 5) * 0.18;
+          markers.forEach((marker, index) => {
+            marker.rotation.y += reduceMotion ? 0 : 0.008 + index * 0.0008;
+          });
+          deckGroup.rotation.y = -0.36 + progress * 0.55 + Math.sin(elapsed * 0.45) * 0.06;
+          deckCards.forEach((mesh, index) => {
+            mesh.position.z = index * 0.018 + Math.sin(elapsed + index) * 0.006;
+          });
+          constellationGroup.rotation.y = elapsed * 0.045 + progress * 0.75;
+          constellationGroup.rotation.z = Math.sin(elapsed * 0.28) * 0.035;
+          constellationCards.forEach((mesh, index) => {
+            const pulse = Math.sin(elapsed * 1.4 + index * 0.7) * 0.035;
+            mesh.position.z = mesh.userData.baseZ + pulse;
+            mesh.rotation.z += reduceMotion ? 0 : 0.0025;
+          });
+          particles.rotation.y = elapsed * 0.025 + progress * 0.35;
+          renderer.render(scene, camera);
+          frame = window.requestAnimationFrame(render);
+        };
+
+        resize();
+        window.addEventListener('resize', resize);
+        render();
+
+        cleanupScene = () => {
+          window.removeEventListener('resize', resize);
+          window.cancelAnimationFrame(frame);
+          disposables.forEach((item) => item?.dispose?.());
+          renderer.dispose();
+          renderer.forceContextLoss?.();
+        };
+      })
+      .catch(() => {
+        if (!disposed) {
+          setWebglReady(false);
+          setProgressDom(getProgress());
+        }
+      });
+
+    return () => {
+      disposed = true;
+      cleanupScene();
+    };
+  }, [c, chapters]);
+
+  return (
+    <section
+      ref={sectionRef}
+      className="scroll-3d-section"
+      aria-label={c.scroll3d.ariaLabel}
+      data-section="scroll-3d"
+      data-landing-scroll-hybrid
+    >
+      <div ref={stickyRef} className="scroll-3d-sticky">
+        <div className="scroll-3d-layout">
+          <div className="scroll-3d-copy">
+            <p>{active.label}</p>
+            <h2>{active.title}</h2>
+            <span>{active.body}</span>
+            <div className="scroll-ar-card" data-landing-scroll-ar aria-label={`${c.scroll3d.targetTitle}: ${c.scroll3d.targetBody}`}>
+              <ARTargetGlyph />
+              <span>
+                <strong>{c.scroll3d.targetTitle}</strong>
+                <small>{c.scroll3d.targetBody}</small>
+              </span>
+            </div>
+            <div className="scroll-3d-progress" aria-label={c.scroll3d.progress}>
+              <i ref={progressRef} />
+            </div>
+            <div className="scroll-3d-dots" aria-hidden="true">
+              {chapters.map((chapter, index) => (
+                <b key={chapter.label} className={index === activeStep ? 'is-active' : ''} />
+              ))}
+            </div>
+          </div>
+
+            <div className="scroll-scene-wrap" aria-label={c.scroll3d.sceneFrame} data-landing-scroll-scanner>
+            <div ref={screenRef} className="scroll-scene-stage" data-landing-scroll-scene>
+              <canvas
+                ref={canvasRef}
+                className="scroll-3d-canvas"
+                data-landing-scroll-canvas
+                aria-hidden="true"
+              />
+              <div className="scroll-3d-vignette" aria-hidden="true" />
+              <div className={`scroll-3d-fallback ${webglReady === false ? 'is-visible' : ''}`} aria-hidden="true">
+                {SCROLL_STORY_CARDS.slice(0, 4).map((card, index) => (
+                  <span key={card.name} style={{ '--i': index }}>
+                    {card.rank}
+                  </span>
+                ))}
+              </div>
+              <div className="scroll-scene-hud" aria-hidden="true">
+                <ScanLine size={16} />
+                <span>{c.scroll3d.arHud}</span>
+              </div>
+            </div>
+          </div>
         </div>
-      ) : null}
+      </div>
     </section>
   );
 }
@@ -872,190 +1684,40 @@ function StatsBand({ c }) {
   );
 }
 
-function FeaturedFiguresStrip({ c }) {
-  const allFigures = useFiguresWithDb();
-  const portrayed = allFigures.filter((f) => f.front_img || f.portrait_url);
-  return (
-    <section
-      data-section="featured-figures"
-      style={{
-        padding: 'clamp(56px, 8vw, 96px) clamp(24px, 4vw, 56px)',
-        background: tokens.bg,
-      }}
-    >
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            gap: 24,
-            marginBottom: 'clamp(28px, 4vw, 44px)',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontFamily: FONT_SANS,
-                fontSize: 11,
-                letterSpacing: 3,
-                color: tokens.accent,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-              }}
-            >
-              {c.featured.chip}
-            </div>
-            <h2
-              style={{
-                marginTop: 10,
-                fontFamily: tokens.serif,
-                fontWeight: 600,
-                fontSize: 'clamp(1.8rem, 3.4vw, 2.6rem)',
-                lineHeight: 1.05,
-                letterSpacing: -0.3,
-                color: tokens.ink,
-              }}
-            >
-              {c.featured.title}
-            </h2>
-          </div>
-          <Link
-            to="/figures"
-            style={{
-              color: tokens.accent,
-              fontFamily: FONT_SANS,
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: 1.4,
-              textTransform: 'uppercase',
-              textDecoration: 'none',
-              paddingBottom: 6,
-              borderBottom: `1px solid ${tokens.accent}`,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            {c.featured.view} <ArrowRight size={14} />
-          </Link>
-        </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 'clamp(16px, 2.5vw, 28px)',
-          }}
-        >
-          {portrayed.map((f) => (
-            <article key={f.fig_id}>
-              <Link
-                to={`/figures/${f.fig_id}`}
-                style={{ textDecoration: 'none', color: 'inherit' }}
-                aria-label={`${f.name} (${f.yrs})`}
-              >
-                <figure
-                  style={{
-                    position: 'relative',
-                    aspectRatio: '3/4',
-                    overflow: 'hidden',
-                    borderRadius: 8,
-                    border: `1px solid ${tokens.border}`,
-                    background: tokens.surface,
-                    transition: 'transform 220ms ease, border-color 220ms ease',
-                    margin: 0,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.borderColor = tokens.accent;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.borderColor = tokens.border;
-                  }}
-                >
-                  <img
-                    src={f.front_img || f.portrait_url}
-                    alt={`Portrait of ${f.name}`}
-                    loading="lazy"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      objectPosition: '50% 22%',
-                      filter: f.front_img
-                        ? 'none'
-                        : 'sepia(0.18) contrast(1.18) saturate(1.05)',
-                    }}
-                  />
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background:
-                        'linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 50%)',
-                    }}
-                  />
-                  <figcaption
-                    style={{
-                      position: 'absolute',
-                      left: 16,
-                      right: 16,
-                      bottom: 14,
-                    }}
-                  >
-                    <h3
-                      style={{
-                        fontFamily: tokens.serif,
-                        fontWeight: 600,
-                        fontSize: 18,
-                        lineHeight: 1.18,
-                        color: '#fff',
-                        margin: 0,
-                      }}
-                    >
-                      {f.name}
-                    </h3>
-                    <p
-                      style={{
-                        fontFamily: FONT_SANS,
-                        fontSize: 10.5,
-                        letterSpacing: 1.8,
-                        textTransform: 'uppercase',
-                        color: tokens.accent,
-                        marginTop: 6,
-                        marginBottom: 0,
-                        fontWeight: 700,
-                      }}
-                    >
-                      <time>{f.yrs}</time>
-                    </p>
-                  </figcaption>
-                </figure>
-              </Link>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const HOW_ICONS = [QrCode, MessageCircle, HelpCircle, Volume2];
+const HOW_ICONS = [ScanLine, MessageCircle, HelpCircle, Volume2];
 
 function HowItWorks({ c }) {
   return (
     <section
       id="how"
-      style={{ padding: `${SECTION_PADY}px 24px`, background: tokens.surface, borderTop: `1px solid ${tokens.border}` }}
+      className="scan-lab-section"
+      style={{ padding: `${SECTION_PADY + 20}px 24px`, background: tokens.surface, borderTop: `1px solid ${tokens.border}` }}
     >
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <Reveal>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+      <div className="scan-lab-grid" style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <Reveal className="scan-lab-visual-wrap">
+          <div className="scan-lab-visual" aria-hidden="true">
+            <div className="scan-lab-gantry" />
+            <div className="scan-lab-beam" />
+            <div className="scan-lab-card">
+              <div className="scan-lab-card-media" style={{ backgroundImage: `url(${PORTRAITS.genghis})` }} />
+              <span>K</span>
+              <strong>Чингис Хаан</strong>
+              <small>{c.how.visualLabel}</small>
+            </div>
+            <div className="scan-lab-phone">
+              <div className="scan-lab-phone-screen">
+                <ScanLine size={40} />
+                <p>{c.hero.scanLabel}</p>
+                <strong>{c.hero.scanBody}</strong>
+              </div>
+            </div>
+            <div className="scan-lab-floor" />
+          </div>
+        </Reveal>
+
+        <div className="scan-lab-copy">
+          <Reveal>
+            <div style={{ marginBottom: 32 }}>
             <Chip>{c.how.chip}</Chip>
             <h2
               style={{
@@ -1073,7 +1735,6 @@ function HowItWorks({ c }) {
               style={{
                 marginTop: 14,
                 maxWidth: 620,
-                margin: '14px auto 0',
                 color: tokens.body,
                 fontSize: 17,
                 lineHeight: 1.6,
@@ -1082,91 +1743,28 @@ function HowItWorks({ c }) {
               {c.how.lede}
             </p>
           </div>
-        </Reveal>
+          </Reveal>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 20,
-          }}
-        >
-          {c.how.steps.map((s, i) => {
-            const Icon = HOW_ICONS[i] || QrCode;
-            return (
-              <Reveal key={s.title} delay={i * 80}>
-                <article
-                  style={{
-                    background: tokens.bg,
-                    border: `1px solid ${tokens.border}`,
-                    borderRadius: 22,
-                    padding: 24,
-                    height: '100%',
-                    transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 18px 40px -22px rgba(15,23,42,0.15)';
-                    e.currentTarget.style.borderColor = tokens.borderStrong;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.borderColor = tokens.border;
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      background: tokens.brandSoft,
-                      color: tokens.brand,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginBottom: 18,
-                    }}
-                  >
-                    <Icon size={20} />
-                  </span>
-                  <p
-                    style={{
-                      fontSize: 12,
-                      letterSpacing: 1.4,
-                      color: tokens.hint,
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      margin: 0,
-                    }}
-                  >
-                    {c.how.step} {i + 1}
-                  </p>
-                  <h3
-                    style={{
-                      marginTop: 6,
-                      fontSize: 19,
-                      fontWeight: 700,
-                      color: tokens.ink,
-                    }}
-                  >
-                    {s.title}
-                  </h3>
-                  <p
-                    style={{
-                      marginTop: 10,
-                      fontSize: 14.5,
-                      lineHeight: 1.55,
-                      color: tokens.body,
-                    }}
-                  >
-                    {s.desc}
-                  </p>
-                </article>
-              </Reveal>
-            );
-          })}
+          <ol className="scan-step-list">
+            {c.how.steps.map((s, i) => {
+              const Icon = HOW_ICONS[i] || ScanLine;
+              return (
+                <Reveal key={s.title} delay={i * 80}>
+                  <li className="scan-step-card">
+                    <span className="scan-step-index">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="scan-step-icon" aria-hidden="true">
+                      <Icon size={20} />
+                    </span>
+                    <div>
+                      <p>{c.how.step} {i + 1}</p>
+                      <h3>{s.title}</h3>
+                      <span>{s.desc}</span>
+                    </div>
+                  </li>
+                </Reveal>
+              );
+            })}
+          </ol>
         </div>
       </div>
     </section>
@@ -1760,7 +2358,6 @@ function Footer({ c }) {
 export default function LandingV2() {
   const { lang } = useLang();
   const c = COPY[lang] || COPY.mn;
-  const allFigures = useFiguresWithDb();
 
   const ldData = {
     '@context': 'https://schema.org',
@@ -1773,8 +2370,8 @@ export default function LandingV2() {
           ? 'Altan Domog — 52 figures of Mongolian history'
           : 'Altan Domog — 52 түүхэн зүтгэлтэн',
         description: lang === 'en'
-          ? '52 figures of Mongolian history — from Genghis Khan to Zanabazar — gathered into a gold-edged playing card deck. Scan the QR on any card and an AI guide answers in the figure’s voice.'
-          : '52 түүхэн зүтгэлтний намтар, гавьяа, домог — Чингис Хаанаас Занабазар хүртэл, нэг алтан хөзрийн багцад. Хөзрийн QR-ыг уншуулмагц AI хөтөч уг дүрийн дуугаар хариулна.',
+          ? '52 figures of Mongolian history — from Genghis Khan to Zanabazar — gathered into a gold-edged playing card deck. AR recognition identifies each card and an AI guide answers in the figure’s voice.'
+          : '52 түүхэн зүтгэлтний намтар, гавьяа, домог — Чингис Хаанаас Занабазар хүртэл, нэг алтан хөзрийн багцад. AR танилт картаа таньж, AI хөтөч уг дүрийн дуугаар хариулна.',
         inLanguage: lang === 'en' ? 'en' : 'mn',
         isPartOf: { '@id': siteUrl('/#website') },
         about: { '@id': siteUrl('/#product') },
@@ -1792,18 +2389,6 @@ export default function LandingV2() {
         ],
       },
       {
-        '@type': 'ItemList',
-        '@id': siteUrl('/#featured-figures'),
-        name: lang === 'en' ? 'Featured figures from Altan Domog' : 'Онцолж буй дүрүүд',
-        numberOfItems: Math.min(allFigures.length, 12),
-        itemListElement: allFigures.slice(0, 12).map((f, i) => ({
-          '@type': 'ListItem',
-          position: i + 1,
-          url: siteUrl(`/figure/${f.fig_id}`),
-          name: f.name,
-        })),
-      },
-      {
         '@type': 'FAQPage',
         '@id': siteUrl('/#faq'),
         mainEntity: c.how.steps.map((s) => ({
@@ -1818,8 +2403,8 @@ export default function LandingV2() {
         name: 'Altan Domog — Collection I',
         brand: { '@id': siteUrl('/#organization') },
         description: lang === 'en'
-          ? 'A 52-card historical playing deck. Each card carries a QR that opens an AI-guided conversation with the figure pictured.'
-          : '52 түүхэн дүртэй хөзрийн багц. Хөзөр бүрийн QR-ыг уншуулахад AI хөтөч уг дүрийн дуугаар ярина.',
+          ? 'A 52-card historical playing deck. AR recognition identifies each card face and opens an AI-guided conversation with the figure pictured.'
+          : '52 түүхэн дүртэй хөзрийн багц. AR танилт хөзрийн нүүрийг таньж, AI хөтөч уг дүрийн дуугаар ярина.',
         image: siteUrl('/logo.png'),
         offers: [
           {
@@ -1866,8 +2451,8 @@ export default function LandingV2() {
       <NavBar c={c} />
       <main>
         <Hero c={c} />
+        <ScrollStory3D c={c} />
         <StatsBand c={c} />
-        <FeaturedFiguresStrip c={c} />
         <HowItWorks c={c} />
         <CardCollectionV2 c={c} />
         <Features c={c} />
@@ -1876,22 +2461,1065 @@ export default function LandingV2() {
       </main>
       <Footer c={c} />
       <style>{`
+        .scroll-3d-section {
+          position: relative;
+          min-height: 410vh;
+          margin-top: -1px;
+          background: #07080c;
+        }
+        .scroll-3d-sticky {
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          min-height: 680px;
+          overflow: hidden;
+          isolation: isolate;
+          background:
+            radial-gradient(circle at 74% 42%, rgba(118,212,216,0.12), transparent 30%),
+            linear-gradient(180deg, #07080c 0%, #0d111a 48%, #07080c 100%),
+            repeating-linear-gradient(90deg, rgba(212,168,67,0.04) 0 1px, transparent 1px 92px);
+        }
+        .scroll-3d-sticky::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          background:
+            linear-gradient(90deg, rgba(7,8,12,0.94) 0%, rgba(7,8,12,0.7) 34%, rgba(7,8,12,0.14) 70%, rgba(7,8,12,0.74) 100%),
+            linear-gradient(180deg, rgba(7,8,12,0.62), transparent 28%, transparent 66%, rgba(7,8,12,0.78));
+          pointer-events: none;
+        }
+        .scroll-3d-sticky::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          background:
+            linear-gradient(115deg, transparent 0%, rgba(118,212,216,0.08) 42%, transparent 58%),
+            repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 9px);
+          mix-blend-mode: screen;
+          opacity: 0.5;
+          pointer-events: none;
+        }
+        .scroll-3d-layout {
+          position: relative;
+          z-index: 4;
+          height: 100%;
+          width: min(1320px, 100%);
+          margin: 0 auto;
+          padding: clamp(96px, 12vh, 136px) clamp(24px, 5vw, 64px) clamp(42px, 7vh, 76px);
+          display: grid;
+          grid-template-columns: minmax(320px, 0.74fr) minmax(480px, 1.06fr);
+          gap: clamp(24px, 5vw, 72px);
+          align-items: center;
+        }
+        .scroll-3d-canvas {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+        .scroll-3d-vignette {
+          position: absolute;
+          inset: 0;
+          z-index: 3;
+          background:
+            radial-gradient(ellipse at 50% 42%, transparent 0%, transparent 50%, rgba(7,8,12,0.58) 88%),
+            linear-gradient(180deg, rgba(7,8,12,0.18), transparent 18%, transparent 72%, rgba(7,8,12,0.78) 100%);
+          pointer-events: none;
+        }
+        .scroll-3d-copy {
+          position: relative;
+          z-index: 5;
+          width: min(480px, calc(100% - 48px));
+          color: #ede8d5;
+          text-shadow: 0 20px 58px rgba(0,0,0,0.62);
+        }
+        .scroll-3d-copy > p {
+          margin: 0 0 14px;
+          color: #76d4d8;
+          font-family: ${tokens.serif};
+          font-size: clamp(2.2rem, 5vw, 4.9rem);
+          font-weight: 600;
+          font-style: italic;
+          line-height: 0.8;
+        }
+        .scroll-3d-copy h2 {
+          margin: 0;
+          color: #fff7df;
+          font-family: ${tokens.serif};
+          font-size: clamp(2.08rem, 5vw, 4.8rem);
+          font-weight: 600;
+          line-height: 0.94;
+          letter-spacing: 0;
+        }
+        .scroll-3d-copy > span {
+          display: block;
+          margin-top: 18px;
+          max-width: 420px;
+          color: rgba(237,232,213,0.76);
+          font-family: ${FONT_SANS};
+          font-size: clamp(0.98rem, 1.28vw, 1.13rem);
+          line-height: 1.68;
+        }
+        .scroll-ar-card {
+          width: min(420px, 100%);
+          margin-top: 26px;
+          display: grid;
+          grid-template-columns: 84px minmax(0, 1fr);
+          gap: 16px;
+          align-items: center;
+          padding: 14px;
+          border: 1px solid rgba(212,168,67,0.28);
+          background:
+            linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.018)),
+            rgba(10,12,20,0.72);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 56px rgba(0,0,0,0.32);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+        .scroll-ar-card > span:not(.ar-target-glyph) {
+          min-width: 0;
+        }
+        .scroll-ar-card strong {
+          display: block;
+          color: #f2d88a;
+          font-family: ${FONT_SANS};
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 1.9px;
+          text-transform: uppercase;
+        }
+        .scroll-ar-card small {
+          display: block;
+          margin-top: 8px;
+          color: rgba(237,232,213,0.7);
+          font-family: ${FONT_SANS};
+          font-size: 0.86rem;
+          line-height: 1.45;
+        }
+        .ar-target-glyph {
+          position: relative;
+          display: block;
+          width: 84px;
+          height: 84px;
+          background: linear-gradient(135deg, #f7df92, #d4a843);
+          border: 1px solid rgba(255,255,255,0.18);
+          box-shadow: 0 16px 34px rgba(212,168,67,0.18);
+        }
+        .ar-target-glyph i {
+          position: absolute;
+          width: 22px;
+          height: 22px;
+          border-color: #07080c;
+          opacity: 0.9;
+        }
+        .ar-target-glyph i:nth-child(1) { left: 9px; top: 9px; border-left: 3px solid; border-top: 3px solid; }
+        .ar-target-glyph i:nth-child(2) { right: 9px; top: 9px; border-right: 3px solid; border-top: 3px solid; }
+        .ar-target-glyph i:nth-child(3) { left: 9px; bottom: 9px; border-left: 3px solid; border-bottom: 3px solid; }
+        .ar-target-glyph i:nth-child(4) { right: 9px; bottom: 9px; border-right: 3px solid; border-bottom: 3px solid; }
+        .ar-target-glyph b,
+        .ar-target-glyph em {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          border: 2px solid rgba(7,8,12,0.72);
+          border-radius: 999px;
+        }
+        .ar-target-glyph b {
+          width: 42px;
+          height: 42px;
+        }
+        .ar-target-glyph em {
+          width: 24px;
+          height: 24px;
+          font-style: normal;
+        }
+        .ar-target-glyph strong {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          color: #07080c;
+          font-size: 11px;
+          letter-spacing: 0;
+          line-height: 1;
+        }
+        .scroll-scene-wrap {
+          position: relative;
+          z-index: 5;
+          min-width: 0;
+          width: min(820px, 58vw);
+          height: min(76vh, 720px);
+          min-height: 520px;
+          justify-self: end;
+          transform: perspective(1300px) rotateY(-5deg) rotateX(2deg);
+        }
+        .scroll-scene-stage {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          margin-left: auto;
+          overflow: visible;
+          background:
+            radial-gradient(ellipse at 54% 45%, rgba(118,212,216,0.2), transparent 32%),
+            radial-gradient(ellipse at 48% 62%, rgba(212,168,67,0.13), transparent 46%);
+          contain: layout paint size;
+        }
+        .scroll-scene-stage::before {
+          content: '';
+          position: absolute;
+          inset: 10% 4% 5%;
+          z-index: 4;
+          background:
+            linear-gradient(90deg, transparent, rgba(118,212,216,0.16), transparent),
+            repeating-linear-gradient(90deg, rgba(242,216,138,0.1) 0 1px, transparent 1px 84px);
+          opacity: 0.42;
+          transform: perspective(900px) rotateX(66deg);
+          filter: blur(0.2px);
+          pointer-events: none;
+        }
+        .scroll-scene-hud {
+          position: absolute;
+          right: clamp(6px, 4vw, 52px);
+          bottom: clamp(8px, 4vh, 34px);
+          z-index: 6;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border: 1px solid rgba(118,212,216,0.32);
+          background: rgba(7,8,12,0.72);
+          color: #f2d88a;
+          font-family: ${FONT_SANS};
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 1.3px;
+          text-transform: uppercase;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+        .scroll-scene-hud svg {
+          color: #76d4d8;
+          flex-shrink: 0;
+        }
+        .scroll-3d-progress {
+          position: relative;
+          width: min(360px, 72vw);
+          height: 2px;
+          margin-top: 28px;
+          overflow: hidden;
+          background: rgba(237,232,213,0.18);
+        }
+        .scroll-3d-progress i {
+          position: absolute;
+          inset: 0;
+          display: block;
+          transform: scaleX(0);
+          transform-origin: left center;
+          background: linear-gradient(90deg, #76d4d8, #e6bc52);
+          box-shadow: 0 0 22px rgba(118,212,216,0.38);
+        }
+        .scroll-3d-dots {
+          display: flex;
+          gap: 10px;
+          margin-top: 18px;
+        }
+        .scroll-3d-dots b {
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          border: 1px solid rgba(237,232,213,0.34);
+          background: transparent;
+          transition: background 200ms ease, border-color 200ms ease, transform 200ms ease;
+        }
+        .scroll-3d-dots b.is-active {
+          border-color: #e6bc52;
+          background: #e6bc52;
+          transform: scale(1.18);
+        }
+        .scroll-3d-fallback {
+          position: absolute;
+          inset: 0;
+          z-index: 2;
+          display: none;
+          perspective: 1200px;
+          transform-style: preserve-3d;
+          pointer-events: none;
+        }
+        .scroll-3d-fallback.is-visible {
+          display: block;
+        }
+        .scroll-3d-fallback span {
+          position: absolute;
+          left: calc(30% + var(--i) * 7%);
+          top: calc(14% + var(--i) * 9%);
+          width: clamp(96px, 36%, 168px);
+          aspect-ratio: 5 / 7.3;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(230,188,82,0.72);
+          background: linear-gradient(145deg, #171a22, #07080c 58%, #281508);
+          color: #e6bc52;
+          font-family: ${tokens.serif};
+          font-size: clamp(3rem, 7vw, 5.6rem);
+          box-shadow: inset 0 0 0 7px rgba(7,8,12,0.9), inset 0 0 0 8px rgba(212,168,67,0.36), 0 32px 70px rgba(0,0,0,0.46);
+          transform: translateZ(calc(var(--i) * 60px)) rotateY(calc(-24deg + var(--i) * 13deg)) rotateZ(calc(-8deg + var(--i) * 4deg));
+        }
+        .landing-hero-3d::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          background:
+            linear-gradient(180deg, rgba(255,255,255,0.045) 0%, transparent 18%),
+            repeating-linear-gradient(96deg, rgba(212,168,67,0.045) 0 1px, transparent 1px 72px);
+          mask-image: radial-gradient(circle at 70% 40%, rgba(0,0,0,0.9), transparent 74%);
+          -webkit-mask-image: radial-gradient(circle at 70% 40%, rgba(0,0,0,0.9), transparent 74%);
+          pointer-events: none;
+        }
+        .landing-hero-3d::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 34%;
+          z-index: 2;
+          background:
+            linear-gradient(180deg, transparent, rgba(7,8,12,0.88) 58%, #0a0c14 100%),
+            radial-gradient(ellipse at 70% 18%, rgba(212,168,67,0.18), transparent 50%);
+          pointer-events: none;
+        }
+        .hero-copy-panel {
+          transform: translateZ(16px);
+        }
+        .hero-proof-rail {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: clamp(28px, 4vw, 42px);
+          max-width: 540px;
+        }
+        .hero-proof-rail span {
+          min-height: 74px;
+          padding: 13px 12px;
+          border: 1px solid rgba(212,168,67,0.18);
+          background:
+            linear-gradient(135deg, rgba(255,255,255,0.055), rgba(255,255,255,0.015)),
+            rgba(12,14,20,0.72);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 20px 40px rgba(0,0,0,0.28);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          color: rgba(237,232,213,0.58);
+          font-family: ${FONT_SANS};
+          font-size: 10px;
+          line-height: 1.25;
+          letter-spacing: 1.6px;
+          text-transform: uppercase;
+        }
+        .hero-proof-rail strong {
+          display: block;
+          color: #e6bc52;
+          font-family: ${tokens.serif};
+          font-size: clamp(1.45rem, 2.4vw, 2.15rem);
+          font-weight: 650;
+          line-height: 0.9;
+          letter-spacing: 0;
+          margin-bottom: 8px;
+          text-transform: none;
+        }
+        .hero-product-stage {
+          position: relative;
+          min-height: min(620px, 62vw);
+          transform-style: preserve-3d;
+          transform: perspective(1600px) rotateX(var(--hero-tilt-x)) rotateY(var(--hero-tilt-y));
+          transition: transform 180ms ease-out;
+          isolation: isolate;
+        }
+        .hero-stage-light {
+          position: absolute;
+          border-radius: 999px;
+          pointer-events: none;
+          filter: blur(1px);
+        }
+        .hero-stage-light-top {
+          width: 62%;
+          height: 24%;
+          left: 23%;
+          top: 2%;
+          background: radial-gradient(ellipse at center, rgba(255,236,176,0.28), rgba(212,168,67,0.08) 45%, transparent 72%);
+          transform: translateZ(-140px) rotateX(72deg);
+        }
+        .hero-stage-light-floor {
+          width: 72%;
+          height: 22%;
+          left: 19%;
+          bottom: 2%;
+          background: radial-gradient(ellipse at center, rgba(212,168,67,0.2), rgba(176,89,38,0.07) 45%, transparent 72%);
+          transform: translateZ(-120px) rotateX(74deg);
+        }
+        .hero-stage-backplate {
+          position: absolute;
+          inset: 8% 5% 9% 24%;
+          overflow: hidden;
+          border: 1px solid rgba(212,168,67,0.18);
+          background: linear-gradient(145deg, rgba(237,232,213,0.06), rgba(237,232,213,0.015));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.1),
+            inset 0 0 90px rgba(7,8,12,0.72),
+            0 44px 90px rgba(0,0,0,0.46);
+          transform: translateZ(-140px) rotateY(-8deg) rotateX(2deg);
+          opacity: 0.78;
+        }
+        .hero-stage-backplate::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(90deg, rgba(7,8,12,0.86), rgba(7,8,12,0.18) 48%, rgba(7,8,12,0.7)),
+            linear-gradient(180deg, rgba(212,168,67,0.12), transparent 34%);
+          pointer-events: none;
+        }
+        .hero-orbit {
+          position: absolute;
+          border: 1px solid rgba(212,168,67,0.28);
+          border-radius: 999px;
+          transform-style: preserve-3d;
+          pointer-events: none;
+          box-shadow: 0 0 42px rgba(212,168,67,0.08);
+        }
+        .hero-orbit-one {
+          width: 69%;
+          height: 34%;
+          left: 18%;
+          top: 35%;
+          transform: translateZ(44px) rotateX(66deg) rotateZ(-12deg);
+        }
+        .hero-orbit-two {
+          width: 47%;
+          height: 23%;
+          left: 27%;
+          top: 42%;
+          border-color: rgba(176,89,38,0.34);
+          transform: translateZ(86px) rotateX(69deg) rotateZ(18deg);
+        }
+        .hero-glass-plinth {
+          position: absolute;
+          left: 16%;
+          right: 8%;
+          bottom: 9%;
+          height: 25%;
+          border-radius: 50%;
+          background:
+            radial-gradient(ellipse at 50% 42%, rgba(237,232,213,0.18), rgba(212,168,67,0.08) 32%, rgba(7,8,12,0.12) 58%, transparent 74%);
+          border: 1px solid rgba(212,168,67,0.14);
+          transform: translateZ(-58px) rotateX(72deg);
+          box-shadow: inset 0 0 54px rgba(255,255,255,0.08), 0 34px 80px rgba(0,0,0,0.52);
+        }
+        .hero-card-cluster {
+          position: absolute;
+          inset: 0;
+          transform-style: preserve-3d;
+          z-index: 3;
+        }
+        .hero-stage-card {
+          position: absolute;
+          width: clamp(138px, 18vw, 220px);
+          aspect-ratio: 5 / 7.35;
+          transform-style: preserve-3d;
+          filter: drop-shadow(0 34px 30px rgba(0,0,0,0.46));
+        }
+        .hero-stage-card-depth {
+          position: absolute;
+          inset: 2px -7px -9px 7px;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #a87928, #2b1b0c 55%, #050506);
+          transform: translateZ(-18px);
+          box-shadow: inset 0 0 0 1px rgba(255,236,176,0.26);
+        }
+        .hero-stage-card-face {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          border-radius: 10px;
+          border: 1px solid rgba(255,224,140,0.64);
+          background:
+            linear-gradient(135deg, rgba(255,255,255,0.16), transparent 28%),
+            linear-gradient(165deg, #161922, #090a0f 55%, #2b170d);
+          box-shadow:
+            inset 0 0 0 5px rgba(7,8,12,0.82),
+            inset 0 0 0 6px rgba(212,168,67,0.45),
+            inset 0 0 44px rgba(212,168,67,0.1);
+          transform: translateZ(16px);
+        }
+        .hero-stage-card-face::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(112deg, transparent 0%, rgba(255,255,255,0.18) 26%, transparent 38%),
+            repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 5px);
+          mix-blend-mode: screen;
+          opacity: 0.78;
+          pointer-events: none;
+        }
+        .hero-stage-card-media {
+          position: absolute;
+          inset: 12% 9% 24%;
+          border: 1px solid rgba(212,168,67,0.45);
+          background-size: cover;
+          background-position: 50% 16%;
+          filter: saturate(0.92) contrast(1.08);
+          box-shadow: inset 0 -42px 46px rgba(0,0,0,0.64);
+        }
+        .hero-stage-card-corner {
+          position: absolute;
+          left: 9%;
+          top: 7%;
+          color: #f1d47c;
+          font-family: ${tokens.serif};
+          line-height: 0.86;
+          text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+        }
+        .hero-stage-card-corner strong {
+          display: block;
+          font-size: clamp(1.2rem, 2vw, 1.72rem);
+        }
+        .hero-stage-card-corner span {
+          display: block;
+          margin-top: 6px;
+          color: #b05926;
+          font-size: clamp(0.88rem, 1.4vw, 1.2rem);
+        }
+        .hero-stage-card-copy {
+          position: absolute;
+          left: 10%;
+          right: 10%;
+          bottom: 8%;
+          color: #fff7df;
+          text-shadow: 0 2px 12px rgba(0,0,0,0.72);
+        }
+        .hero-stage-card-copy strong {
+          display: block;
+          font-family: ${tokens.serif};
+          font-size: clamp(1rem, 1.75vw, 1.36rem);
+          font-weight: 650;
+          line-height: 1.02;
+        }
+        .hero-stage-card-copy span {
+          display: block;
+          margin-top: 6px;
+          color: rgba(237,232,213,0.68);
+          font-family: ${FONT_SANS};
+          font-size: clamp(0.62rem, 0.9vw, 0.78rem);
+          letter-spacing: 1.3px;
+          text-transform: uppercase;
+        }
+        .hero-card-main {
+          left: 38%;
+          top: 20%;
+          transform: translateZ(122px) rotateY(-18deg) rotateX(7deg) rotateZ(5deg);
+          animation: heroFloat 7.5s ease-in-out infinite;
+        }
+        .hero-card-left {
+          left: 18%;
+          top: 31%;
+          transform: translateZ(44px) rotateY(26deg) rotateX(9deg) rotateZ(-13deg) scale(0.82);
+          opacity: 0.92;
+          animation: heroFloat 8.6s ease-in-out -1.4s infinite;
+        }
+        .hero-card-right {
+          left: 57%;
+          top: 35%;
+          transform: translateZ(64px) rotateY(-38deg) rotateX(11deg) rotateZ(12deg) scale(0.78);
+          opacity: 0.88;
+          animation: heroFloat 8s ease-in-out -2.5s infinite;
+        }
+        .hero-scan-beam {
+          position: absolute;
+          left: 48%;
+          top: 42%;
+          width: 30%;
+          height: 25%;
+          z-index: 4;
+          transform: translateZ(150px) rotateX(62deg) rotateZ(-14deg);
+          background: linear-gradient(90deg, transparent, rgba(242,216,138,0.38), rgba(255,255,255,0.22), transparent);
+          clip-path: polygon(0 34%, 100% 0, 82% 100%, 12% 76%);
+          filter: blur(0.5px) drop-shadow(0 0 20px rgba(212,168,67,0.34));
+          opacity: 0.82;
+          animation: scanSweep 3.4s ease-in-out infinite;
+        }
+        .hero-scan-phone {
+          position: absolute;
+          right: 3%;
+          bottom: 13%;
+          width: clamp(132px, 15vw, 178px);
+          aspect-ratio: 0.56;
+          z-index: 5;
+          border-radius: 26px;
+          padding: 9px;
+          background: linear-gradient(135deg, #343742, #06070a 68%);
+          border: 1px solid rgba(255,255,255,0.18);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 34px 70px rgba(0,0,0,0.54);
+          transform: translateZ(172px) rotateY(-19deg) rotateX(9deg) rotateZ(7deg);
+        }
+        .hero-phone-lens {
+          position: absolute;
+          top: 11px;
+          left: 50%;
+          width: 38px;
+          height: 5px;
+          transform: translateX(-50%);
+          border-radius: 999px;
+          background: rgba(255,255,255,0.22);
+          z-index: 2;
+        }
+        .hero-phone-screen {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          border-radius: 19px;
+          background:
+            radial-gradient(circle at 50% 22%, rgba(212,168,67,0.24), transparent 32%),
+            linear-gradient(180deg, #0c0f16, #07080c);
+          border: 1px solid rgba(212,168,67,0.22);
+        }
+        .hero-phone-viewfinder {
+          position: absolute;
+          inset: 17% 18% auto;
+          aspect-ratio: 1;
+        }
+        .hero-phone-viewfinder span {
+          position: absolute;
+          width: 25px;
+          height: 25px;
+          border-color: #f2d88a;
+          opacity: 0.78;
+        }
+        .hero-phone-viewfinder span:nth-child(1) { left: 0; top: 0; border-left: 2px solid; border-top: 2px solid; }
+        .hero-phone-viewfinder span:nth-child(2) { right: 0; top: 0; border-right: 2px solid; border-top: 2px solid; }
+        .hero-phone-viewfinder span:nth-child(3) { left: 0; bottom: 0; border-left: 2px solid; border-bottom: 2px solid; }
+        .hero-phone-viewfinder span:nth-child(4) { right: 0; bottom: 0; border-right: 2px solid; border-bottom: 2px solid; }
+        .hero-phone-chat {
+          position: absolute;
+          left: 10px;
+          right: 10px;
+          bottom: 10px;
+          padding: 11px;
+          border: 1px solid rgba(212,168,67,0.22);
+          background: rgba(7,8,12,0.78);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          color: rgba(237,232,213,0.76);
+        }
+        .hero-phone-chat p {
+          margin: 0 0 6px;
+          color: #e6bc52;
+          font-size: 9px;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          font-weight: 700;
+        }
+        .hero-phone-chat strong {
+          display: block;
+          font-size: 11px;
+          line-height: 1.35;
+          font-weight: 600;
+        }
+        .hero-quote-glass {
+          position: absolute;
+          top: 13%;
+          right: 2%;
+          max-width: min(360px, 42%);
+          z-index: 6;
+          margin: 0;
+          padding: 18px 20px;
+          border: 1px solid rgba(212,168,67,0.2);
+          background: rgba(7,8,12,0.48);
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 22px 46px rgba(0,0,0,0.34);
+          color: rgba(255,255,255,0.9);
+          font-family: ${tokens.serif};
+          font-size: clamp(1rem, 1.4vw, 1.28rem);
+          line-height: 1.34;
+          font-style: italic;
+          transform: translateZ(190px) rotateY(-8deg);
+        }
+        .hero-quote-glass > span {
+          color: #e6bc52;
+        }
+        .hero-quote-glass cite {
+          display: block;
+          margin-top: 10px;
+          color: #e6bc52;
+          font-family: ${FONT_SANS};
+          font-size: 9px;
+          letter-spacing: 1.8px;
+          text-transform: uppercase;
+          font-style: normal;
+          font-weight: 800;
+        }
+        .hero-quote-glass small {
+          opacity: 0.72;
+        }
+        .hero-pictured-caption {
+          position: absolute;
+          right: 2%;
+          bottom: 3%;
+          z-index: 6;
+          max-width: 350px;
+          color: rgba(237,232,213,0.54);
+          font-family: ${FONT_SANS};
+          font-size: 9px;
+          line-height: 1.65;
+          letter-spacing: 1.8px;
+          text-align: right;
+          text-transform: uppercase;
+          transform: translateZ(190px);
+        }
+        .hero-pictured-caption span {
+          color: #e6bc52;
+        }
+        .hero-pictured-caption small {
+          opacity: 0.8;
+        }
+        .scan-lab-section {
+          position: relative;
+          overflow: hidden;
+        }
+        .scan-lab-section::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 20% 32%, rgba(212,168,67,0.16), transparent 30%),
+            linear-gradient(120deg, rgba(7,8,12,0.2), transparent 52%);
+          pointer-events: none;
+        }
+        .scan-lab-grid {
+          position: relative;
+          display: grid;
+          grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.05fr);
+          gap: clamp(34px, 6vw, 72px);
+          align-items: center;
+        }
+        .scan-lab-visual-wrap {
+          min-width: 0;
+        }
+        .scan-lab-visual {
+          position: relative;
+          min-height: 560px;
+          perspective: 1500px;
+          transform-style: preserve-3d;
+        }
+        .scan-lab-gantry {
+          position: absolute;
+          left: 9%;
+          top: 6%;
+          width: 78%;
+          height: 22%;
+          border: 1px solid rgba(212,168,67,0.2);
+          border-bottom: 0;
+          background: linear-gradient(180deg, rgba(255,255,255,0.045), transparent);
+          transform: rotateX(64deg) translateZ(34px);
+          box-shadow: 0 26px 58px rgba(0,0,0,0.34);
+        }
+        .scan-lab-floor {
+          position: absolute;
+          left: 2%;
+          right: 2%;
+          bottom: 8%;
+          height: 32%;
+          border-radius: 50%;
+          border: 1px solid rgba(212,168,67,0.16);
+          background:
+            radial-gradient(ellipse at center, rgba(237,232,213,0.14), rgba(212,168,67,0.07) 36%, rgba(7,8,12,0.2) 64%, transparent 76%);
+          transform: rotateX(72deg) translateZ(-60px);
+        }
+        .scan-lab-card {
+          position: absolute;
+          left: 17%;
+          top: 19%;
+          width: clamp(166px, 21vw, 238px);
+          aspect-ratio: 5 / 7.3;
+          border: 1px solid rgba(255,224,140,0.72);
+          border-radius: 11px;
+          overflow: hidden;
+          transform: translateZ(110px) rotateY(25deg) rotateX(7deg) rotateZ(-5deg);
+          background: #0d0f16;
+          box-shadow:
+            inset 0 0 0 6px rgba(7,8,12,0.88),
+            inset 0 0 0 7px rgba(212,168,67,0.42),
+            0 38px 62px rgba(0,0,0,0.48);
+        }
+        .scan-lab-card::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.2) 35%, transparent 48%);
+          mix-blend-mode: screen;
+        }
+        .scan-lab-card-media {
+          position: absolute;
+          inset: 13% 10% 26%;
+          border: 1px solid rgba(212,168,67,0.4);
+          background-size: cover;
+          background-position: 50% 14%;
+          box-shadow: inset 0 -50px 40px rgba(0,0,0,0.65);
+        }
+        .scan-lab-card span {
+          position: absolute;
+          left: 10%;
+          top: 7%;
+          color: #e6bc52;
+          font-family: ${tokens.serif};
+          font-size: 1.55rem;
+          font-weight: 700;
+        }
+        .scan-lab-card strong {
+          position: absolute;
+          left: 11%;
+          right: 11%;
+          bottom: 13%;
+          color: #fff7df;
+          font-family: ${tokens.serif};
+          font-size: 1.2rem;
+          line-height: 1;
+        }
+        .scan-lab-card small {
+          position: absolute;
+          left: 11%;
+          right: 11%;
+          bottom: 8%;
+          color: rgba(237,232,213,0.62);
+          font-size: 0.66rem;
+          letter-spacing: 1.4px;
+          text-transform: uppercase;
+        }
+        .scan-lab-beam {
+          position: absolute;
+          left: 33%;
+          top: 28%;
+          width: 38%;
+          height: 30%;
+          background: linear-gradient(90deg, transparent, rgba(242,216,138,0.4), rgba(255,255,255,0.22), transparent);
+          clip-path: polygon(6% 32%, 100% 0, 78% 100%, 0 70%);
+          transform: translateZ(150px) rotateX(59deg) rotateZ(-8deg);
+          filter: drop-shadow(0 0 26px rgba(212,168,67,0.32));
+          animation: scanSweep 3.8s ease-in-out infinite;
+          z-index: 4;
+        }
+        .scan-lab-phone {
+          position: absolute;
+          right: 8%;
+          top: 34%;
+          width: clamp(140px, 18vw, 196px);
+          aspect-ratio: 0.57;
+          padding: 10px;
+          border-radius: 28px;
+          background: linear-gradient(140deg, #3b3e49, #06070a 70%);
+          border: 1px solid rgba(255,255,255,0.16);
+          transform: translateZ(185px) rotateY(-25deg) rotateX(8deg) rotateZ(7deg);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 34px 70px rgba(0,0,0,0.5);
+          z-index: 5;
+        }
+        .scan-lab-phone-screen {
+          position: relative;
+          height: 100%;
+          overflow: hidden;
+          border-radius: 20px;
+          padding: 20px 14px;
+          border: 1px solid rgba(212,168,67,0.2);
+          background:
+            radial-gradient(circle at 50% 24%, rgba(212,168,67,0.25), transparent 36%),
+            linear-gradient(180deg, #10141d, #07080c);
+          color: rgba(237,232,213,0.75);
+        }
+        .scan-lab-phone-screen svg {
+          color: #e6bc52;
+        }
+        .scan-lab-phone-screen p {
+          margin: 22px 0 8px;
+          color: #e6bc52;
+          font-size: 9px;
+          letter-spacing: 1.4px;
+          text-transform: uppercase;
+          font-weight: 800;
+        }
+        .scan-lab-phone-screen strong {
+          display: block;
+          font-size: 12px;
+          line-height: 1.45;
+        }
+        .scan-step-list {
+          display: grid;
+          gap: 14px;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+        .scan-step-card {
+          position: relative;
+          display: grid;
+          grid-template-columns: auto auto minmax(0, 1fr);
+          gap: 16px;
+          align-items: flex-start;
+          padding: 20px;
+          border: 1px solid rgba(212,168,67,0.18);
+          background:
+            linear-gradient(135deg, rgba(255,255,255,0.055), rgba(255,255,255,0.012)),
+            rgba(10,12,20,0.62);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 52px rgba(0,0,0,0.24);
+          transform: perspective(900px) rotateY(-1.6deg);
+          transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+        }
+        .scan-step-card:hover {
+          transform: perspective(900px) rotateY(0deg) translateY(-2px);
+          border-color: rgba(212,168,67,0.42);
+          background: linear-gradient(135deg, rgba(212,168,67,0.12), rgba(255,255,255,0.018)), rgba(10,12,20,0.78);
+        }
+        .scan-step-index {
+          color: rgba(212,168,67,0.34);
+          font-family: ${tokens.serif};
+          font-size: 1.8rem;
+          font-weight: 650;
+          line-height: 1;
+          min-width: 42px;
+        }
+        .scan-step-icon {
+          width: 42px;
+          height: 42px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(212,168,67,0.25);
+          background: rgba(212,168,67,0.09);
+          color: #e6bc52;
+        }
+        .scan-step-card p {
+          margin: 0;
+          color: rgba(237,232,213,0.48);
+          font-size: 10px;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          font-weight: 800;
+        }
+        .scan-step-card h3 {
+          margin: 4px 0 0;
+          color: #ede8d5;
+          font-size: 1.08rem;
+          font-weight: 700;
+          letter-spacing: 0;
+        }
+        .scan-step-card span:not(.scan-step-index):not(.scan-step-icon) {
+          display: block;
+          margin-top: 8px;
+          color: #a89f8a;
+          font-size: 0.94rem;
+          line-height: 1.55;
+        }
+        @keyframes heroFloat {
+          0%, 100% { margin-top: 0; }
+          50% { margin-top: -14px; }
+        }
+        @keyframes scanSweep {
+          0%, 100% { opacity: 0.48; transform: translateZ(150px) rotateX(62deg) rotateZ(-14deg) translateX(-5%); }
+          50% { opacity: 0.94; transform: translateZ(150px) rotateX(62deg) rotateZ(-14deg) translateX(5%); }
+        }
         .bento-grid > .bento-hero { grid-column: 1 / 3; grid-row: 1 / 3; }
         .bento-grid > .bento-wide { grid-column: 1 / 5; }
         @media (max-width: 880px) {
-          .hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
-          .hero-natgeo-grid {
+          .scroll-3d-section {
+            min-height: 380vh;
+          }
+          .scroll-3d-sticky {
+            min-height: 760px;
+          }
+          .scroll-3d-sticky::before {
+            background:
+              linear-gradient(180deg, rgba(7,8,12,0.78) 0%, rgba(7,8,12,0.24) 44%, rgba(7,8,12,0.9) 100%);
+          }
+          .scroll-3d-layout {
+            grid-template-columns: 1fr;
+            grid-template-rows: minmax(360px, 1fr) auto;
+            gap: 20px;
+            padding: 92px 24px 34px;
+            align-items: end;
+          }
+          .scroll-3d-copy {
+            width: 100%;
+          }
+          .scroll-3d-copy > span {
+            max-width: 560px;
+          }
+          .scroll-scene-wrap {
+            grid-row: 1;
+            align-self: center;
+            width: 100%;
+            height: min(58vh, 560px);
+            min-height: 410px;
+            transform: perspective(1200px) rotateY(-3deg) rotateX(1deg);
+          }
+          .scroll-scene-stage {
+            width: 100%;
+          }
+          .scroll-ar-card {
+            grid-template-columns: 72px minmax(0, 1fr);
+            max-width: 520px;
+          }
+          .ar-target-glyph {
+            width: 72px;
+            height: 72px;
+          }
+          .hero-shell-grid {
+            grid-template-columns: 1fr !important;
+            padding-top: 88px !important;
+            gap: 28px !important;
+          }
+          .hero-copy-panel {
+            max-width: 100% !important;
+          }
+          .hero-proof-rail {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .hero-product-stage {
+            min-height: 520px;
+          }
+          .hero-stage-backplate {
+            inset: 5% 2% 7% 14%;
+          }
+          .hero-card-main {
+            left: 34%;
+          }
+          .hero-card-left {
+            left: 8%;
+          }
+          .hero-card-right {
+            left: 60%;
+          }
+          .hero-scan-phone {
+            right: 0;
+            bottom: 8%;
+          }
+          .scan-lab-grid {
             grid-template-columns: 1fr !important;
           }
-          .hero-natgeo-text {
-            grid-column: 1 / -1 !important;
-            grid-row: 1 / 2 !important;
-            max-width: 100% !important;
-            justify-content: flex-end !important;
+          .scan-lab-visual {
+            min-height: 480px;
+            max-width: 620px;
+            margin: 0 auto;
           }
-          .hero-natgeo-readability {
-            background:
-              linear-gradient(0deg, rgba(10,6,6,0.92) 0%, rgba(10,6,6,0.55) 45%, rgba(10,6,6,0.1) 100%) !important;
+          .scan-step-card {
+            grid-template-columns: auto minmax(0, 1fr);
+          }
+          .scan-step-index {
+            display: none;
           }
           .hidden-on-mobile { display: none !important; }
           .bento-grid { grid-template-columns: 1fr !important; }
@@ -1900,6 +3528,144 @@ export default function LandingV2() {
           .bento-grid > .bento-small { grid-column: auto !important; grid-row: auto !important; }
           .stats-band-grid { grid-template-columns: repeat(2, 1fr) !important; row-gap: 32px !important; }
           .stats-band-grid > div:nth-child(3) { border-left: none !important; padding-left: 0 !important; }
+        }
+        @media (max-width: 560px) {
+          .scroll-3d-section {
+            min-height: 350vh;
+          }
+          .scroll-3d-sticky {
+            min-height: 100svh;
+          }
+          .scroll-3d-layout {
+            grid-template-rows: minmax(300px, 1fr) auto;
+            padding: 88px 20px max(24px, env(safe-area-inset-bottom));
+            gap: 12px;
+          }
+          .scroll-scene-wrap {
+            height: min(48vh, 430px);
+            min-height: 300px;
+            transform: perspective(1000px) rotateY(-2deg);
+          }
+          .scroll-scene-stage::before {
+            inset: 18% -4% 8%;
+          }
+          .scroll-scene-hud {
+            right: 12px;
+            bottom: 12px;
+            padding: 8px 9px;
+            font-size: 8px;
+          }
+          .scroll-3d-copy {
+            width: 100%;
+          }
+          .scroll-3d-copy > p {
+            font-size: 2.45rem;
+            margin-bottom: 10px;
+          }
+          .scroll-3d-copy h2 {
+            font-size: clamp(2rem, 12vw, 3.18rem);
+            max-width: 10ch;
+          }
+          .scroll-3d-copy > span {
+            max-width: 38ch;
+            font-size: 0.95rem;
+            line-height: 1.55;
+          }
+          .scroll-ar-card {
+            grid-template-columns: 56px minmax(0, 1fr);
+            gap: 12px;
+            padding: 11px;
+            margin-top: 16px;
+          }
+          .ar-target-glyph {
+            width: 56px;
+            height: 56px;
+          }
+          .scroll-ar-card small {
+            font-size: 0.76rem;
+            line-height: 1.35;
+          }
+          .scroll-3d-progress {
+            width: min(280px, 78vw);
+            margin-top: 22px;
+          }
+          .scroll-3d-fallback span {
+            left: calc(24% + var(--i) * 8%);
+            top: calc(16% + var(--i) * 10%);
+          }
+          .hero-proof-rail {
+            display: none;
+          }
+          .nav-primary-cta {
+            width: 54px !important;
+            height: 54px !important;
+            padding: 0 !important;
+            justify-content: center !important;
+            border-radius: 15px !important;
+            font-size: 0 !important;
+            flex-shrink: 0 !important;
+          }
+          .nav-primary-cta svg {
+            width: 18px !important;
+            height: 18px !important;
+          }
+          .hero-product-stage {
+            min-height: 390px;
+            margin-top: -12px;
+          }
+          .hero-stage-card {
+            width: 132px;
+          }
+          .hero-card-main {
+            left: 32%;
+            top: 18%;
+          }
+          .hero-card-left {
+            left: 4%;
+            top: 35%;
+          }
+          .hero-card-right {
+            left: 58%;
+            top: 39%;
+          }
+          .hero-scan-phone {
+            width: 124px;
+          }
+          .hero-scan-beam {
+            left: 45%;
+            width: 36%;
+          }
+          .scan-lab-visual {
+            min-height: 420px;
+          }
+          .scan-lab-card {
+            left: 9%;
+            top: 21%;
+            width: 158px;
+          }
+          .scan-lab-phone {
+            right: 1%;
+            width: 132px;
+          }
+          .scan-step-card {
+            padding: 17px;
+            gap: 12px;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hero-card-main,
+          .hero-card-left,
+          .hero-card-right,
+          .hero-scan-beam,
+          .scan-lab-beam {
+            animation: none !important;
+          }
+          .hero-product-stage {
+            transition: none !important;
+          }
+          .scroll-3d-dots b {
+            transition: none !important;
+          }
         }
       `}</style>
     </div>

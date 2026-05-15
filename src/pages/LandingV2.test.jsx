@@ -39,7 +39,7 @@ describe('LandingV2 — render smoke', () => {
 
   it('renders all 4 how-it-works steps and 3 pricing tiers', () => {
     renderLanding();
-    expect(screen.getByText(/QR код уншуулах/)).toBeInTheDocument();
+    expect(screen.getByText(/AR-аар картаа таниулах/)).toBeInTheDocument();
     expect(screen.getByText(/Зүтгэлтэн амилна/)).toBeInTheDocument();
     expect(screen.getByText(/Энгийн хувилбар/)).toBeInTheDocument();
     expect(screen.getByText(/Premium хувилбар/)).toBeInTheDocument();
@@ -57,5 +57,26 @@ describe('LandingV2 — render smoke', () => {
     renderLanding();
     expect(document.querySelector('[data-hero="meta-strip"]')).not.toBeNull();
     expect(document.querySelector('[data-hero="pictured-caption"]')).not.toBeNull();
+  });
+
+  it('renders the scroll-driven 3D journey section', () => {
+    renderLanding();
+    expect(document.querySelector('[data-section="scroll-3d"]')).not.toBeNull();
+    expect(document.querySelector('[data-landing-scroll-hybrid]')).not.toBeNull();
+    expect(document.querySelector('[data-landing-scroll-scene]')).not.toBeNull();
+    expect(document.querySelector('[data-landing-scroll-scanner]')).not.toBeNull();
+    expect(document.querySelector('[data-landing-scroll-phone]')).toBeNull();
+    expect(document.querySelector('[data-landing-scroll-canvas]')).not.toBeNull();
+    expect(document.querySelector('[data-landing-scroll-ar]')).not.toBeNull();
+    expect(screen.getByText(/Цагийн хонгилоор хөвөх хөзөр/)).toBeInTheDocument();
+    expect(screen.getByText(/AR карт танилт/)).toBeInTheDocument();
+  });
+
+  it('does not render the removed figure strip', () => {
+    renderLanding();
+    const removedHeading = ['Цуглуулгын', 'дөрвөн', 'дүр'].join(' ');
+    const removedSectionSelector = `[data-section="${['featured', 'figures'].join('-')}"]`;
+    expect(screen.queryByText(removedHeading)).not.toBeInTheDocument();
+    expect(document.querySelector(removedSectionSelector)).toBeNull();
   });
 });
